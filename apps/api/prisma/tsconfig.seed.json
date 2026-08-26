@@ -1,0 +1,28 @@
+{
+  // Seed skripti uchun alohida sozlama.
+  //
+  // ── Nega alohida fayl kerak ──────────────────────────────────────────
+  // Ilgari `db:seed` buyrug'i sozlamani buyruq qatorida uzatardi:
+  //
+  //     ts-node --compiler-options {"module":"CommonJS"} prisma/seed.ts
+  //
+  // Bu Linux'da ishlaydi, Windows'da esa YO'Q: PowerShell/cmd qo'shtirnoqlarni
+  // yeb qo'yadi va ts-node ga `{module:CommonJS}` degan yaroqsiz JSON yetib
+  // boradi. Natija — "Expected property name or '}' in JSON" xatosi va seed
+  // umuman ishlamaydi.
+  //
+  // Sozlamani faylga ko'chirish bu muammoni butunlay yo'q qiladi: endi
+  // buyruqda hech qanday qo'shtirnoq yo'q.
+  //
+  // ── Nega `rootDir` bekor qilinadi ────────────────────────────────────
+  // Asosiy sozlamada `rootDir: ./src` turibdi, seed esa `prisma/` ichida.
+  // U yerdan meros olinsa, tsc "fayl rootDir dan tashqarida" deb shikoyat
+  // qiladi.
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "rootDir": "..",
+    "noEmit": true
+  },
+  "include": ["seed.ts"]
+}

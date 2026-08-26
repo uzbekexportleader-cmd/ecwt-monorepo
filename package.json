@@ -1,0 +1,31 @@
+{
+  "name": "ecwt",
+  "version": "0.1.0",
+  "packageManager": "pnpm@11.21.0",
+  "private": true,
+  "description": "ECWT — E-commerce World Trade. O'zbek ishlab chiqaruvchilarini AQSH marketplace'lariga chiqarish platformasi.",
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "dev:web": "turbo run dev --filter=@ecwt/web",
+    "dev:api": "turbo run dev --filter=@ecwt/api",
+    "dev:mobile": "turbo run dev --filter=@ecwt/mobile",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "db:generate": "pnpm --filter @ecwt/api db:generate",
+    "db:migrate": "pnpm --filter @ecwt/api db:migrate",
+    "db:push": "pnpm --filter @ecwt/api db:push",
+    "db:seed": "pnpm --filter @ecwt/api db:seed",
+    "db:studio": "pnpm --filter @ecwt/api db:studio",
+    "clean": "turbo run clean && rimraf node_modules"
+  },
+  "devDependencies": {
+    "rimraf": "^6.0.1",
+    "turbo": "^2.5.0",
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=20.11.0"
+  }
+}

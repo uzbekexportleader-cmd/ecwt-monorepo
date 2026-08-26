@@ -1,0 +1,722 @@
+<title>ECWT — MVP spetsifikatsiyasi</title>
+<style>
+:root{
+  --ground:#ffffff; --surface:#f3f7fb; --surface-2:#e7eff7; --border:#d5e0ec;
+  --ink:#0b1b33; --ink-2:#42566f; --ink-3:#6d8098;
+  --accent:#0e7490; --accent-soft:#dff0f6; --accent-ink:#0a5568;
+  --good:#15803d; --good-soft:#e2f4e9;
+  --warn:#b45309; --warn-soft:#fbf0df;
+  --bad:#b91c1c; --bad-soft:#fbe9e9;
+  --demo:#6d28d9; --demo-soft:#eee9fb;
+  --plate:#f7fafc;
+  --sans:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"Cascadia Mono",Consolas,"Liberation Mono",monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#0a1524; --surface:#0f1d2f; --surface-2:#16283e; --border:#22374f;
+    --ink:#e9f0f8; --ink-2:#a9bed5; --ink-3:#7e93ac;
+    --accent:#38bdf8; --accent-soft:#0d2b3c; --accent-ink:#9ad9f7;
+    --good:#4ade80; --good-soft:#10291d;
+    --warn:#fbbf24; --warn-soft:#2c2110;
+    --bad:#f87171; --bad-soft:#2c1414;
+    --demo:#c4b5fd; --demo-soft:#221a3a;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0a1524; --surface:#0f1d2f; --surface-2:#16283e; --border:#22374f;
+  --ink:#e9f0f8; --ink-2:#a9bed5; --ink-3:#7e93ac;
+  --accent:#38bdf8; --accent-soft:#0d2b3c; --accent-ink:#9ad9f7;
+  --good:#4ade80; --good-soft:#10291d;
+  --warn:#fbbf24; --warn-soft:#2c2110;
+  --bad:#f87171; --bad-soft:#2c1414;
+  --demo:#c4b5fd; --demo-soft:#221a3a;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.65;margin:0}
+.wrap{display:grid;grid-template-columns:236px minmax(0,1fr);gap:48px;max-width:1180px;margin:0 auto;padding:0 24px}
+@media(max-width:900px){.wrap{grid-template-columns:1fr;gap:0}nav.toc{position:static!important;max-height:none!important;border-right:0!important;padding:16px 0!important}}
+nav.toc{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto;padding:32px 16px 32px 0;border-right:1px solid var(--border);font-size:13.5px}
+nav.toc a{display:block;color:var(--ink-2);text-decoration:none;padding:4px 0;border-radius:4px}
+nav.toc a:hover{color:var(--accent)}
+nav.toc a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+nav.toc .num{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);margin-right:7px}
+main{padding:32px 0 96px;min-width:0}
+header.mast{border-bottom:2px solid var(--ink);padding-bottom:20px;margin-bottom:14px}
+.eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0 0 10px}
+h1{font-size:38px;line-height:1.1;letter-spacing:-.02em;font-weight:600;margin:0 0 12px;text-wrap:balance}
+.lede{font-size:17.5px;color:var(--ink-2);margin:0;max-width:62ch}
+.meta{display:flex;flex-wrap:wrap;gap:10px 28px;font-family:var(--mono);font-size:12px;color:var(--ink-3);margin:16px 0 44px}
+h2{font-size:23px;letter-spacing:-.01em;font-weight:600;margin:56px 0 4px;padding-top:22px;border-top:1px solid var(--border);text-wrap:balance}
+h2 .num{font-family:var(--mono);font-size:12.5px;color:var(--accent);display:block;letter-spacing:.1em;margin-bottom:6px}
+h3{font-size:16.5px;font-weight:600;margin:30px 0 8px;color:var(--ink)}
+h4{font-size:14px;font-weight:600;margin:20px 0 6px;color:var(--ink-2);font-family:var(--mono);letter-spacing:.03em}
+p{margin:0 0 14px;max-width:68ch}
+ul,ol{margin:0 0 14px;padding-left:22px;max-width:68ch}
+li{margin:3px 0}
+code{font-family:var(--mono);font-size:.87em;background:var(--surface-2);padding:1.5px 5px;border-radius:4px;color:var(--accent-ink)}
+.scroll{overflow-x:auto;margin:14px 0 20px;border:1px solid var(--border);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:13.5px;font-variant-numeric:tabular-nums}
+th{text-align:left;background:var(--surface);color:var(--ink-2);font-weight:600;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;padding:9px 12px;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:top;color:var(--ink-2)}
+tr:last-child td{border-bottom:0}
+td:first-child{color:var(--ink);font-weight:500;white-space:nowrap}
+td.w{white-space:normal}
+.tag{display:inline-block;font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;padding:2px 7px;border-radius:4px;white-space:nowrap}
+.t-mvp{background:var(--accent-soft);color:var(--accent-ink)}
+.t-later{background:var(--surface-2);color:var(--ink-3)}
+.t-real{background:var(--good-soft);color:var(--good)}
+.t-manual{background:var(--warn-soft);color:var(--warn)}
+.t-demo{background:var(--demo-soft);color:var(--demo)}
+.t-no{background:var(--bad-soft);color:var(--bad)}
+.figure{background:var(--plate);border:1px solid var(--border);border-radius:10px;padding:18px 14px;margin:16px 0 22px;overflow-x:auto}
+.figure .mermaid{background:transparent}
+.note{border-left:3px solid var(--accent);background:var(--surface);padding:12px 16px;margin:18px 0;border-radius:0 8px 8px 0}
+.note strong{color:var(--ink)}
+.note p:last-child{margin-bottom:0}
+.warnbox{border-left:3px solid var(--warn);background:var(--warn-soft);padding:12px 16px;margin:18px 0;border-radius:0 8px 8px 0}
+.warnbox p:last-child{margin-bottom:0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:16px 0 20px}
+.card{border:1px solid var(--border);border-radius:10px;padding:14px 16px;background:var(--surface)}
+.card h4{margin-top:0}
+.card p{margin-bottom:0;font-size:14px}
+.stat{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:20px 0 26px}
+.stat div{background:var(--surface);border-radius:10px;padding:14px 16px}
+.stat .k{font-family:var(--mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
+.stat .v{font-size:27px;font-weight:600;letter-spacing:-.02em;margin-top:3px}
+.steps{counter-reset:s;list-style:none;padding:0;max-width:none}
+.steps li{counter-increment:s;position:relative;padding:12px 0 12px 44px;border-bottom:1px solid var(--border);max-width:none}
+.steps li:before{content:counter(s,decimal-leading-zero);position:absolute;left:0;top:13px;font-family:var(--mono);font-size:12px;color:var(--accent);font-weight:600}
+.steps li:last-child{border-bottom:0}
+.clock{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);display:inline-block;min-width:64px}
+.checkpoint{border:2px solid var(--accent);border-radius:12px;padding:24px 26px;margin:44px 0 0;background:var(--surface)}
+.checkpoint h2{border:0;margin:0 0 12px;padding:0;font-size:22px}
+.checkpoint h2 .num{color:var(--accent)}
+ul.check{list-style:none;padding:0}
+ul.check li{padding-left:26px;position:relative}
+ul.check li:before{content:"\2610";position:absolute;left:0;font-family:var(--mono);color:var(--accent)}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+<nav class="toc" aria-label="Bo'limlar">
+<a href="#s1"><span class="num">01</span>Sitemap</a>
+<a href="#s2"><span class="num">02</span>Website ekranlari</a>
+<a href="#s3"><span class="num">03</span>Mobile ekranlari</a>
+<a href="#s4"><span class="num">04</span>Admin ekranlari</a>
+<a href="#s6"><span class="num">05</span>Asosiy user flow</a>
+<a href="#s7"><span class="num">06</span>Subsidiya flow</a>
+<a href="#s8"><span class="num">07</span>O'zi to'lash flow</a>
+<a href="#s9"><span class="num">08</span>Product review flow</a>
+<a href="#s10"><span class="num">09</span>Marketplace flow</a>
+<a href="#s11"><span class="num">10</span>Notification flow</a>
+<a href="#s12"><span class="num">11</span>Database entity</a>
+<a href="#s13"><span class="num">12</span>Backend modullar</a>
+<a href="#s14"><span class="num">13</span>API endpointlar</a>
+<a href="#s15"><span class="num">14</span>Role / permission</a>
+<a href="#s16"><span class="num">15</span>MUST / LATER</a>
+<a href="#s17"><span class="num">16</span>Investor demo</a>
+<a href="#s18"><span class="num">17</span>Development fazalari</a>
+<a href="#s19"><span class="num">18</span>Real / manual / demo</a>
+<a href="#s20"><span class="num">19</span>Ekranlar soni</a>
+<a href="#stack"><span class="num">20</span>Stack qarorlari</a>
+<a href="#checkpoint"><span class="num">--</span>Build start checkpoint</a>
+</nav>
+
+<main>
+<header class="mast">
+<p class="eyebrow">MVP spetsifikatsiyasi — v1</p>
+<h1>ECWT — O'zbekiston elektron tijorat kompaniyasi</h1>
+<p class="lede">O'zbekistonlik tadbirkor, ishlab chiqaruvchi va hunarmandlarni xalqaro marketplace'larga chiqaruvchi B2B xizmat platformasi. Ushbu hujjat investor oldida to'liq ishlaydigan MVP uchun ekranlar, oqimlar, ma'lumotlar modeli va qurish tartibini belgilaydi.</p>
+<div class="meta">
+<span>Sana: 2026-08-16</span>
+<span>Holat: qurish boshlanishidan oldingi tasdiq kutilmoqda</span>
+<span>Stack: Next.js · Expo · NestJS · PostgreSQL</span>
+</div>
+</header>
+
+<div class="stat">
+<div><div class="k">Jami ekran</div><div class="v">90</div></div>
+<div><div class="k">MVP ekran</div><div class="v">64</div></div>
+<div><div class="k">Backend modul</div><div class="v">12</div></div>
+<div><div class="k">DB entity</div><div class="v">24</div></div>
+</div>
+
+<div class="warnbox">
+<p><strong>Uchta qoida butun hujjat bo'ylab amal qiladi.</strong></p>
+<p>1 — Subsidiya <em>ariza</em> jarayoni, kafolat emas. UI hech qayerda subsidiyani avtomatik beriladigan narsa sifatida ko'rsatmaydi.</p>
+<p>2 — Marketplace statuslari MVP'da <em>qo'lda</em> boshqariladi. Bu investorga aytiladi, yashirilmaydi.</p>
+<p>3 — Analitika raqamlari MVP'da <em>demo ma'lumot</em>. Ular bazada <code>source = DEMO</code> bilan ajratiladi va UI'da belgilanadi.</p>
+</div>
+
+<h2 id="s1"><span class="num">01</span>ECWT MVP sitemap</h2>
+<p>Uchta klient, bitta backend. Website va admin panel alohida Next.js ilovalari — admin marshrutlarini foydalanuvchi ilovasi ichiga qo'shish xavfsizlik va deploy jihatidan chalkashlik keltiradi.</p>
+<div class="figure">
+<pre class="mermaid">
+%%{init:{'theme':'neutral'}}%%
+graph TD
+  A["ECWT platforma"] --> B["Website<br/>Next.js"]
+  A --> C["Mobile<br/>Expo"]
+  A --> D["Admin panel<br/>Next.js"]
+  B --> B1["Ochiq sahifalar<br/>9 ta"]
+  B --> B2["Auth<br/>5 ta"]
+  B --> B3["Onboarding<br/>6 ta"]
+  B --> B4["Kabinet<br/>23 ta"]
+  C --> C1["Auth va onboarding<br/>7 ta"]
+  C --> C2["Bottom nav: 5 bo'lim<br/>19 ta"]
+  D --> D1["Review va operatsiya<br/>21 ta"]
+  B --> E["REST API"]
+  C --> E
+  D --> E
+  E --> F["NestJS monolit"]
+  F --> G["PostgreSQL"]
+  F --> H["S3-mos xotira"]
+</pre>
+</div>
+
+<h2 id="s2"><span class="num">02</span>Website ekranlari — 43 ta</h2>
+<p>Har bir ekran bitta vazifani bajaradi. Uzun skroll qilinadigan sahifa yo'q.</p>
+
+<h4>Ochiq sahifalar</h4>
+<div class="scroll"><table>
+<thead><tr><th>#</th><th>Ekran</th><th>Vazifasi</th><th>MVP</th></tr></thead>
+<tbody>
+<tr><td>W-01</td><td class="w">Landing</td><td class="w">Bitta taklif va bitta harakat: ro'yxatdan o'tish. Ishonch signallari: marketplace nomlari, raqamlar.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-02</td><td class="w">Xizmatlar</td><td class="w">ECWT nima qiladi — 6 ta xizmat kartasi va har birining narx mantig'i.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-03</td><td class="w">Qanday ishlaydi</td><td class="w">Ro'yxatdan o'tishdan LIVE listinggacha 5 qadam.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-04</td><td class="w">Marketplace'lar</td><td class="w">Amazon, eBay, Walmart, Shopify — har biri uchun talab va muddat.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-05</td><td class="w">Narxlar</td><td class="w">Xizmat paketlari va narxi. Subsidiya varianti alohida ko'rsatiladi.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-06</td><td class="w">Subsidiya dasturi</td><td class="w">Subsidiya nima, kim ariza bera oladi, qanday hujjat kerak, qancha vaqt oladi. Kafolat emasligi shu yerda aniq yoziladi.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-07</td><td class="w">Biz haqimizda</td><td class="w">Kompaniya, jamoa, maqsad.</td><td><span class="tag t-later">Later</span></td></tr>
+<tr><td>W-08</td><td class="w">Aloqa</td><td class="w">Ariza formasi va to'g'ridan-to'g'ri kontaktlar.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-09</td><td class="w">Huquqiy sahifalar</td><td class="w">Oferta, maxfiylik siyosati, foydalanish shartlari — bitta shablon, uchta matn.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+</tbody></table></div>
+
+<h4>Auth</h4>
+<div class="scroll"><table>
+<thead><tr><th>#</th><th>Ekran</th><th>Vazifasi</th><th>MVP</th></tr></thead>
+<tbody>
+<tr><td>W-10</td><td class="w">Ro'yxatdan o'tish</td><td class="w">Ism, telefon, email, parol. Faoliyat turi keyingi qadamda.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-11</td><td class="w">Kirish</td><td class="w">Email + parol. Rolga qarab kabinet yoki admin panelga yo'naltiradi.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-12</td><td class="w">Telefon tasdiqlash</td><td class="w">SMS orqali 6 xonali kod. MVP'da SMS provayder ulanmagan bo'lsa, kod loglarda ko'rsatiladi.</td><td><span class="tag t-later">Later</span></td></tr>
+<tr><td>W-13</td><td class="w">Parolni unutdim</td><td class="w">Email kiritish, tiklash havolasi yuborish.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-14</td><td class="w">Parolni tiklash</td><td class="w">Havoladagi token bilan yangi parol o'rnatish.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+</tbody></table></div>
+
+<h4>Onboarding — bosqichma-bosqich</h4>
+<div class="scroll"><table>
+<thead><tr><th>#</th><th>Ekran</th><th>Vazifasi</th><th>MVP</th></tr></thead>
+<tbody>
+<tr><td>W-15</td><td class="w">Faoliyat turi</td><td class="w">Tadbirkor / ishlab chiqaruvchi / hunarmand. Keyingi savollar shunga moslashadi.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-16</td><td class="w">Kompaniya ma'lumotlari</td><td class="w">Nomi, yuridik nomi, STIR, ro'yxatdan o'tgan sana.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-17</td><td class="w">Manzil va aloqa</td><td class="w">Viloyat, tuman, manzil, aloqa telefoni va emaili.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-18</td><td class="w">Bank rekvizitlari</td><td class="w">Bank, hisob raqami, MFO. To'lov va subsidiya uchun shart.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-19</td><td class="w">Hujjatlar</td><td class="w">Guvohnoma, STIR, pasport, sertifikatlar — yuklash.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-20</td><td class="w">Yakun</td><td class="w">"Profil tekshiruvga yuborildi" + keyingi qadam nima ekanini aytadi.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+</tbody></table></div>
+
+<h4>Kabinet</h4>
+<div class="scroll"><table>
+<thead><tr><th>#</th><th>Ekran</th><th>Vazifasi</th><th>MVP</th></tr></thead>
+<tbody>
+<tr><td>W-21</td><td class="w">Dashboard</td><td class="w">Aktiv mahsulot, aktiv xizmat buyurtmasi, listing holati, subsidiya holati, qisqa analitika, so'nggi harakatlar, 3 ta tezkor tugma.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-22</td><td class="w">Mahsulotlar ro'yxati</td><td class="w">Filtr: holat, kategoriya, marketplace. Har bir qatorda review va listing holati.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-23</td><td class="w">Mahsulot qo'shish / tahrirlash</td><td class="w">Bosqichli forma: asosiy → tavsif → media → logistika. Draft saqlash mumkin.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-24</td><td class="w">Mahsulot detali</td><td class="w">Ma'lumot + ECWT review holati + xizmat holati + 4 ta marketplace holati bitta jadvalda.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-25</td><td class="w">Xizmatlar katalogi</td><td class="w">ECWT xizmat paketlari, narxi va nima kirishi.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-26</td><td class="w">Xizmat buyurtmasi yaratish</td><td class="w">Mahsulot tanlash → xizmat tanlash → marketplace tanlash → xulosa.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-27</td><td class="w">To'lov usulini tanlash</td><td class="w">Ikkita yo'l: subsidiya orqali yoki o'zim to'layman. Demo'ning markaziy ekrani.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-28</td><td class="w">Subsidiya — ma'lumot</td><td class="w">Shartlar, kerakli hujjatlar, taxminiy muddat, rad etilish ehtimoli.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-29</td><td class="w">Subsidiya — ariza</td><td class="w">Forma + hujjat yuklash + ariza yuborish.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-30</td><td class="w">Subsidiya — holat</td><td class="w">Timeline: hujjat kutilmoqda → tekshiruvda → tasdiqlandi → moliyalashtirildi. Rad etilsa — sabab va "o'zim to'layman"ga o'tish tugmasi.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-31</td><td class="w">Paket va narx</td><td class="w">O'zi to'lash yo'lidagi xizmat narxi tafsiloti.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-32</td><td class="w">Buyurtmani tasdiqlash</td><td class="w">Yakuniy xulosa: mahsulot, xizmat, marketplace, summa.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-33</td><td class="w">To'lov</td><td class="w">To'lov usuli tanlash va provayderga o'tish. Gateway ulanmagan bo'lsa — bank o'tkazmasi rekvizitlari va "to'ladim" tugmasi.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-34</td><td class="w">To'lov holati</td><td class="w">Kutilmoqda / tasdiqlandi / bekor qilindi. Soxta "muvaffaqiyat" ekrani yo'q.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-35</td><td class="w">Xizmat buyurtmalari</td><td class="w">Barcha service orderlar ro'yxati va holati.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-36</td><td class="w">Xizmat buyurtmasi detali</td><td class="w">Timeline, mas'ul menejer, to'lov/subsidiya holati, bog'liq mahsulot.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-37</td><td class="w">Marketplace listinglar</td><td class="w">Barcha listinglar: mahsulot × platforma × holat.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-38</td><td class="w">Listing detali</td><td class="w">Tayyorlangan sarlavha, tavsif, kalit so'zlar, narx, checklist, tashqi havola.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-39</td><td class="w">Analitika</td><td class="w">Views, orders, sales, revenue, active listings + platforma bo'yicha taqsimot. Demo ma'lumot belgisi bilan.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-40</td><td class="w">Bildirishnomalar</td><td class="w">Barcha yangilanishlar, o'qilgan/o'qilmagan.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-41</td><td class="w">Kompaniya profili</td><td class="w">Onboardingda kiritilgan ma'lumotlarni ko'rish va tahrirlash.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-42</td><td class="w">Hujjatlar</td><td class="w">Yuklangan hujjatlar, muddati, qayta yuklash.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>W-43</td><td class="w">Sozlamalar</td><td class="w">Parol, sessiyalar, til, bildirishnoma sozlamalari.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+</tbody></table></div>
+
+<h2 id="s3"><span class="num">03</span>Mobile ekranlari — 26 ta</h2>
+<p>Mobil ilova saytning nusxasi emas. U <strong>kuzatish va tezkor harakat</strong> uchun: holatni ko'rish, rasm yuklash, bildirishnomaga javob berish. Uzun formalar (onboarding, mahsulot to'liq tahriri) saytda qulayroq — ilovada ular qisqartirilgan.</p>
+<div class="scroll"><table>
+<thead><tr><th>#</th><th>Ekran</th><th>Vazifasi</th><th>MVP</th></tr></thead>
+<tbody>
+<tr><td>M-01</td><td class="w">Splash</td><td class="w">Token tekshiriladi, keyingi ekran aniqlanadi.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>M-02</td><td class="w">Tanishtiruv</td><td class="w">3 ta slayd — faqat birinchi ochilishda.</td><td><span class="tag t-later">Later</span></td></tr>
+<tr><td>M-03</td><td class="w">Kirish</td><td class="w">Email + parol.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>M-04</td><td class="w">Ro'yxatdan o'tish</td><td class="w">Qisqa forma, keyin saytga yoki qisqa onboardingga.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>M-05</td><td class="w">SMS tasdiqlash</td><td class="w">6 xonali kod.</td><td><span class="tag t-later">Later</span></td></tr>
+<tr><td>M-06</td><td class="w">Parolni unutdim</td><td class="w">Email yuborish.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>M-07</td><td class="w">Kompaniya sozlash</td><td class="w">3 qadamli qisqartirilgan onboarding.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>M-08</td><td class="w">Home</td><td class="w">Umumiy holat, aktiv mahsulot va xizmatlar, marketplace holati, subsidiya holati, qisqa analitika.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>M-09</td><td class="w">Mahsulotlar</td><td class="w">Ro'yxat, qidiruv, holat filtri.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>M-10</td><td class="w">Mahsulot detali</td><td class="w">Ma'lumot + review + 4 ta marketplace holati.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>M-11</td><td class="w">Mahsulot qo'shish / tahrirlash</td><td class="w">Asosiy maydonlar. Murakkab logistika maydonlari saytga qoldiriladi.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>M-12</td><td class="w">Rasm yuklash</td><td class="w">Kamera yoki galereya — ilovaning eng kuchli ustunligi.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>M-13</td><td class="w">Xizmat buyurtmalari</td><td class="w">Ro'yxat va holat.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>M-14</td><td class="w">Xizmat detali</td><td class="w">Timeline va mas'ul menejer.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>M-15</td><td class="w">Xizmat buyurtmasi yaratish</td><td class="w">Mahsulot + xizmat + marketplace tanlash.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>M-16</td><td class="w">To'lov usulini tanlash</td><td class="w">Subsidiya yoki o'zim to'layman.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>M-17</td><td class="w">Subsidiya holati</td><td class="w">Timeline va kerakli hujjatlar.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>M-18</td><td class="w">To'lov holati</td><td class="w">Kutilmoqda / tasdiqlandi.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>M-19</td><td class="w">Marketplace holati</td><td class="w">Mahsulot bo'yicha 4 ta platforma holati.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>M-20</td><td class="w">Bildirishnomalar</td><td class="w">Ro'yxat, o'qilmaganlar ajratilgan.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>M-21</td><td class="w">Bildirishnoma detali</td><td class="w">To'liq matn va tegishli obyektga o'tish.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>M-22</td><td class="w">Profil</td><td class="w">Foydalanuvchi va kompaniya xulosasi.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>M-23</td><td class="w">Kompaniya ma'lumotlari</td><td class="w">Ko'rish; tahrirlash saytda.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>M-24</td><td class="w">Hujjatlar</td><td class="w">Ro'yxat va telefondan yuklash.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>M-25</td><td class="w">Sozlamalar</td><td class="w">Parol, chiqish, push sozlamalari.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>M-26</td><td class="w">Til</td><td class="w">O'zbek / rus / ingliz.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+</tbody></table></div>
+
+<h2 id="s4"><span class="num">04</span>Admin ekranlari — 21 ta</h2>
+<p>Admin panel — ECWT jamoasining ish joyi. MVP'da platformaning "dvigateli" aynan shu yerda: mahsulot tekshiruvi, subsidiya qarori, to'lov tasdiqlash va marketplace operatsiyalari qo'lda bajariladi.</p>
+<div class="scroll"><table>
+<thead><tr><th>#</th><th>Ekran</th><th>Vazifasi</th><th>MVP</th></tr></thead>
+<tbody>
+<tr><td>A-01</td><td class="w">Admin kirish</td><td class="w">Alohida kirish, faqat ADMIN va ECWT_MANAGER rollari.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>A-02</td><td class="w">Admin dashboard</td><td class="w">Kutayotgan ishlar: yangi foydalanuvchi, tekshiruvdagi mahsulot, subsidiya arizasi, to'lov, listing.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>A-03</td><td class="w">Foydalanuvchilar</td><td class="w">Ro'yxat, qidiruv, holat.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>A-04</td><td class="w">Foydalanuvchi detali</td><td class="w">Kompaniya, mahsulotlar, xizmatlar, hujjatlar bir joyda.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>A-05</td><td class="w">Kompaniyalar</td><td class="w">Tekshiruv navbati.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>A-06</td><td class="w">Kompaniya tekshiruvi</td><td class="w">Hujjatlarni ko'rish, tasdiqlash yoki sabab bilan rad etish.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>A-07</td><td class="w">Mahsulot tekshiruv navbati</td><td class="w">Pending mahsulotlar, eng eskisi birinchi.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>A-08</td><td class="w">Mahsulot tekshiruvi</td><td class="w">To'liq ma'lumot, rasmlar, Approve yoki Needs Changes + sabab.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>A-09</td><td class="w">Xizmat buyurtmalari</td><td class="w">Barcha service orderlar, holat bo'yicha filtr.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>A-10</td><td class="w">Xizmat buyurtmasi detali</td><td class="w">Holatni o'zgartirish, menejer biriktirish, izoh yozish.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>A-11</td><td class="w">Subsidiya arizalari</td><td class="w">Navbat, holat bo'yicha filtr.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>A-12</td><td class="w">Subsidiya arizasi detali</td><td class="w">Hujjatlar, tekshiruv, tasdiqlash / rad etish / moliyalashtirildi belgisi.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>A-13</td><td class="w">To'lovlar</td><td class="w">Kutilayotgan va tugallangan to'lovlar.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>A-14</td><td class="w">To'lov detali</td><td class="w">Qo'lda "To'landi" yoki "Bekor qilindi" belgilash, hujjat raqami kiritish.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>A-15</td><td class="w">Marketplace operatsiyalari</td><td class="w">Kanban: mahsulot × 4 platforma, holatni surib o'zgartirish.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>A-16</td><td class="w">Listing detali</td><td class="w">Tayyorlangan matnlar, checklist, tashqi ID va havola kiritish.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>A-17</td><td class="w">Xabar yuborish</td><td class="w">Foydalanuvchiga menejerdan bildirishnoma.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>A-18</td><td class="w">Platforma analitikasi</td><td class="w">Foydalanuvchi, mahsulot, buyurtma, daromad ko'rsatkichlari.</td><td><span class="tag t-later">Later</span></td></tr>
+<tr><td>A-19</td><td class="w">Xizmat katalogi</td><td class="w">Xizmat turlari va narxlarini tahrirlash.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+<tr><td>A-20</td><td class="w">Xodimlar va rollar</td><td class="w">ECWT xodimlarini qo'shish, rol berish.</td><td><span class="tag t-later">Later</span></td></tr>
+<tr><td>A-21</td><td class="w">Audit log</td><td class="w">Kim, qachon, nimani o'zgartirdi.</td><td><span class="tag t-mvp">MVP</span></td></tr>
+</tbody></table></div>
+
+<h2 id="s6"><span class="num">05</span>Asosiy user flow</h2>
+<div class="figure">
+<pre class="mermaid">
+%%{init:{'theme':'neutral'}}%%
+graph TD
+  L["Landing"] --> R["Ro'yxatdan o'tish"]
+  R --> O["Onboarding<br/>6 qadam"]
+  O --> P["Kompaniya profili<br/>tekshiruvga yuborildi"]
+  P --> D["Dashboard"]
+  D --> S["Xizmat tanlash"]
+  S --> AP["Mahsulot qo'shish"]
+  AP --> SUB["Mahsulotni tekshiruvga yuborish"]
+  SUB --> REV["ECWT dastlabki tekshiruvi"]
+  REV --> PAY{"Xizmat haqini<br/>qanday to'laysiz?"}
+  PAY -->|Subsidiya orqali| SUBF["Subsidiya oqimi"]
+  PAY -->|O'zim to'layman| SELF["To'lov oqimi"]
+  SUBF --> START["Xizmat boshlandi"]
+  SELF --> START
+  START --> MP["Marketplace preparation"]
+  MP --> LIVE["Listing LIVE"]
+  LIVE --> DASH["Dashboard: status va analitika"]
+</pre>
+</div>
+
+<h2 id="s7"><span class="num">06</span>Subsidiya flow</h2>
+<div class="warnbox"><p>Foydalanuvchi <strong>"subsidiya orqali"</strong>ni tanlaganda ekranda birinchi ko'rinadigan gap: <em>"Bu ariza. Tasdiqlanishi kafolatlanmaydi."</em> Har bir holatda taxminiy muddat ko'rsatiladi.</p></div>
+<div class="figure">
+<pre class="mermaid">
+%%{init:{'theme':'neutral'}}%%
+graph TD
+  C["Subsidiya orqali tanlandi"] --> I["Ma'lumot ekrani<br/>shartlar, hujjatlar, muddat"]
+  I --> F["Ariza formasi"]
+  F --> U["Hujjatlarni yuklash"]
+  U --> SUBM["Ariza yuborildi"]
+  SUBM --> W["DOCUMENTS_PENDING<br/>hujjat kutilmoqda"]
+  W --> RV["UNDER_REVIEW<br/>tekshiruvda"]
+  RV --> AP["APPROVED<br/>tasdiqlandi"]
+  RV --> RJ["REJECTED<br/>rad etildi"]
+  AP --> FN["FUNDED<br/>moliyalashtirildi"]
+  FN --> ST["Xizmat boshlanadi"]
+  RJ --> ALT["Sabab ko'rsatiladi"]
+  ALT --> SELF["'O'zim to'layman'ga o'tish"]
+  SELF --> ST
+</pre>
+</div>
+
+<h2 id="s8"><span class="num">07</span>O'zi to'lash flow</h2>
+<div class="warnbox"><p>MVP'da real to'lov shlyuzi ulanmasa ham, <strong>soxta "to'lov muvaffaqiyatli" ekrani yasalmaydi</strong>. To'lov <code>PENDING</code> holatida qoladi va admin uni tasdiqlaganda <code>PAID</code> bo'ladi. Foydalanuvchi bu holatni aniq ko'radi.</p></div>
+<div class="figure">
+<pre class="mermaid">
+%%{init:{'theme':'neutral'}}%%
+graph TD
+  C["O'zim to'layman"] --> PK["Xizmat paketi"]
+  PK --> PR["Narx tafsiloti"]
+  PR --> CF["Buyurtmani tasdiqlash"]
+  CF --> M{"To'lov usuli"}
+  M -->|Bank o'tkazmasi| INV["Hisob-faktura<br/>va rekvizitlar"]
+  M -->|Payme / Click| GW["To'lov shlyuzi"]
+  INV --> PEND["PAYMENT_PENDING"]
+  GW --> PEND
+  PEND --> ADM["Admin tasdiqlaydi<br/>yoki webhook keladi"]
+  ADM --> PD["PAID"]
+  PD --> ST["Xizmat boshlanadi"]
+  PEND --> FL["FAILED / CANCELLED"]
+  FL --> RETRY["Qayta urinish"]
+</pre>
+</div>
+
+<h2 id="s9"><span class="num">08</span>Product review flow</h2>
+<div class="figure">
+<pre class="mermaid">
+%%{init:{'theme':'neutral'}}%%
+graph LR
+  D["DRAFT"] --> S["SUBMITTED"]
+  S --> R["UNDER_REVIEW"]
+  R --> A["APPROVED"]
+  R --> N["NEEDS_CHANGES"]
+  N --> E["Foydalanuvchi tuzatadi"]
+  E --> S
+  A --> MP["Marketplace preparation"]
+  D --> AR["ARCHIVED"]
+  A --> AR
+</pre>
+</div>
+<p><code>NEEDS_CHANGES</code> holatida admin <strong>sabab yozishi shart</strong> — bo'sh sabab bilan rad etib bo'lmaydi. Sabab foydalanuvchiga bildirishnoma va mahsulot sahifasida ko'rinadi.</p>
+
+<h2 id="s10"><span class="num">09</span>Marketplace operations flow</h2>
+<div class="figure">
+<pre class="mermaid">
+%%{init:{'theme':'neutral'}}%%
+graph LR
+  NS["NOT_STARTED"] --> PR["PREPARING"]
+  PR --> RD["READY"]
+  RD --> SB["SUBMITTED"]
+  SB --> LV["LIVE"]
+  SB --> RJ["REJECTED"]
+  PR --> NC["NEEDS_CHANGES"]
+  NC --> PR
+  RJ --> PR
+  LV --> PS["PAUSED"]
+  PS --> LV
+</pre>
+</div>
+<p>Har bir mahsulot uchun 4 ta mustaqil listing yozuvi bo'ladi — Amazon, eBay, Walmart, Shopify. Holatlar bir-biriga bog'liq emas: mahsulot Amazon'da <code>LIVE</code>, eBay'da <code>PREPARING</code> bo'lishi mumkin.</p>
+<div class="note"><p><strong>MVP chegarasi.</strong> Marketplace API integratsiyasi yo'q. Statusni ECWT menejeri admin panelidan o'zgartiradi, tashqi listing ID va havolasini qo'lda kiritadi. Arxitektura keyinchalik API qo'shishga tayyor: <code>MarketplaceListing</code> yozuvida <code>externalId</code>, <code>externalUrl</code> va <code>syncSource</code> maydonlari bor.</p></div>
+
+<h2 id="s11"><span class="num">10</span>Notification flow</h2>
+<div class="figure">
+<pre class="mermaid">
+%%{init:{'theme':'neutral'}}%%
+graph TD
+  EV["Domen hodisasi<br/>product.approved, subsidy.funded, ..."] --> NS["NotificationService"]
+  NS --> DB["Notification yozuvi<br/>PostgreSQL"]
+  DB --> W["Website<br/>bildirishnoma markazi"]
+  DB --> M["Mobile<br/>bildirishnomalar tab"]
+  NS --> PUSH["Expo push<br/>(Faza 5)"]
+  NS --> EMAIL["Email<br/>(Faza 5)"]
+  PUSH --> M
+</pre>
+</div>
+<p>Bildirishnoma matni bazada tarjima kaliti sifatida saqlanadi (<code>titleKey</code>, <code>bodyKey</code>, <code>params</code>), tayyor matn emas. Shunda bir xil yozuv uch tilda to'g'ri ko'rsatiladi va til qo'shish uchun bazani o'zgartirish shart emas.</p>
+
+<h4>Hodisalar ro'yxati</h4>
+<div class="scroll"><table>
+<thead><tr><th>Hodisa</th><th>Qachon</th><th>Kimga</th></tr></thead>
+<tbody>
+<tr><td>company.verified</td><td class="w">Admin kompaniyani tasdiqlaganda</td><td>Egasi</td></tr>
+<tr><td>company.rejected</td><td class="w">Admin rad etganda — sabab bilan</td><td>Egasi</td></tr>
+<tr><td>product.approved</td><td class="w">Mahsulot tekshiruvdan o'tganda</td><td>Egasi</td></tr>
+<tr><td>product.needs_changes</td><td class="w">Tuzatish talab qilinganda — sabab bilan</td><td>Egasi</td></tr>
+<tr><td>subsidy.status_changed</td><td class="w">Har bir holat o'zgarishida</td><td>Ariza beruvchi</td></tr>
+<tr><td>payment.confirmed</td><td class="w">To'lov tasdiqlanganda</td><td>To'lovchi</td></tr>
+<tr><td>service.started</td><td class="w">Xizmat IN_PROGRESS bo'lganda</td><td>Buyurtmachi</td></tr>
+<tr><td>listing.ready</td><td class="w">Listing READY bo'lganda</td><td>Mahsulot egasi</td></tr>
+<tr><td>listing.live</td><td class="w">Listing LIVE bo'lganda</td><td>Mahsulot egasi</td></tr>
+<tr><td>manager.message</td><td class="w">ECWT menejeri xabar yozganda</td><td>Tanlangan foydalanuvchi</td></tr>
+</tbody></table></div>
+
+<h2 id="s12"><span class="num">11</span>Database entity ro'yxati — 24 ta</h2>
+<div class="scroll"><table>
+<thead><tr><th>Entity</th><th>Vazifasi</th><th>Muhim bog'lanish</th></tr></thead>
+<tbody>
+<tr><td>User</td><td class="w">Akkaunt, rol, holat</td><td>1–1 Company, 1–N Session</td></tr>
+<tr><td>Session</td><td class="w">Refresh token xeshi, qurilma, IP</td><td>N–1 User</td></tr>
+<tr><td>OtpCode</td><td class="w">SMS/email tasdiqlash kodi</td><td>N–1 User</td></tr>
+<tr><td>PasswordReset</td><td class="w">Parol tiklash tokeni</td><td>N–1 User</td></tr>
+<tr><td>Company</td><td class="w">Tadbirkor/ishlab chiqaruvchi profili, rekvizitlar, holat</td><td>1–1 User, 1–N Product</td></tr>
+<tr><td>CompanyDocument</td><td class="w">Guvohnoma, STIR, sertifikat</td><td>N–1 Company, N–1 File</td></tr>
+<tr><td>Category</td><td class="w">Mahsulot kategoriyalari, daraxt</td><td>1–N Product</td></tr>
+<tr><td>Product</td><td class="w">Mahsulot kartochkasi va review holati</td><td>N–1 Company, 1–N Listing</td></tr>
+<tr><td>ProductImage</td><td class="w">Rasmlar, tartib, asosiy rasm</td><td>N–1 Product</td></tr>
+<tr><td>ProductReview</td><td class="w">Har bir tekshiruv qarori va sababi — tarix</td><td>N–1 Product, N–1 User</td></tr>
+<tr><td>ServiceCatalog</td><td class="w">ECWT xizmat turlari va narxi</td><td>1–N ServiceOrder</td></tr>
+<tr><td>ServiceOrder</td><td class="w">Markaziy entity: mijoz, mahsulot, xizmat, narx, to'lov usuli, holat, menejer</td><td>N–1 Company, N–1 Product</td></tr>
+<tr><td>ServiceOrderEvent</td><td class="w">Timeline: har bir holat o'zgarishi</td><td>N–1 ServiceOrder</td></tr>
+<tr><td>Payment</td><td class="w">To'lov, provayder, idempotency kaliti, holat</td><td>N–1 ServiceOrder</td></tr>
+<tr><td>PaymentWebhookEvent</td><td class="w">Kelgan webhooklar, takrorlanishni bloklash</td><td>—</td></tr>
+<tr><td>SubsidyApplication</td><td class="w">Subsidiya arizasi, holat, qaror sababi</td><td>N–1 ServiceOrder</td></tr>
+<tr><td>SubsidyDocument</td><td class="w">Arizaga biriktirilgan hujjatlar</td><td>N–1 SubsidyApplication</td></tr>
+<tr><td>SubsidyEvent</td><td class="w">Ariza timeline'i</td><td>N–1 SubsidyApplication</td></tr>
+<tr><td>Marketplace</td><td class="w">Platformalar ma'lumotnomasi</td><td>1–N Listing</td></tr>
+<tr><td>MarketplaceListing</td><td class="w">Mahsulot × platforma: holat, tayyorlangan matn, checklist, tashqi ID</td><td>N–1 Product</td></tr>
+<tr><td>SalesRecord</td><td class="w">Sotuv yozuvi — analitika manbasi</td><td>N–1 Listing</td></tr>
+<tr><td>AnalyticsSnapshot</td><td class="w">Kunlik yig'ma ko'rsatkich. <code>source</code> maydoni: DEMO yoki REAL</td><td>N–1 Company</td></tr>
+<tr><td>Notification</td><td class="w">Tarjima kaliti, parametrlar, o'qilgan vaqti</td><td>N–1 User</td></tr>
+<tr><td>File</td><td class="w">S3 kalit, MIME, hajm, egasi</td><td>Polimorf</td></tr>
+<tr><td>AuditLog</td><td class="w">Kim, qachon, nimani o'zgartirdi</td><td>N–1 User</td></tr>
+</tbody></table></div>
+<div class="note"><p><strong>Diqqat qiling.</strong> <code>ServiceOrder</code> — butun biznesning markazi. Mahsulot, to'lov, subsidiya va listing hammasi unga bog'lanadi. Agar bitta entity to'g'ri loyihalanishi kerak bo'lsa, bu o'sha.</p></div>
+
+<h2 id="s13"><span class="num">12</span>Backend modullari — 12 ta</h2>
+<div class="scroll"><table>
+<thead><tr><th>Modul</th><th>Mas'uliyati</th></tr></thead>
+<tbody>
+<tr><td>auth</td><td class="w">Ro'yxatdan o'tish, kirish, token yangilash, parol tiklash, sessiya boshqaruvi</td></tr>
+<tr><td>users</td><td class="w">Foydalanuvchi profili, rollar, holat</td></tr>
+<tr><td>companies</td><td class="w">Kompaniya profili, hujjatlar, tekshiruv</td></tr>
+<tr><td>products</td><td class="w">Mahsulot CRUD, review oqimi, rasmlar</td></tr>
+<tr><td>services</td><td class="w">Xizmat katalogi, ServiceOrder hayot sikli, timeline</td></tr>
+<tr><td>payments</td><td class="w">To'lov yaratish, provayder adapterlari, webhook, qo'lda tasdiqlash</td></tr>
+<tr><td>subsidies</td><td class="w">Ariza, hujjatlar, holat o'tishlari, qaror</td></tr>
+<tr><td>marketplaces</td><td class="w">Platformalar, listing tayyorlash, holat boshqaruvi</td></tr>
+<tr><td>notifications</td><td class="w">Hodisadan bildirishnoma yaratish, o'qilgan belgisi, push</td></tr>
+<tr><td>analytics</td><td class="w">Ko'rsatkichlar yig'ish; DEMO va REAL manbalarni ajratish</td></tr>
+<tr><td>files</td><td class="w">Yuklash, presigned URL, xotira drayveri abstraksiyasi</td></tr>
+<tr><td>admin</td><td class="w">Admin uchun agregat so'rovlar, navbatlar, audit</td></tr>
+</tbody></table></div>
+
+<h2 id="s14"><span class="num">13</span>API endpointlar</h2>
+<p>Barcha marshrutlar <code>/api</code> prefiksi ostida. Rol talab qilinadigan joyda <code>[M]</code> — ECWT_MANAGER, <code>[A]</code> — ADMIN.</p>
+<div class="scroll"><table>
+<thead><tr><th>Metod</th><th>Marshrut</th><th>Vazifasi</th></tr></thead>
+<tbody>
+<tr><td>POST</td><td class="w"><code>/auth/register</code></td><td class="w">Ro'yxatdan o'tish</td></tr>
+<tr><td>POST</td><td class="w"><code>/auth/login</code></td><td class="w">Kirish</td></tr>
+<tr><td>POST</td><td class="w"><code>/auth/refresh</code></td><td class="w">Token yangilash (rotation)</td></tr>
+<tr><td>POST</td><td class="w"><code>/auth/logout</code></td><td class="w">Sessiyani yopish</td></tr>
+<tr><td>GET</td><td class="w"><code>/auth/me</code></td><td class="w">Joriy foydalanuvchi</td></tr>
+<tr><td>POST</td><td class="w"><code>/auth/password/forgot</code> · <code>/reset</code></td><td class="w">Parol tiklash</td></tr>
+<tr><td>GET/PATCH</td><td class="w"><code>/companies/me</code></td><td class="w">O'z kompaniya profili</td></tr>
+<tr><td>POST</td><td class="w"><code>/companies/me/submit</code></td><td class="w">Profilni tekshiruvga yuborish</td></tr>
+<tr><td>GET/POST/DELETE</td><td class="w"><code>/companies/me/documents</code></td><td class="w">Hujjatlar</td></tr>
+<tr><td>GET</td><td class="w"><code>/companies</code> · <code>/:id</code> <span class="tag t-mvp">[M]</span></td><td class="w">Tekshiruv navbati va detali</td></tr>
+<tr><td>POST</td><td class="w"><code>/companies/:id/review</code> <span class="tag t-mvp">[A]</span></td><td class="w">Tasdiqlash / rad etish</td></tr>
+<tr><td>GET/POST</td><td class="w"><code>/products</code></td><td class="w">Ro'yxat va yaratish</td></tr>
+<tr><td>GET/PATCH/DELETE</td><td class="w"><code>/products/:id</code></td><td class="w">Bitta mahsulot</td></tr>
+<tr><td>POST</td><td class="w"><code>/products/:id/submit</code></td><td class="w">Tekshiruvga yuborish</td></tr>
+<tr><td>POST</td><td class="w"><code>/products/:id/review</code> <span class="tag t-mvp">[M]</span></td><td class="w">Approve / Needs changes</td></tr>
+<tr><td>POST/DELETE</td><td class="w"><code>/products/:id/images</code></td><td class="w">Rasmlar</td></tr>
+<tr><td>GET</td><td class="w"><code>/services/catalog</code></td><td class="w">Xizmat turlari va narxlari</td></tr>
+<tr><td>GET/POST</td><td class="w"><code>/service-orders</code></td><td class="w">Ro'yxat va yaratish</td></tr>
+<tr><td>GET</td><td class="w"><code>/service-orders/:id</code></td><td class="w">Detal va timeline</td></tr>
+<tr><td>POST</td><td class="w"><code>/service-orders/:id/payment-method</code></td><td class="w">Subsidiya yoki o'zi to'lash tanlash</td></tr>
+<tr><td>POST</td><td class="w"><code>/service-orders/:id/status</code> <span class="tag t-mvp">[M]</span></td><td class="w">Holatni o'zgartirish</td></tr>
+<tr><td>POST</td><td class="w"><code>/service-orders/:id/assign</code> <span class="tag t-mvp">[A]</span></td><td class="w">Menejer biriktirish</td></tr>
+<tr><td>POST</td><td class="w"><code>/payments</code></td><td class="w">To'lov yaratish (Idempotency-Key bilan)</td></tr>
+<tr><td>GET</td><td class="w"><code>/payments/:id</code></td><td class="w">To'lov holati</td></tr>
+<tr><td>POST</td><td class="w"><code>/payments/:id/confirm</code> <span class="tag t-mvp">[A]</span></td><td class="w">Qo'lda tasdiqlash</td></tr>
+<tr><td>POST</td><td class="w"><code>/webhooks/:provider</code></td><td class="w">To'lov shlyuzi webhook'i (imzo tekshiruvi bilan)</td></tr>
+<tr><td>GET/POST</td><td class="w"><code>/subsidies</code></td><td class="w">Arizalar ro'yxati va yaratish</td></tr>
+<tr><td>GET</td><td class="w"><code>/subsidies/:id</code></td><td class="w">Ariza detali va timeline</td></tr>
+<tr><td>POST</td><td class="w"><code>/subsidies/:id/documents</code></td><td class="w">Hujjat biriktirish</td></tr>
+<tr><td>POST</td><td class="w"><code>/subsidies/:id/submit</code></td><td class="w">Arizani yuborish</td></tr>
+<tr><td>POST</td><td class="w"><code>/subsidies/:id/decision</code> <span class="tag t-mvp">[A]</span></td><td class="w">Tasdiqlash / rad etish / moliyalashtirildi</td></tr>
+<tr><td>GET</td><td class="w"><code>/marketplaces</code></td><td class="w">Platformalar ro'yxati</td></tr>
+<tr><td>GET</td><td class="w"><code>/listings</code> · <code>/:id</code></td><td class="w">Listinglar</td></tr>
+<tr><td>PATCH</td><td class="w"><code>/listings/:id</code> <span class="tag t-mvp">[M]</span></td><td class="w">Tayyorlangan matn, tashqi ID va havola</td></tr>
+<tr><td>POST</td><td class="w"><code>/listings/:id/status</code> <span class="tag t-mvp">[M]</span></td><td class="w">Holatni o'zgartirish</td></tr>
+<tr><td>GET</td><td class="w"><code>/notifications</code></td><td class="w">Bildirishnomalar</td></tr>
+<tr><td>POST</td><td class="w"><code>/notifications/:id/read</code> · <code>/read-all</code></td><td class="w">O'qilgan belgilash</td></tr>
+<tr><td>POST</td><td class="w"><code>/notifications/send</code> <span class="tag t-mvp">[M]</span></td><td class="w">Menejerdan xabar</td></tr>
+<tr><td>GET</td><td class="w"><code>/analytics/overview</code></td><td class="w">Dashboard ko'rsatkichlari (<code>source</code> maydoni bilan)</td></tr>
+<tr><td>GET</td><td class="w"><code>/analytics/by-marketplace</code></td><td class="w">Platforma bo'yicha taqsimot</td></tr>
+<tr><td>POST</td><td class="w"><code>/files/presign</code></td><td class="w">Yuklash uchun presigned URL</td></tr>
+<tr><td>GET</td><td class="w"><code>/admin/dashboard</code> <span class="tag t-mvp">[M]</span></td><td class="w">Kutayotgan ishlar soni</td></tr>
+<tr><td>GET</td><td class="w"><code>/admin/audit</code> <span class="tag t-mvp">[A]</span></td><td class="w">Audit log</td></tr>
+<tr><td>GET</td><td class="w"><code>/health</code> · <code>/ready</code></td><td class="w">Monitoring</td></tr>
+</tbody></table></div>
+
+<h2 id="s15"><span class="num">14</span>Role / permission matritsasi</h2>
+<div class="scroll"><table>
+<thead><tr><th>Amal</th><th>USER</th><th>ECWT_MANAGER</th><th>ADMIN</th></tr></thead>
+<tbody>
+<tr><td>O'z kompaniyasini ko'rish / tahrirlash</td><td><span class="tag t-real">Ha</span></td><td><span class="tag t-later">O'qish</span></td><td><span class="tag t-real">Ha</span></td></tr>
+<tr><td>Kompaniyani tasdiqlash / rad etish</td><td><span class="tag t-no">Yo'q</span></td><td><span class="tag t-no">Yo'q</span></td><td><span class="tag t-real">Ha</span></td></tr>
+<tr><td>O'z mahsulotini CRUD</td><td><span class="tag t-real">Ha</span></td><td><span class="tag t-later">O'qish</span></td><td><span class="tag t-real">Ha</span></td></tr>
+<tr><td>Boshqa kompaniya mahsulotini ko'rish</td><td><span class="tag t-no">Yo'q</span></td><td><span class="tag t-real">Ha</span></td><td><span class="tag t-real">Ha</span></td></tr>
+<tr><td>Mahsulotni Approve / Needs changes</td><td><span class="tag t-no">Yo'q</span></td><td><span class="tag t-real">Ha</span></td><td><span class="tag t-real">Ha</span></td></tr>
+<tr><td>Service order yaratish</td><td><span class="tag t-real">Ha</span></td><td><span class="tag t-no">Yo'q</span></td><td><span class="tag t-real">Ha</span></td></tr>
+<tr><td>Service order holatini o'zgartirish</td><td><span class="tag t-no">Yo'q</span></td><td><span class="tag t-real">Ha</span></td><td><span class="tag t-real">Ha</span></td></tr>
+<tr><td>Menejer biriktirish</td><td><span class="tag t-no">Yo'q</span></td><td><span class="tag t-no">Yo'q</span></td><td><span class="tag t-real">Ha</span></td></tr>
+<tr><td>Subsidiya arizasi berish</td><td><span class="tag t-real">Ha</span></td><td><span class="tag t-no">Yo'q</span></td><td><span class="tag t-no">Yo'q</span></td></tr>
+<tr><td>Subsidiya hujjatlarini ko'rish</td><td><span class="tag t-later">O'ziniki</span></td><td><span class="tag t-real">Ha</span></td><td><span class="tag t-real">Ha</span></td></tr>
+<tr><td>Subsidiya qarori (approve / reject / fund)</td><td><span class="tag t-no">Yo'q</span></td><td><span class="tag t-no">Yo'q</span></td><td><span class="tag t-real">Ha</span></td></tr>
+<tr><td>To'lov yaratish</td><td><span class="tag t-real">Ha</span></td><td><span class="tag t-no">Yo'q</span></td><td><span class="tag t-real">Ha</span></td></tr>
+<tr><td>To'lovni qo'lda tasdiqlash</td><td><span class="tag t-no">Yo'q</span></td><td><span class="tag t-no">Yo'q</span></td><td><span class="tag t-real">Ha</span></td></tr>
+<tr><td>Listing matnini tayyorlash / tahrirlash</td><td><span class="tag t-no">Yo'q</span></td><td><span class="tag t-real">Ha</span></td><td><span class="tag t-real">Ha</span></td></tr>
+<tr><td>Listing holatini o'zgartirish</td><td><span class="tag t-no">Yo'q</span></td><td><span class="tag t-real">Ha</span></td><td><span class="tag t-real">Ha</span></td></tr>
+<tr><td>Foydalanuvchiga xabar yuborish</td><td><span class="tag t-no">Yo'q</span></td><td><span class="tag t-real">Ha</span></td><td><span class="tag t-real">Ha</span></td></tr>
+<tr><td>Xizmat katalogi va narxlarini o'zgartirish</td><td><span class="tag t-no">Yo'q</span></td><td><span class="tag t-no">Yo'q</span></td><td><span class="tag t-real">Ha</span></td></tr>
+<tr><td>Audit log ko'rish</td><td><span class="tag t-no">Yo'q</span></td><td><span class="tag t-no">Yo'q</span></td><td><span class="tag t-real">Ha</span></td></tr>
+<tr><td>Xodim qo'shish, rol berish</td><td><span class="tag t-no">Yo'q</span></td><td><span class="tag t-no">Yo'q</span></td><td><span class="tag t-real">Ha</span></td></tr>
+</tbody></table></div>
+<div class="note"><p><strong>Qoida.</strong> Pulga va qarorga tegishli har qanday amal faqat ADMIN'da. ECWT_MANAGER kundalik operatsion ishni bajaradi — tekshiradi, tayyorlaydi, holat o'zgartiradi, lekin subsidiya bermaydi va to'lov tasdiqlamaydi.</p></div>
+
+<h2 id="s16"><span class="num">15</span>MUST HAVE / LATER</h2>
+<div class="grid2">
+<div class="card">
+<h4>MUST HAVE — MVP</h4>
+<ul>
+<li>Email + parol auth, sessiya, parol tiklash</li>
+<li>Kompaniya onboarding va hujjat yuklash</li>
+<li>Kompaniya tekshiruvi (admin)</li>
+<li>Mahsulot CRUD + rasmlar</li>
+<li>Mahsulot review oqimi (approve / needs changes + sabab)</li>
+<li>Xizmat katalogi va ServiceOrder</li>
+<li>To'lov usulini tanlash ekrani</li>
+<li>Subsidiya arizasi va holat oqimi</li>
+<li>To'lov yaratish + admin tasdiqlash</li>
+<li>Marketplace listing yozuvlari va qo'lda holat boshqaruvi</li>
+<li>Bildirishnomalar (web + mobile, bitta manba)</li>
+<li>Dashboard va analitika ekrani (demo ma'lumot belgisi bilan)</li>
+<li>Admin panel: barcha navbatlar va qarorlar</li>
+<li>Mobile: home, products, services, notifications, profile</li>
+<li>Audit log</li>
+</ul>
+</div>
+<div class="card">
+<h4>LATER — MVP'dan keyin</h4>
+<ul>
+<li>Marketplace API integratsiyasi (Amazon SP-API va boshqalar)</li>
+<li>Real to'lov shlyuzi (Payme, Click, Uzum, Stripe)</li>
+<li>SMS OTP va telefon tasdiqlash</li>
+<li>Push bildirishnoma va email</li>
+<li>Kompaniya ichida jamoa va rollar</li>
+<li>AI yordamida listing matni yozish</li>
+<li>Real vaqtda sotuv sinxronizatsiyasi</li>
+<li>Logistika va yuk kuzatuv moduli</li>
+<li>Ombor qoldig'ini avtomatik sinxronlash</li>
+<li>Chat / ichki xabar almashish</li>
+<li>Etsy, Mercari, Bonanza, Poshmark</li>
+<li>Platforma bo'ylab kengaytirilgan analitika</li>
+</ul>
+</div>
+</div>
+
+<h2 id="s17"><span class="num">16</span>Investor demo — click-by-click, 4 daqiqa</h2>
+<p>Ikkita brauzer oynasi oldindan ochiq bo'ladi: birinchisida tadbirkor akkaunti, ikkinchisida ECWT admin paneli. Telefon ham tayyor turadi.</p>
+<ol class="steps">
+<li><span class="clock">0:00–0:20</span> Landing sahifa ochiladi. "Mahsulotingizni dunyoga olib chiqing" — bitta jumla bilan biznes tushuntiriladi. <strong>Ro'yxatdan o'tish</strong> bosiladi.</li>
+<li><span class="clock">0:20–0:50</span> Ro'yxatdan o'tish formasi to'ldiriladi. Onboardingning birinchi ikki qadami ko'rsatiladi, qolgani oldindan to'ldirilgan akkauntga o'tiladi (vaqtni tejash uchun).</li>
+<li><span class="clock">0:50–1:20</span> Dashboard. Aktiv mahsulotlar, xizmatlar va listing holati ko'rinadi. <strong>+ Mahsulot qo'shish</strong> bosiladi.</li>
+<li><span class="clock">1:20–1:50</span> Mahsulot formasi to'ldiriladi (nomi, kategoriya, narx, rasm) va <strong>Tekshiruvga yuborish</strong> bosiladi. Holat <code>SUBMITTED</code> ga o'zgaradi.</li>
+<li><span class="clock">1:50–2:10</span> "Xizmat haqini qanday to'laysiz?" ekrani. Bu — demoning markazi. <strong>Subsidiya orqali</strong> tanlanadi, ariza yuboriladi. Ekranda "bu ariza, kafolat emas" yozuvi ko'rsatiladi.</li>
+<li><span class="clock">2:10–2:50</span> Admin oynasiga o'tiladi. Dashboardda yangi mahsulot va yangi subsidiya arizasi ko'rinadi. Mahsulot ochiladi va <strong>Approve</strong> bosiladi. Subsidiya arizasi ochiladi, hujjatlar ko'riladi, <strong>Approved → Funded</strong> qilinadi.</li>
+<li><span class="clock">2:50–3:20</span> Admin panelda marketplace operatsiyalari ochiladi. Amazon ustuni: <code>PREPARING → READY → SUBMITTED → LIVE</code>. Tashqi havola kiritiladi. Bu qadamda aniq aytiladi: <em>"Bu operatsiyani hozir bizning menejerimiz bajaradi. API integratsiyasi keyingi bosqichda."</em></li>
+<li><span class="clock">3:20–3:45</span> Tadbirkor oynasiga qaytiladi va sahifa yangilanadi: mahsulot <code>APPROVED</code>, Amazon <code>LIVE</code>, bildirishnomalar kelgan, dashboardda analitika ko'rinadi. Analitika yonidagi "demo ma'lumot" belgisi ko'rsatiladi va izohlanadi.</li>
+<li><span class="clock">3:45–4:00</span> Telefon ko'tariladi. Mobil ilovada xuddi shu holat: mahsulot LIVE, bildirishnoma kelgan. Bitta backend, uchta klient.</li>
+</ol>
+<div class="note"><p><strong>Demo qoidasi.</strong> Hech bir qadamda soxta ma'lumot ko'rsatilmaydi. Qo'lda bajariladigan joy aytiladi, demo analitika belgilanadi. Investor keyinroq buni o'zi topib olsa — ishonch yo'qoladi; oldindan aytilsa — jamoaning ishonchliligi ko'rinadi.</p></div>
+
+<h2 id="s18"><span class="num">17</span>Development fazalari</h2>
+<div class="scroll"><table>
+<thead><tr><th>Faza</th><th>Mazmuni</th><th>Natija</th></tr></thead>
+<tbody>
+<tr><td>Faza 0<br/>Poydevor</td><td class="w">Monorepo, PostgreSQL, Prisma sxemasi, umumiy tiplar paketi, CI, xatolarni normallashtirish, log va audit</td><td class="w">Bo'sh, lekin qurilgan skelet</td></tr>
+<tr><td>Faza 1<br/>Akkaunt</td><td class="w">auth, users, companies, files. Website: auth + onboarding + profil. Admin: kompaniya tekshiruvi</td><td class="w">Tadbirkor ro'yxatdan o'tib, tasdiqdan o'tadi</td></tr>
+<tr><td>Faza 2<br/>Mahsulot</td><td class="w">products, categories, rasmlar, review oqimi. Website: mahsulot ekranlari. Admin: review navbati</td><td class="w">Mahsulot qo'shiladi va tasdiqlanadi</td></tr>
+<tr><td>Faza 3<br/>Xizmat va pul</td><td class="w">services, ServiceOrder, payments, subsidies. To'lov usulini tanlash ekrani va ikkala oqim</td><td class="w">Demo'ning markaziy qismi ishlaydi</td></tr>
+<tr><td>Faza 4<br/>Marketplace</td><td class="w">marketplaces, listing tayyorlash, admin operatsiya taxtasi, holat oqimi</td><td class="w">Mahsulot LIVE bo'ladi</td></tr>
+<tr><td>Faza 5<br/>Xabar va raqam</td><td class="w">notifications, analytics (DEMO/REAL ajratilgan), dashboard</td><td class="w">Foydalanuvchi natijani ko'radi</td></tr>
+<tr><td>Faza 6<br/>Mobil</td><td class="w">Expo ilova: auth, home, products, services, notifications, profile</td><td class="w">Uchinchi klient</td></tr>
+<tr><td>Faza 7<br/>Demo sayqal</td><td class="w">Seed ma'lumot, demo skript, dizayn sayqali, xatoliklarni tuzatish, deploy</td><td class="w">Investor oldida ko'rsatishga tayyor</td></tr>
+</tbody></table></div>
+<p>Fazalar ketma-ket. Har bir fazadan keyin ishlaydigan demo bo'ladi — oxirida hammasi birdan yig'iladigan variant emas.</p>
+
+<h2 id="s19"><span class="num">18</span>Real / manual / demo ajratmasi</h2>
+<p>Bu bo'lim investor savoliga oldindan javob beradi: <em>"Bu qismi haqiqatan ishlaydimi?"</em></p>
+<div class="scroll"><table>
+<thead><tr><th>Qism</th><th>MVP'da</th><th>Izoh</th></tr></thead>
+<tbody>
+<tr><td>Auth va sessiya</td><td><span class="tag t-real">Real</span></td><td class="w">To'liq ishlaydi: argon2id, token rotation, sessiya bekor qilish</td></tr>
+<tr><td>Kompaniya profili va hujjatlar</td><td><span class="tag t-real">Real</span></td><td class="w">Fayllar S3-mos xotiraga yuklanadi</td></tr>
+<tr><td>Mahsulot CRUD</td><td><span class="tag t-real">Real</span></td><td class="w">To'liq ishlaydi</td></tr>
+<tr><td>Mahsulot tekshiruvi</td><td><span class="tag t-real">Real</span></td><td class="w">Admin qarori bazaga yoziladi, foydalanuvchiga bildirishnoma boradi</td></tr>
+<tr><td>ServiceOrder hayot sikli</td><td><span class="tag t-real">Real</span></td><td class="w">Holat o'tishlari server tomonda tekshiriladi</td></tr>
+<tr><td>Subsidiya arizasi</td><td><span class="tag t-real">Real</span></td><td class="w">Ariza, hujjat, holat, qaror — hammasi real yozuv</td></tr>
+<tr><td>Subsidiya moliyalashtirish</td><td><span class="tag t-manual">Qo'lda</span></td><td class="w">Pul o'tkazmasi platformadan tashqarida; admin faktni belgilaydi</td></tr>
+<tr><td>To'lov yaratish</td><td><span class="tag t-real">Real</span></td><td class="w">Yozuv, idempotentlik, holat oqimi ishlaydi</td></tr>
+<tr><td>To'lovni qabul qilish</td><td><span class="tag t-manual">Qo'lda</span></td><td class="w">Shlyuz ulanmagan: bank o'tkazmasi + admin tasdiqlashi. Soxta success ekrani yo'q</td></tr>
+<tr><td>Listing matnini tayyorlash</td><td><span class="tag t-manual">Qo'lda</span></td><td class="w">ECWT menejeri yozadi va admin panelga kiritadi</td></tr>
+<tr><td>Marketplace'ga joylash</td><td><span class="tag t-manual">Qo'lda</span></td><td class="w">API yo'q. Menejer platformada o'zi joylaydi, holat va havolani panelga kiritadi</td></tr>
+<tr><td>Bildirishnomalar</td><td><span class="tag t-real">Real</span></td><td class="w">Bazada, web va mobil bir manbadan o'qiydi. Push — Faza 5</td></tr>
+<tr><td>Analitika raqamlari</td><td><span class="tag t-demo">Demo</span></td><td class="w"><code>AnalyticsSnapshot.source = DEMO</code>. UI'da belgi bor. Real integratsiya kelganda <code>REAL</code> yozuvlar qo'shiladi, kod o'zgarmaydi</td></tr>
+<tr><td>Sotuv va daromad</td><td><span class="tag t-demo">Demo</span></td><td class="w">Seed skript orqali. Real sotuv marketplace API'sidan keladi</td></tr>
+<tr><td>Audit log</td><td><span class="tag t-real">Real</span></td><td class="w">Har bir admin qarori yoziladi</td></tr>
+</tbody></table></div>
+
+<h2 id="s20"><span class="num">19</span>Ekranlar soni</h2>
+<div class="scroll"><table>
+<thead><tr><th>Klient</th><th>Jami</th><th>MVP</th><th>Later</th></tr></thead>
+<tbody>
+<tr><td>Website</td><td>43</td><td>41</td><td>2</td></tr>
+<tr><td>Mobile</td><td>26</td><td>24</td><td>2</td></tr>
+<tr><td>Admin</td><td>21</td><td>19</td><td>2</td></tr>
+<tr><td>Jami</td><td>90</td><td>84</td><td>6</td></tr>
+</tbody></table></div>
+<p>Ko'pchilik ekran bir xil komponentlardan yig'iladi (jadval, forma, timeline, holat nishoni), shuning uchun 90 raqami 90 marta noldan dizayn degani emas. Amalda taxminan 18–22 ta noyob shablon bor.</p>
+
+<h2 id="stack"><span class="num">20</span>Stack qarorlari</h2>
+
+<h3>ORM — Prisma</h3>
+<p>Ikkalasi ham ishlaydi, lekin bu loyihada Prisma aniq afzal:</p>
+<ul>
+<li><strong>Bitta sxema fayli — bitta haqiqat manbai.</strong> 24 ta entity va ular orasidagi bog'lanishlarni bitta faylda ko'rish mumkin. TypeORM'da model dekoratorlarga tarqalib ketadi va vaqt o'tib bazadagi holat bilan mos kelmay qoladi.</li>
+<li><strong>Generatsiya qilingan tiplar.</strong> <code>include</code> va <code>select</code> natijasi ham to'liq tiplashadi. TypeORM'da bu joyda ko'p <code>any</code> paydo bo'ladi.</li>
+<li><strong>Migratsiyalar ishonchli.</strong> <code>migrate dev</code> va <code>migrate deploy</code> ajratilgan, tarix fayl sifatida saqlanadi.</li>
+<li><strong>Kamchiligi:</strong> juda murakkab SQL so'rovlar uchun qulay emas. Bu holda <code>$queryRaw</code> ishlatiladi — MVP uchun analitika agregatlarida bir-ikki joyda kerak bo'ladi, xolos.</li>
+</ul>
+
+<h3>Auth — email + parol, JWT + rotating refresh token</h3>
+<p>MVP uchun eng sodda xavfsiz variant:</p>
+<ul>
+<li>Parol <strong>argon2id</strong> bilan xeshlanadi (OWASP tavsiyasi).</li>
+<li><strong>Access token</strong> — JWT, 15 daqiqa. Har so'rovda bazaga murojaat qilinmaydi.</li>
+<li><strong>Refresh token</strong> — 48 baytli tasodifiy satr, bazada faqat SHA-256 xeshi saqlanadi, ishlatilganda almashtiriladi (rotation). Bekor qilingan token qayta ishlatilsa — o'g'irlik belgisi, foydalanuvchining barcha sessiyalari yopiladi.</li>
+<li>Websaytda tokenlar <strong>httpOnly cookie</strong>da, mobil ilovada <strong>Keychain / Keystore</strong>da (expo-secure-store). Brauzer JavaScript'i tokenni ko'rmaydi.</li>
+<li>Brute-force himoyasi: 5 marta xato kirishdan keyin 15 daqiqa blok + IP bo'yicha rate limit.</li>
+<li><strong>Nega OAuth emas:</strong> maqsadli auditoriya — O'zbekiston tadbirkorlari, ularda korporativ Google/Apple akkaunt kam. Telefon OTP kelajakda qo'shiladi (Eskiz.uz), lekin u SMS provayder shartnomasiga bog'liq va MVP'ni to'xtatib turmasligi kerak.</li>
+</ul>
+
+<h3>Fayllar — drayver abstraksiyasi</h3>
+<p><code>StorageService</code> interfeysi, ikkita amalga oshirish: lokal disk (dev va demo) va S3-mos (Cloudflare R2 yoki AWS). Yuklash presigned URL orqali — fayl backend orqali o'tmaydi.</p>
+
+<h3>Nima qilinmaydi</h3>
+<p>Microservice yo'q, Kubernetes yo'q, realtime WebSocket yo'q, AI funksiya yo'q, murakkab analytics pipeline yo'q. Bitta NestJS monolit, bitta PostgreSQL. Biznes oqimi ishlagandan keyin kengaytiriladi.</p>
+
+<div class="checkpoint" id="checkpoint">
+<h2><span class="num">BUILD START CHECKPOINT</span>Qurishni boshlashdan oldin</h2>
+<p>Kod yozilmaydi. Quyidagilarni tasdiqlashingiz yoki o'zgartirishingiz kerak:</p>
+<ul class="check">
+<li><strong>Ekranlar ro'yxati</strong> — 90 ta ekran. Ortiqchasi bormi, yetishmayotgani bormi?</li>
+<li><strong>Subsidiya oqimi</strong> — holatlar to'g'rimi? Real hayotda kim qaror qabul qiladi: ECWT o'zimi, yoki davlat organi/fondmi? Bu javob arxitekturaga ta'sir qiladi.</li>
+<li><strong>Xizmat narxlari</strong> — xizmat turlari va narxlari qanday? Foiz asosidami yoki qat'iy summami?</li>
+<li><strong>To'lov</strong> — MVP'ga Payme yoki Click shartnomasi ulguradimi, yoki bank o'tkazmasi + admin tasdiqlash bilan ketamizmi?</li>
+<li><strong>Marketplace</strong> — 4 ta platforma (Amazon, eBay, Walmart, Shopify) to'g'rimi? Sizda hozir qaysi ikkitasida akkaunt bor?</li>
+<li><strong>Rollar</strong> — ECWT_MANAGER va ADMIN ajratmasi kerakmi, yoki MVP'da bitta ADMIN yetarlimi?</li>
+<li><strong>Demo sanasi</strong> — investor uchrashuvi qachon? Fazalar shunga qarab qisqartiriladi.</li>
+<li><strong>Mavjud kod</strong> — oldingi sessiyada qurilgan backend (auth, mahsulot, to'lov modullari) bor. Uni shu yangi modelga moslab davom ettiramizmi, yoki noldan boshlaymizmi?</li>
+</ul>
+<p style="margin-top:16px"><strong>Siz tasdiqlamaguningizcha kod yozilmaydi.</strong></p>
+</div>
+
+</main>
+</div>

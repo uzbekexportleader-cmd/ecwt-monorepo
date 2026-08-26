@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "declaration": false,
+    "removeComments": false,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "sourceMap": true,
+    "outDir": "./dist",
+    // rootDir aniq ko'rsatilgan — aks holda prisma/seed.ts qo'shilganda
+    // natija dist/src/main.js ga tushib qoladi.
+    "rootDir": "./src",
+    "baseUrl": "./",
+    // incremental o'chirilgan: dist qo'lda tozalanganda tsc "hammasi joyida"
+    // deb o'ylab, faqat o'zgargan faylni chiqarardi va build buzilardi.
+    "skipLibCheck": true,
+    "strict": true,
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+    "strictBindCallApply": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  },
+  // prisma/seed.ts bu yerga kirmaydi — u ts-node orqali alohida ishlaydi
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

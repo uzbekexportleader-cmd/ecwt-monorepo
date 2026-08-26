@@ -1,0 +1,52 @@
+{
+  "expo": {
+    "name": "ECWT Hamkor",
+    "slug": "ecwt-partner",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "ecwt",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#0f2340"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "uz.ecwt.partner"
+    },
+    "android": {
+      "package": "uz.ecwt.partner",
+      "adaptiveIcon": {
+        "backgroundColor": "#0f2340"
+      },
+      "edgeToEdgeEnabled": true
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "ECWT ilovasi mahsulot rasmlarini yuklash uchun galereyaga ruxsat so‘raydi."
+        }
+      ],
+      "expo-video"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": ""
+      }
+    }
+  }
+}

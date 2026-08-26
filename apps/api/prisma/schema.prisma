@@ -1,0 +1,663 @@
+// ECWT — E-commerce World Trade
+// B2B platforma: O'zbek ishlab chiqaruvchilari -> AQSH marketplace'lari
+//
+// MUHIM: bu yerdagi enum'lar packages/contracts/src/enums.ts bilan bir xil bo'lishi shart.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enum'lar
+// ---------------------------------------------------------------------------
+
+enum UserRole {
+  SUPPLIER
+  ADMIN
+  STAFF
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+enum SupplierStatus {
+  DRAFT
+  PENDING_REVIEW
+  VERIFIED
+  REJECTED
+  SUSPENDED
+}
+
+enum UzRegion {
+  TOSHKENT_SHAHRI
+  TOSHKENT
+  ANDIJON
+  BUXORO
+  FARGONA
+  JIZZAX
+  XORAZM
+  NAMANGAN
+  NAVOIY
+  QASHQADARYO
+  QORAQALPOGISTON
+  SAMARQAND
+  SIRDARYO
+  SURXONDARYO
+}
+
+enum ProductStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  ARCHIVED
+}
+
+enum Marketplace {
+  AMAZON_US
+  ETSY
+  EBAY
+  WALMART
+  SHOPIFY
+  TIKTOK_SHOP
+}
+
+enum ListingStatus {
+  DRAFT
+  SUBMITTED
+  IN_REVIEW
+  LIVE
+  REJECTED
+  PAUSED
+  ARCHIVED
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+  CANCELLED
+}
+
+enum PaymentProvider {
+  PAYME
+  CLICK
+  UZUM
+  STRIPE
+  PAYPAL
+}
+
+enum PaymentStatus {
+  PENDING
+  AUTHORIZED
+  SUCCEEDED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+  CANCELLED
+}
+
+enum PaymentPurpose {
+  SUBSCRIPTION
+  LISTING_PACKAGE
+  ADVERTISING
+  LOGISTICS
+  OTHER
+}
+
+enum Currency {
+  UZS
+  USD
+}
+
+enum DocumentType {
+  CERTIFICATE
+  CONTRACT
+  INVOICE
+  EXPORT_DECLARATION
+  PASSPORT
+  OTHER
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  WON
+  LOST
+}
+
+enum OtpPurpose {
+  PHONE_VERIFY
+  EMAIL_VERIFY
+  PASSWORD_RESET
+  LOGIN
+}
+
+// ---------------------------------------------------------------------------
+// Foydalanuvchi va sessiya
+// ---------------------------------------------------------------------------
+
+model User {
+  id              String     @id @default(cuid())
+  email           String     @unique
+  phone           String?    @unique
+  passwordHash    String
+  fullName        String
+  role            UserRole   @default(SUPPLIER)
+  status          UserStatus @default(PENDING)
+  locale          String     @default("uz")
+  emailVerifiedAt DateTime?
+  phoneVerifiedAt DateTime?
+  lastLoginAt     DateTime?
+  // Ketma-ket noto'g'ri kirishlar — brute-force himoyasi
+  failedLoginCount Int       @default(0)
+  lockedUntil     DateTime?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  supplier      Supplier?
+  sessions      Session[]
+  otpCodes      OtpCode[]
+  notifications Notification[]
+  auditLogs     AuditLog[]     @relation("AuditActor")
+
+  @@index([role, status])
+  @@map("users")
+}
+
+model Session {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Refresh token XOM holda saqlanmaydi — faqat xeshi
+  refreshTokenHash String    @unique
+  userAgent        String?
+  ip               String?
+  deviceId         String?
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  createdAt        DateTime  @default(now())
+  lastUsedAt       DateTime  @default(now())
+
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model OtpCode {
+  id String @id @default(cuid())
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Telefon yoki email
+  destination String
+  codeHash    String
+  purpose     OtpPurpose
+  attempts    Int        @default(0)
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  createdAt   DateTime   @default(now())
+
+  @@index([destination, purpose, consumedAt])
+  @@index([expiresAt])
+  @@map("otp_codes")
+}
+
+// ---------------------------------------------------------------------------
+// Hamkor (yetkazib beruvchi) kompaniya
+// ---------------------------------------------------------------------------
+
+model Supplier {
+  id String @id @default(cuid())
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  companyName String
+  legalName   String?
+  stir        String?   @unique // INN — 9 raqam
+  region      UzRegion?
+  district    String?
+  address     String?
+  website     String?
+
+  descriptionUz String? @db.Text
+  descriptionRu String? @db.Text
+  descriptionEn String? @db.Text
+
+  logoUrl      String?
+  contactPhone String?
+  contactEmail String?
+
+  // Oylik ishlab chiqarish quvvati (dona)
+  monthlyCapacity Int?
+
+  // Bank rekvizitlari — faqat egasi va admin ko'radi
+  bankName    String?
+  bankAccount String?
+  mfo         String?
+
+  status          SupplierStatus @default(DRAFT)
+  submittedAt     DateTime?
+  verifiedAt      DateTime?
+  rejectionReason String?
+
+  // To'lanmagan qoldiq (USD). Buyurtma DELIVERED bo'lganda oshadi,
+  // payout PAID bo'lganda kamayadi. Faqat tranzaksiya ichida o'zgaradi.
+  balanceUsd Decimal @default(0) @db.Decimal(14, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products  Product[]
+  listings  Listing[]
+  orders    MarketplaceOrder[]
+  payouts   Payout[]
+  payments  Payment[]
+  documents Document[]
+
+  @@index([status])
+  @@index([region])
+  @@map("suppliers")
+}
+
+// ---------------------------------------------------------------------------
+// Mahsulot katalogi
+// ---------------------------------------------------------------------------
+
+model Category {
+  id     String  @id @default(cuid())
+  slug   String  @unique
+  nameUz String
+  nameRu String?
+  nameEn String
+
+  parentId String?
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children Category[] @relation("CategoryTree")
+
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  products Product[]
+
+  @@index([parentId])
+  @@map("categories")
+}
+
+model Product {
+  id String @id @default(cuid())
+
+  supplierId String
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  sku String
+
+  nameUz String
+  nameRu String?
+  nameEn String // AQSH bozori uchun majburiy
+
+  descriptionUz String? @db.Text
+  descriptionRu String? @db.Text
+  descriptionEn String? @db.Text
+
+  brand  String?
+  hsCode String? // Tashqi iqtisodiy faoliyat tovar nomenklaturasi
+
+  status          ProductStatus @default(DRAFT)
+  rejectionReason String?
+
+  basePriceUzs      Decimal  @db.Decimal(14, 2)
+  suggestedPriceUsd Decimal? @db.Decimal(12, 2)
+
+  moq   Int @default(1) // minimal partiya
+  stock Int @default(0)
+
+  weightGrams Int?
+  lengthMm    Int?
+  widthMm     Int?
+  heightMm    Int?
+
+  countryOfOrigin String @default("UZ")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  images    ProductImage[]
+  listings  Listing[]
+  documents Document[]
+
+  // Bitta hamkorda SKU takrorlanmasligi kerak
+  @@unique([supplierId, sku])
+  @@index([supplierId, status])
+  @@index([status, createdAt])
+  @@index([categoryId])
+  @@map("products")
+}
+
+model ProductImage {
+  id String @id @default(cuid())
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  url       String
+  sortOrder Int     @default(0)
+  isPrimary Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([productId, sortOrder])
+  @@map("product_images")
+}
+
+// ---------------------------------------------------------------------------
+// Marketplace e'lonlari
+// ---------------------------------------------------------------------------
+
+model Listing {
+  id String @id @default(cuid())
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  // Tez so'rovlar uchun denormalizatsiya (hamkor o'z listing'larini ko'radi)
+  supplierId String
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  marketplace Marketplace
+  status      ListingStatus @default(DRAFT)
+
+  priceUsd          Decimal @db.Decimal(12, 2)
+  commissionPercent Decimal @default(15) @db.Decimal(5, 2)
+
+  externalId  String? // marketplace'dagi ASIN / listing id
+  externalUrl String?
+
+  notes           String? @db.Text
+  rejectionReason String?
+
+  submittedAt DateTime?
+  liveAt      DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  orders MarketplaceOrder[]
+
+  // Bitta mahsulot bitta marketplace'da bir marta
+  @@unique([productId, marketplace])
+  @@index([supplierId, status])
+  @@index([marketplace, status])
+  @@map("listings")
+}
+
+// ---------------------------------------------------------------------------
+// Marketplace buyurtmalari (AQSH'dan keladi)
+// ---------------------------------------------------------------------------
+
+model MarketplaceOrder {
+  id String @id @default(cuid())
+
+  listingId String
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Restrict)
+
+  supplierId String
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+
+  marketplace     Marketplace
+  externalOrderId String
+
+  quantity Int
+
+  grossUsd          Decimal @db.Decimal(12, 2)
+  marketplaceFeeUsd Decimal @default(0) @db.Decimal(12, 2)
+  shippingUsd       Decimal @default(0) @db.Decimal(12, 2)
+  ecwtFeeUsd        Decimal @default(0) @db.Decimal(12, 2)
+  netToSupplierUsd  Decimal @default(0) @db.Decimal(12, 2)
+
+  status         OrderStatus @default(PENDING)
+  buyerCountry   String      @default("US")
+  trackingNumber String?
+
+  payoutId String?
+  payout   Payout? @relation(fields: [payoutId], references: [id], onDelete: SetNull)
+
+  placedAt    DateTime
+  shippedAt   DateTime?
+  deliveredAt DateTime?
+  cancelledAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Bitta marketplace'dan bir xil buyurtma ikki marta kirmasligi uchun
+  @@unique([marketplace, externalOrderId])
+  @@index([supplierId, status])
+  @@index([supplierId, placedAt])
+  @@index([listingId])
+  @@index([payoutId])
+  @@map("marketplace_orders")
+}
+
+// ---------------------------------------------------------------------------
+// Hamkorga to'lovlar
+// ---------------------------------------------------------------------------
+
+model Payout {
+  id String @id @default(cuid())
+
+  supplierId String
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+
+  reference String? // bank to'lov topshirig'i raqami
+
+  amountUsd    Decimal  @db.Decimal(14, 2)
+  amountUzs    Decimal? @db.Decimal(18, 2)
+  exchangeRate Decimal? @db.Decimal(12, 4)
+
+  status      PayoutStatus @default(PENDING)
+  ordersCount Int          @default(0)
+
+  periodStart DateTime?
+  periodEnd   DateTime?
+
+  note          String?
+  failureReason String?
+
+  paidAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  orders MarketplaceOrder[]
+
+  @@index([supplierId, status])
+  @@index([status, createdAt])
+  @@map("payouts")
+}
+
+// ---------------------------------------------------------------------------
+// Hamkordan ECWT'ga to'lovlar (xizmat haqi)
+// ---------------------------------------------------------------------------
+
+model Payment {
+  id String @id @default(cuid())
+
+  supplierId String
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+
+  provider          PaymentProvider
+  providerPaymentId String?
+
+  purpose PaymentPurpose @default(OTHER)
+
+  amount   Decimal  @db.Decimal(14, 2)
+  currency Currency
+
+  status PaymentStatus @default(PENDING)
+
+  description   String?
+  failureReason String?
+
+  // Takroriy so'rov bitta to'lov yaratishi uchun
+  idempotencyKey String @unique
+
+  metadata Json?
+
+  paidAt    DateTime?
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([provider, providerPaymentId])
+  @@index([supplierId, status])
+  @@index([status, createdAt])
+  @@map("payments")
+}
+
+/// Kelgan webhook'lar. Bitta hodisa ikki marta qayta ishlanmasligi uchun.
+model WebhookEvent {
+  id String @id @default(cuid())
+
+  provider        PaymentProvider
+  externalEventId String
+
+  signatureValid Boolean
+  payload        Json
+  processedAt    DateTime?
+  error          String?
+  createdAt      DateTime  @default(now())
+
+  @@unique([provider, externalEventId])
+  @@index([processedAt])
+  @@map("webhook_events")
+}
+
+// ---------------------------------------------------------------------------
+// Hujjatlar, bildirishnomalar, audit
+// ---------------------------------------------------------------------------
+
+model Document {
+  id String @id @default(cuid())
+
+  supplierId String
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  type      DocumentType
+  fileUrl   String
+  fileName  String
+  mimeType  String
+  sizeBytes Int
+
+  expiresAt  DateTime? // sertifikat muddati
+  uploadedAt DateTime  @default(now())
+
+  @@index([supplierId, type])
+  @@map("documents")
+}
+
+model Notification {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Tarjima kaliti — matn klientda 3 tilga o'giriladi
+  type       String
+  titleKey   String
+  bodyKey    String
+  params     Json?
+  entityType String?
+  entityId   String?
+
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+model AuditLog {
+  id String @id @default(cuid())
+
+  actorUserId String?
+  actor       User?   @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  action     String // masalan: "supplier.verified"
+  entityType String
+  entityId   String
+  metadata   Json?
+  ip         String?
+  requestId  String?
+
+  createdAt DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([actorUserId, createdAt])
+  @@map("audit_logs")
+}
+
+// ---------------------------------------------------------------------------
+// Saytdagi arizalar
+// ---------------------------------------------------------------------------
+
+model Lead {
+  id String @id @default(cuid())
+
+  name            String
+  phone           String
+  email           String?
+  companyName     String?
+  productCategory String?
+  message         String?  @db.Text
+
+  locale String  @default("uz")
+  source String?
+  ip     String?
+
+  status LeadStatus @default(NEW)
+  note   String?    @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@map("leads")
+}
+
+/// Kurs tarixi — payout hisob-kitobi uchun (USD -> UZS)
+model ExchangeRate {
+  id        String   @id @default(cuid())
+  date      DateTime @unique @db.Date
+  usdToUzs  Decimal  @db.Decimal(12, 4)
+  source    String   @default("CBU")
+  createdAt DateTime @default(now())
+
+  @@map("exchange_rates")
+}
