@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 
 type Phase = 'typing' | 'pausedFull' | 'fading' | 'pausedEmpty';
 
-/** Bir harf yozilishi orasidagi kechikish */
-const TYPE_MS = 48;
+/** Bir SO'Z yozilishi orasidagi kechikish (harf emas — pastga qarang) */
+const TYPE_MS = 140;
 /** Gap TO'LIQ yozilib bo'lgach, o'chishdan oldin necha vaqt turadi.
  *  O'qish uchun yetarli bo'lishi kerak — 1800ms, keyin 3200ms ham
  *  kamlik qildi ("o'qib ulgurmasdan keyingisi boshlanyapti"). */
@@ -38,7 +38,21 @@ interface TypewriterHeadlineProps {
  * animatsiya qiladi: `opacity` (yo'qoladi), `translateX` (o'ngga
  * suriladi — shamol yo'nalishi) va `blur` (uchayotgan zarralar
  * singari tarqaladi). Kirish (yozish) esa ASIMMETRIK ravishda oddiy —
- * harflar bir-bir teriladi, hech qanday effektsiz.
+ * so'zlar bir-bir teriladi, hech qanday effektsiz.
+ *
+ * ── Nega HARF emas, SO'Z bilan teriladi ──────────────────────────────
+ * Uchinchi (va asosiy) "sakrash" manbai shu yerda edi. Matn ikki
+ * qatorga o'raladi. Harf-harf terilganda, qatorning oxiridagi so'z
+ * o'sib-o'sib birdan qatorga sig'may qoladi — brauzer uni BUTUNLAY
+ * ikkinchi qatorga ko'chiradi. Natijada 1-qator matni bir zumda
+ * qisqarib, ko'rinishi o'zgaradi: egasi buni "tepa-past bo'lib
+ * sakrayapti" deb ta'rifladi. Bu na `text-balance`, na kursorning
+ * aybi edi — oddiy matn ko'chirish qoidasining o'zi shunday ishlaydi.
+ *
+ * Yechim: HECH QACHON so'z o'rtasida qatorga sig'may qolmasin — har
+ * safar BUTUN so'z bir zumda qo'shiladi, hech qachon o'sib-o'sib
+ * chetga chiqib qolmaydi. Shuning uchun `TYPE_MS` endi "bir harf"
+ * emas, "bir so'z" uchun kechikish (140ms).
  *
  * Chiqish egri chizig'i ATAYLAB tezlashuvchi (`cubic-bezier(0.4,0,1,1)`
  * — "ease-in"): shamol zarrani birdan emas, asta tezlashib olib
@@ -65,7 +79,8 @@ export function TypewriterHeadline({ phrases, className }: TypewriterHeadlinePro
   const [visible, setVisible] = useState(true);
   const [reduced, setReduced] = useState(false);
   const phraseIndex = useRef(0);
-  const charIndex = useRef((phrases[0] ?? '').length);
+  /** Necha SO'Z ko'rsatilgan (harf emas — yuqoridagi izohga qarang) */
+  const wordIndex = useRef((phrases[0] ?? '').split(' ').length);
   const phase = useRef<Phase>('pausedFull');
 
   useEffect(() => {
@@ -79,12 +94,13 @@ export function TypewriterHeadline({ phrases, className }: TypewriterHeadlinePro
 
     const tick = () => {
       const current = phrases[phraseIndex.current % phrases.length] ?? '';
+      const words = current.split(' ');
 
       switch (phase.current) {
         case 'typing':
-          charIndex.current += 1;
-          setText(current.slice(0, charIndex.current));
-          if (charIndex.current >= current.length) {
+          wordIndex.current += 1;
+          setText(words.slice(0, wordIndex.current).join(' '));
+          if (wordIndex.current >= words.length) {
             phase.current = 'pausedFull';
             timeoutId = setTimeout(tick, HOLD_FULL_MS);
           } else {
@@ -101,7 +117,7 @@ export function TypewriterHeadline({ phrases, className }: TypewriterHeadlinePro
         case 'fading':
           setText('');
           setVisible(true);
-          charIndex.current = 0;
+          wordIndex.current = 0;
           phraseIndex.current += 1;
           phase.current = 'pausedEmpty';
           timeoutId = setTimeout(tick, HOLD_EMPTY_MS);
@@ -145,11 +161,20 @@ export function TypewriterHeadline({ phrases, className }: TypewriterHeadlinePro
     >
       {text}
       {!reduced && (
-        <span
-          aria-hidden="true"
-          className="ml-[0.06em] inline-block w-[2px] animate-pulse bg-current align-middle"
-          style={{ height: '0.85em' }}
-        />
+        // Oddiy `inline-block` EMAS — u alohida quti sifatida
+        // qator balandligi hisobiga ta'sir qilardi (`vertical-align:
+        // middle` + qat'iy `height` matnning o'z qator balandligidan
+        // farq qilardi). Bu esa 1-qatordan 2-qatorga o'tganda
+        // BALANDLIK BIR NECHA MARTA qayta hisoblanishiga sabab
+        // bo'lgan — aynan shu "sakrash"ning ikkinchi manbai edi
+        // (`text-balance` birinchisi edi).
+        //
+        // Endi kursor oddiy MATN BELGISI (`▍`), boshqa harflar kabi
+        // oqimda turadi — hech qanday alohida quti, hech qanday
+        // balandlik hisobi. Faqat shaffofligi miltillaydi.
+        <span aria-hidden="true" className="animate-pulse">
+          ▍
+        </span>
       )}
     </span>
   );
