@@ -111,13 +111,30 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                 (qizil nuqtalar) deyarli asl holida qaytaradi — invert
                 qizilni siyanga aylantiradi, keyingi 180° burish esa
                 uni yana qizilga qaytaradi. Natijada: fon shaffof
-                qoladi (PNG alfa-kanali), matn oq, nuqtalar qizil. */}
-            <img
-              src="/logo-ecwt.png"
-              alt="ECWT"
-              className="h-[68px] w-auto shrink-0 sm:h-[86px]"
-              style={{ filter: 'invert(1) hue-rotate(180deg)' }}
-            />
+                qoladi (PNG alfa-kanali), matn oq, nuqtalar qizil.
+
+                ── Nega "qirqilgan" ──────────────────────────────────
+                Faylning O'ZIDA pastda tagline allaqachon bor
+                ("O'ZBEKISTON ELEKTRON TIJORAT KOMPANIYASI"), lekin u
+                juda mayda. Yonida xuddi shu matnni yana bir marta,
+                kattaroq shrift bilan qo'yganimizda — ikkitasi birga
+                chiqib, tagline IKKI MARTA ko'ringan (egasi shuni
+                to'g'ri payqadi). Endi rasm faqat belgi qismigacha
+                (~76% balandlik) `object-cover` bilan kesiladi, pastki
+                tagline qatori umuman ko'rinmaydi — u yerda faqat
+                ALOHIDA matn (pastda) qoladi, bittagina nusxada. */}
+            <div className="h-[52px] w-[104px] shrink-0 overflow-hidden sm:h-[65px] sm:w-[130px]">
+              {/* `h-auto` bilan rasm o'z tabiiy nisbatida (1571:1001)
+                  to'liq kengligicha chiziladi — gorizontal QIRQILMAYDI.
+                  Ota-blok esa undan PASTROQ, shuning uchun rasmning
+                  pastki qismi (tagline qatori) shunchaki ko'rinmaydi. */}
+              <img
+                src="/logo-ecwt.png"
+                alt="ECWT"
+                className="h-auto w-[104px] sm:w-[130px]"
+                style={{ filter: 'invert(1) hue-rotate(180deg)' }}
+              />
+            </div>
             {/* To'liq nom ALOHIDA matn sifatida, rasm ICHIDA emas.
                 Rasmdagi tagline juda mayda edi — logotipni sarlavha
                 balandligiga moslab kichraytirsak, ichidagi mayda matn
@@ -129,40 +146,10 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
             </span>
           </header>
 
-          {/* Asoschining surati — ekranning CHAP DEVORIGA tirab
-              qo'yilgan (`lg:absolute lg:left-0`). Ataylab flex oqimidan
-              CHIQARILGAN: `container-page` ning o'zi 80rem'da
-              cheklanadi va markazga tortiladi, ya'ni undagi har qanday
-              manfiy margin baribir "haqiqiy" chap devorga yetmaydi —
-              faqat konteyner ichidagi bo'shliqni yeydi. Bu yerda esa
-              rasm `<section>` ga (u `relative`) to'g'ridan-to'g'ri
-              bog'lanadi, shuning uchun `left-0` ekranning O'ZIGA,
-              container'ning emas. */}
-          <div className="pointer-events-none absolute inset-y-0 left-0 hidden lg:flex lg:w-[340px] lg:flex-col lg:items-center lg:justify-end lg:pb-10 xl:w-[420px]">
-            {/* eslint-disable-next-line @next/next/no-img-element --
-                shaffof PNG, optimallashtirish shart emas */}
-            <img
-              src="/founder-asror.png"
-              alt=""
-              aria-hidden="true"
-              className="h-auto max-h-[78%] w-full object-contain object-bottom opacity-90"
-            />
-            {/* Ism va lavozim — pitch deck'dagi "ASROR SHAKIROV / CEO
-                & FOUNDER" kartochkasi uslubida, lekin bezaksiz: bu
-                yerda quti, chiziq yoki fon kerak emas, matnning o'zi
-                yetadi. */}
-            <div className="mt-3 flex flex-col items-center text-center">
-              <span className="text-on-video-strong text-[15px] font-bold uppercase tracking-[0.08em]">
-                Asror Shakirov
-              </span>
-              <span className="mt-0.5 text-[11px] font-medium uppercase tracking-[0.22em] text-brand-200/80">
-                CEO &amp; Founder
-              </span>
-            </div>
-          </div>
-
-          {/* Matn o'ng yarimda: chapda endi asoschining surati turadi
-              (yuqorida, mustaqil joylashtirilgan). */}
+          {/* Matn o'ng yarimda: chapda fondagi video turadi.
+              Asoschining surati bu yerda BO'LGAN edi, lekin egasi
+              natijani ko'rib "olib tashla" dedi — o'chirildi.
+              `founder-asror.png` diskda qoldi, hozircha ishlatilmaydi. */}
           <div className="container-page flex flex-1 items-end pb-6 pt-10 lg:items-center lg:justify-end lg:pb-0">
             <div className="flex w-full flex-col items-center text-center lg:max-w-[34rem] lg:items-start lg:text-left">
               <Reveal>
