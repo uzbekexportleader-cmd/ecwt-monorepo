@@ -172,8 +172,13 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                     (`TypewriterHeadline`) — bitta qat'iy shior o'rniga
                     mahsulotning turli qirralari ko'rsatiladi.
 
-                    `h-[1.96em] overflow-hidden` — QAT'IY 2 QATOR joy
-                    (`leading-[0.98]` * 2). Avval 5 qator berilgan edi,
+                    `h-[2.14em] overflow-hidden` — 2 QATOR + kichik
+                    zaxira (`leading-[0.98]` * 2, ustiga +0.18em). Aniq
+                    `* 2` da "g", "y", "q" kabi harflarning pastki dumi
+                    (descender) kesilib qolgan edi — egasi buni ko'rib
+                    payqadi. Zaxira shu dumlarga joy beradi.
+
+                    Avval 5 qator berilgan edi,
                     lekin gaplar 2 dan 5 qatorgacha turlicha
                     o'ralgani uchun quti ichida matn goh yuqorida, goh
                     pastda "sakrab" turgandek ko'rinardi (egasi buni
@@ -193,7 +198,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                     o'ziga bog'liq, shuning uchun har uch breakpoint'da
                     (2.75rem / 3.75rem / 4.5rem) alohida qiymat kerak
                     emas — nisbat o'zi to'g'ri keladi. */}
-                <h1 className="font-display text-on-video-strong h-[1.96em] overflow-hidden text-balance text-[2.75rem] font-bold leading-[0.98] tracking-[-0.035em] sm:text-[3.75rem] lg:text-[4.5rem] [@media(max-height:820px)]:lg:text-[3.5rem]">
+                <h1 className="font-display text-on-video-strong h-[2.14em] overflow-hidden text-balance text-[2.75rem] font-bold leading-[0.98] tracking-[-0.035em] sm:text-[3.75rem] lg:text-[4.5rem] [@media(max-height:820px)]:lg:text-[3.5rem]">
                   <TypewriterHeadline phrases={t.heroRotating} />
                 </h1>
               </Reveal>
