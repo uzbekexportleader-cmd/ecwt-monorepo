@@ -107,23 +107,28 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                 fonda qora edi; bu yerda video fon ustida turgani
                 uchun oq rangga aylantirildi, faqat "Ai" yonidagi
                 qizil nuqtalar o'z rangida qoldi — yagona urg'u sifatida. */}
-            <span className="flex flex-col leading-[0.85]">
-              <span className="text-[26px] font-bold tracking-[0.05em] sm:text-[32px]">
+            <span className="flex flex-col gap-0 leading-[1.05]">
+              <span className="text-[26px] font-bold tracking-[0.03em] sm:text-[32px]">
                 E.C.W.T
               </span>
-              <span className="mt-0.5 flex items-center gap-1.5 text-[26px] font-bold tracking-[0.02em] sm:text-[32px]">
+              <span className="relative inline-block w-fit text-[26px] font-bold tracking-[0.02em] sm:text-[32px]">
                 Ai
-                <span aria-hidden="true" className="flex gap-1 self-start pt-1.5">
-                  <span className="h-[5px] w-[5px] rounded-full bg-[#e2483a] sm:h-[6px] sm:w-[6px]" />
-                  <span className="h-[5px] w-[5px] rounded-full bg-[#e2483a] sm:h-[6px] sm:w-[6px]" />
+                {/* Asl rasmda nuqtalar harfga ZICH yopishgan, yuqori
+                    o'ng burchakda — floating emas. `absolute` bilan
+                    harfning o'ziga mahkamlandi. */}
+                <span
+                  aria-hidden="true"
+                  className="absolute -right-[9px] top-0 flex gap-[3px] sm:-right-[11px]"
+                >
+                  <span className="h-[4px] w-[4px] rounded-full bg-[#e2483a] sm:h-[5px] sm:w-[5px]" />
+                  <span className="h-[4px] w-[4px] rounded-full bg-[#e2483a] sm:h-[5px] sm:w-[5px]" />
                 </span>
               </span>
-              {/* Kompaniyaning to'liq nomi.
-                  Harflar orasi ataylab juda keng (0.42em): shu tufayli u
-                  logotip ostidagi mayda izoh emas, o'zi bir belgi bo'lib
-                  o'qiladi. Tor ekranda oraliq kamayadi va matn ikki
-                  qatorga o'raladi — aks holda u sig'maydi. */}
-              <span className="mt-2 max-w-[17rem] text-[10.5px] font-medium uppercase leading-[1.8] tracking-[0.24em] text-brand-200 sm:max-w-none sm:text-[13px] sm:leading-none sm:tracking-[0.42em]">
+              {/* Kompaniyaning to'liq nomi. Asl rasmda bu ZICH, deyarli
+                  bo'shliqsiz logotip ostida turadi — shuning uchun
+                  katta bo'shliq (avval mt-2) va keng harf oralig'i
+                  (0.42em) olib tashlandi. */}
+              <span className="mt-0.5 max-w-[17rem] text-[10.5px] font-medium uppercase leading-[1.4] tracking-[0.18em] text-brand-200 sm:max-w-none sm:text-[12px] sm:leading-tight sm:tracking-[0.2em]">
                 {t.companyLines.join(' ')}
               </span>
             </span>
