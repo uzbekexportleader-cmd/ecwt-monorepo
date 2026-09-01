@@ -122,10 +122,12 @@ export const HOME_COPY: Record<Locale, HomeCopy> = {
   uz: {
     companyLines: ['O‘ZBEKISTON', 'ELEKTRON TIJORAT', 'KOMPANIYASI'],
     heroRotating: [
-      'Maxsulotingizni dunyoga olib chiqing.',
-      'Brendingizni Amerikaga chiqaring.',
-      'Ishlab chiqaring — qolgani bizda.',
-      'Kichik ustadan — katta bozorga.',
+      'Maxsulotingizni dunyo bozoriga olib chiqamiz!',
+      'Milliardlab onlayn xaridorlar ko‘z oldiga chiqing!',
+      '8 ta marketplace sizning ixtiyoringizda — tanlang!',
+      'O‘z brendingiz bilan dunyo savdosiga chiqing!',
+      'Savdongizni yangi bosqichga olib chiqing!',
+      'Siz saytga joylang, biz avtomatik marketplace’larga joylaymiz!',
     ],
     subtitle:
       'O‘zbekiston maxsulotlarini global marketplace’larda soting, brendingizni dunyoga taniting',

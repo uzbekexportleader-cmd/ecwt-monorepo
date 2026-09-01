@@ -7,13 +7,13 @@ type Phase = 'typing' | 'pausedFull' | 'fading' | 'pausedEmpty';
 /** Bir harf yozilishi orasidagi kechikish */
 const TYPE_MS = 48;
 /** Gap TO'LIQ yozilib bo'lgach, o'chishdan oldin necha vaqt turadi.
- *  O'qish uchun yetarli bo'lishi kerak — avvalgi 1800ms juda qisqa
- *  edi, keyingi gap boshlanguncha o'qib ulgurmasdi. */
-const HOLD_FULL_MS = 3200;
-/** Erish animatsiyasining davomiyligi */
-const FADE_MS = 600;
-/** Erib bo'lgach, keyingi gap yozila boshlashidan oldingi tin olish */
-const HOLD_EMPTY_MS = 250;
+ *  O'qish uchun yetarli bo'lishi kerak — 1800ms, keyin 3200ms ham
+ *  kamlik qildi ("o'qib ulgurmasdan keyingisi boshlanyapti"). */
+const HOLD_FULL_MS = 4200;
+/** "Shamol uchirgan qum" animatsiyasining davomiyligi */
+const FADE_MS = 900;
+/** Uchib ketgach, keyingi gap yozila boshlashidan oldingi tin olish */
+const HOLD_EMPTY_MS = 300;
 
 interface TypewriterHeadlineProps {
   /** Ketma-ket ko'rsatiladigan gaplar — kamida ikkitasi bo'lishi kerak */
@@ -30,16 +30,21 @@ interface TypewriterHeadlineProps {
  * mashinasi (`Phase`) esa har bosqichda o'zining kechikishini
  * tanlaydi.
  *
- * ── Kirish — yozib, chiqish — erib ───────────────────────────────────
- * Ilgari gap harf-harf O'CHIRILARDI (backspace kabi). Bu mexanik
- * ko'rindi — egasi buni yoqtirmadi va "qum isporyatsa qilgani kabi"
- * yo'qolishini so'radi. Endi kirish (yozish) va chiqish (erish)
- * ASIMMETRIK: matn harf-harf TERILADI, lekin bir butun holda YUMSHOQ
- * ERIYDI (`opacity` o'tishi), harf-harf o'chirilmaydi.
+ * ── Kirish — yozib, chiqish — shamolda uchib ────────────────────────
+ * Ilgari gap harf-harf O'CHIRILARDI (backspace kabi) — bu mexanik
+ * ko'rindi. Keyin oddiy `opacity` erishiga o'tkazildi, lekin egasi
+ * buni ham "oddiy o'chish" deb topdi va "qum shamolda uchib
+ * ketgandek" so'radi. Endi chiqish uchta xususiyatni BIRGA
+ * animatsiya qiladi: `opacity` (yo'qoladi), `translateX` (o'ngga
+ * suriladi — shamol yo'nalishi) va `blur` (uchayotgan zarralar
+ * singari tarqaladi). Kirish (yozish) esa ASIMMETRIK ravishda oddiy —
+ * harflar bir-bir teriladi, hech qanday effektsiz.
  *
- * Erish faqat CHIQISHDA animatsiyalanadi — qaytib 1ga chiqish esa
- * ANIQ VA DARHOL (`transition: none`), aks holda bo'sh matn ustida
- * yangi gap harflari yarim shaffof holda terila boshlardi.
+ * Chiqish egri chizig'i ATAYLAB tezlashuvchi (`cubic-bezier(0.4,0,1,1)`
+ * — "ease-in"): shamol zarrani birdan emas, asta tezlashib olib
+ * ketadi. Faqat CHIQISHDA animatsiyalanadi — qaytib holatga chiqish
+ * esa ANIQ VA DARHOL (`transition: none`), aks holda bo'sh matn
+ * ustida yangi gap harflari suriling-xira holda terila boshlardi.
  *
  * ── Boshlang'ich holat `pausedFull` ──────────────────────────────────
  * Server birinchi gapni TO'LIQ chiqaradi (hydration mos kelishi
@@ -119,9 +124,15 @@ export function TypewriterHeadline({ phrases, className }: TypewriterHeadlinePro
       className={className}
       style={{
         opacity: visible ? 1 : 0,
-        // Faqat 0ga O'TISH animatsiyalanadi. 1ga qaytish darhol —
-        // izohda tushuntirilgan sababga ko'ra.
-        transition: visible ? 'none' : `opacity ${FADE_MS}ms ease`,
+        transform: visible ? 'translateX(0) scale(1)' : 'translateX(2.5em) scale(0.94)',
+        filter: visible ? 'blur(0px)' : 'blur(10px)',
+        // Faqat "uchib ketish" tomoni animatsiyalanadi. Qaytib
+        // holatga chiqish darhol (`transition: none`) — izohda
+        // tushuntirilgan sababga ko'ra.
+        transition: visible
+          ? 'none'
+          : `opacity ${FADE_MS}ms cubic-bezier(0.4,0,1,1), transform ${FADE_MS}ms cubic-bezier(0.4,0,1,1), filter ${FADE_MS}ms cubic-bezier(0.4,0,1,1)`,
+        display: 'inline-block',
       }}
     >
       {text}

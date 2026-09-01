@@ -151,7 +151,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               natijani ko'rib "olib tashla" dedi — o'chirildi.
               `founder-asror.png` diskda qoldi, hozircha ishlatilmaydi. */}
           <div className="container-page flex flex-1 items-end pb-6 pt-10 lg:items-center lg:justify-end lg:pb-0">
-            <div className="flex w-full flex-col items-center text-center lg:max-w-[34rem] lg:items-start lg:text-left">
+            <div className="flex w-full flex-col items-center text-center lg:max-w-[52rem] lg:items-start lg:text-left">
               <Reveal>
                 {/* Ko'z tushadigan birinchi satr */}
                 <span className="mb-6 inline-flex items-center gap-2.5 rounded-full border border-white/[0.12] bg-white/[0.04] px-4 py-1.5 text-[11px] font-medium uppercase tracking-[0.16em] text-brand-200 backdrop-blur-md sm:mb-7">
@@ -172,8 +172,16 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                     (`TypewriterHeadline`) — bitta qat'iy shior o'rniga
                     mahsulotning turli qirralari ko'rsatiladi.
 
-                    `h-[3.43em] overflow-hidden` — QAT'IY 3.5 QATOR joy
-                    (`leading-[0.98]` * 3.5). ATAYLAB `min-height` EMAS,
+                    `h-[1.96em] overflow-hidden` — QAT'IY 2 QATOR joy
+                    (`leading-[0.98]` * 2). Avval 5 qator berilgan edi,
+                    lekin gaplar 2 dan 5 qatorgacha turlicha
+                    o'ralgani uchun quti ichida matn goh yuqorida, goh
+                    pastda "sakrab" turgandek ko'rinardi (egasi buni
+                    "likkillash" deb ta'rifladi). Endi ustun kengligi
+                    ham oshirildi (`34rem` -> `52rem`, pastdagi
+                    o'zgarishga qarang), shunda barcha gaplar ANIQ 2
+                    qatorga sig'adi — balandlik hech qachon
+                    o'zgarmaydi. ATAYLAB `min-height` EMAS,
                     `height`: `min-height` faqat pastki chegara beradi
                     — uzunroq gap kelsa quti baribir kattalashib,
                     pastdagi paragraf va tugmalarni surib yuborardi
@@ -185,7 +193,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                     o'ziga bog'liq, shuning uchun har uch breakpoint'da
                     (2.75rem / 3.75rem / 4.5rem) alohida qiymat kerak
                     emas — nisbat o'zi to'g'ri keladi. */}
-                <h1 className="font-display text-on-video-strong h-[3.43em] overflow-hidden text-balance text-[2.75rem] font-bold leading-[0.98] tracking-[-0.035em] sm:text-[3.75rem] lg:text-[4.5rem] [@media(max-height:820px)]:lg:text-[3.5rem]">
+                <h1 className="font-display text-on-video-strong h-[1.96em] overflow-hidden text-balance text-[2.75rem] font-bold leading-[0.98] tracking-[-0.035em] sm:text-[3.75rem] lg:text-[4.5rem] [@media(max-height:820px)]:lg:text-[3.5rem]">
                   <TypewriterHeadline phrases={t.heroRotating} />
                 </h1>
               </Reveal>
