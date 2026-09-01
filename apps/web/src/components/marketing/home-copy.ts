@@ -22,9 +22,16 @@ interface Stat {
 interface HomeCopy {
   /** Logotip yonidagi uch qatorli tavsif */
   companyLines: [string, string, string];
-  titleLead: string;
-  titleAccent: string;
-  titleTail: string;
+  /**
+   * Sarlavhada ketma-ket aylanadigan gaplar (yozilib-o'chiriladi).
+   *
+   * Ilgari bu yerda bitta qat'iy gap bor edi (`titleLead` + rangli
+   * `titleAccent` + `titleTail`). Endi bir nechta xabar ketma-ket
+   * aytiladi, shuning uchun o'rtadagi so'zni alohida ranglash mantiqiy
+   * emas — barchasi bir xil ranglanadi (`TypewriterHeadline`).
+   * Kamida ikkita gap bo'lishi kerak, aks holda aylanish ma'nosiz.
+   */
+  heroRotating: readonly string[];
   subtitle: string;
   trustTitle: string;
   trustBody: string;
@@ -114,9 +121,12 @@ interface HomeCopy {
 export const HOME_COPY: Record<Locale, HomeCopy> = {
   uz: {
     companyLines: ['O‘ZBEKISTON', 'ELEKTRON TIJORAT', 'KOMPANIYASI'],
-    titleLead: 'Mahsulotingizni',
-    titleAccent: 'dunyoga',
-    titleTail: 'olib chiqing.',
+    heroRotating: [
+      'Mahsulotingizni dunyoga olib chiqing.',
+      'Brendingizni Amerikaga chiqaring.',
+      'Ishlab chiqaring — qolganini biz qilamiz.',
+      'O‘zbekistondan dunyo bozoriga.',
+    ],
     subtitle:
       'O‘zbekiston mahsulotlarini global marketplace’larda soting, brendingizni dunyoga taniting',
     trustTitle: 'Xavfsiz va ishonchli platforma',
@@ -200,9 +210,12 @@ export const HOME_COPY: Record<Locale, HomeCopy> = {
 
   ru: {
     companyLines: ['УЗБЕКСКАЯ КОМПАНИЯ', 'ЭЛЕКТРОННОЙ', 'КОММЕРЦИИ'],
-    titleLead: 'Выведите свой товар',
-    titleAccent: 'в мир',
-    titleTail: '',
+    heroRotating: [
+      'Выведите свой товар в мир.',
+      'Продавайте бренд в Америке.',
+      'Вы производите — остальное берём на себя.',
+      'Из Узбекистана — на мировой рынок.',
+    ],
     subtitle:
       'Продавайте товары Узбекистана на глобальных маркетплейсах и покажите свой бренд миру',
     trustTitle: 'Безопасная и надёжная платформа',
@@ -286,9 +299,12 @@ export const HOME_COPY: Record<Locale, HomeCopy> = {
 
   en: {
     companyLines: ['UZBEKISTAN', 'E-COMMERCE', 'COMPANY'],
-    titleLead: 'Take your product',
-    titleAccent: 'to the world',
-    titleTail: '',
+    heroRotating: [
+      'Take your product to the world.',
+      'Sell your brand in America.',
+      'You manufacture — we handle the rest.',
+      'From Uzbekistan to the global market.',
+    ],
     subtitle:
       'Sell Uzbek products on global marketplaces and put your brand in front of the world',
     trustTitle: 'Secure and reliable platform',

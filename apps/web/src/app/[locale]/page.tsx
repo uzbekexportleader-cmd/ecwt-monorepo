@@ -6,6 +6,7 @@ import { NightBackdrop } from '@/components/marketing/NightBackdrop';
 import { HOME_COPY } from '@/components/marketing/home-copy';
 import { MarketplaceMarquee, MARKETPLACE_COUNT } from '@/components/marketing/MarketplaceMarquee';
 import { TashkentClock } from '@/components/marketing/TashkentClock';
+import { TypewriterHeadline } from '@/components/marketing/TypewriterHeadline';
 import { SiteSound } from '@/components/marketing/SiteSound';
 import { ChatWidget } from '@/components/marketing/ChatWidget';
 import { LedButton } from '@/components/marketing/LedButton';
@@ -135,12 +136,13 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               <Reveal delay={80}>
                 {/* Sarlavha — sahifaning bosh qahramoni. `tracking` manfiy:
                     yirik o'lchamda harflar orasi kengaygandek ko'rinadi va
-                    uni qaytarib tortish kerak. */}
+                    uni qaytarib tortish kerak.
+
+                    Bir nechta gap ketma-ket yozilib-o'chiriladi
+                    (`TypewriterHeadline`) — bitta qat'iy shior o'rniga
+                    mahsulotning turli qirralari ko'rsatiladi. */}
                 <h1 className="text-on-video-strong text-balance text-[2.75rem] font-bold leading-[0.98] tracking-[-0.035em] sm:text-[3.75rem] lg:text-[4.5rem] [@media(max-height:820px)]:lg:text-[3.5rem]">
-                  {t.titleLead}
-                  <br />
-                  <span className="text-[#5eb3ff]">{t.titleAccent}</span>
-                  {t.titleTail ? ` ${t.titleTail}` : '.'}
+                  <TypewriterHeadline phrases={t.heroRotating} />
                 </h1>
               </Reveal>
 
