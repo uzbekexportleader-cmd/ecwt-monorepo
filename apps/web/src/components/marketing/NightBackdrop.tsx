@@ -1,7 +1,3 @@
-'use client';
-
-import { useEffect, useRef } from 'react';
-
 /**
  * Bosh sahifaning foni — tungi dunyo xaritasi videosi, ustida yulduzlar.
  *
@@ -85,34 +81,6 @@ function makeStars(count: number) {
 const STARS = makeStars(200);
 
 export function NightBackdrop() {
-  /**
-   * Sichqoncha ortidan yuruvchi iliq-sovuq nur — "siyoh tun osmonida
-   * erib ketganday" effekt (egasi ko'rsatgan namuna asosida).
-   *
-   * `useState` EMAS: har sichqoncha harakatida qayta render chaqirish
-   * butun sahifani (200 ta yulduz, video) qayta hisoblardi. Buning
-   * o'rniga DOM elementiga TO'G'RIDAN-TO'G'RI, React'ni chetlab o'tib
-   * `transform` yoziladi — brauzer buni kompozitorda, asosiy oqimni
-   * band qilmasdan bajaradi.
-   *
-   * Boshlang'ich holatda ekrandan TASHQARIDA turadi (`-9999px`), toki
-   * sichqoncha birinchi marta qimirlamaguncha chap-yuqori burchakda
-   * "yaltirab" ko'rinmasin.
-   */
-  const glowRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const glow = glowRef.current;
-    if (!glow) return;
-
-    const handleMove = (e: PointerEvent) => {
-      glow.style.transform = `translate3d(${e.clientX - 380}px, ${e.clientY - 380}px, 0)`;
-    };
-
-    window.addEventListener('pointermove', handleMove);
-    return () => window.removeEventListener('pointermove', handleMove);
-  }, []);
-
   return (
     <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
       <div className="absolute inset-0" style={{ background: '#03060f' }} />
@@ -233,32 +201,6 @@ export function NightBackdrop() {
           }}
         />
 
-      </div>
-
-      {/* Iliq (oltin) markazdan sovuq (tungi ko'k) chekkaga o'tuvchi
-          xira nur — `screen` qorishmasi uni tun ustiga "yorug'lik"
-          sifatida qo'shadi, qora dog' emas. `fixed`: ekranga
-          mahkamlangan, video kabi aylantirganda qolib ketmaydi.
-          ── Nega VIDEODAN KEYIN ──────────────────────────────────────
-          Avval bu qatlam videodan OLDIN turardi — video O'ZI TO'LIQ
-          ekranni qopladi (`object-cover`, shaffof emas), shuning uchun
-          nur uning OSTIDA butunlay ko'rinmas bo'lib qolardi. Bo'yash
-          tartibi DOM tartibiga mos keladi: keyingi qavat oldingisi
-          ustidan chiziladi, shuning uchun nur videodan KEYIN kelishi
-          shart — aks holda "screen" qorishmasi hech narsaga ta'sir
-          qilmaydi. */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div
-          ref={glowRef}
-          className="absolute h-[760px] w-[760px] rounded-full transition-transform duration-500 ease-out"
-          style={{
-            background:
-              'radial-gradient(circle, rgba(240,201,135,0.32) 0%, rgba(58,110,180,0.16) 45%, rgba(3,6,15,0) 72%)',
-            filter: 'blur(64px)',
-            mixBlendMode: 'screen',
-            transform: 'translate3d(-9999px, -9999px, 0)',
-          }}
-        />
       </div>
 
       {/* Uchuvchi yulduzlar. Tashqi qatlam yo'nalishni beradi, ichkarisi
