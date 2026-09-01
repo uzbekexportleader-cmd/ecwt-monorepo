@@ -54,20 +54,27 @@ interface Props {
 const VARIANTS = {
   primary: {
     /**
-     * Pushti-atirgul (`#8B4B5C`) dan oltin-bronzaga (`#8C6530`).
+     * "Oltin qizarish" — och pushti (`#C68690`) dan yumshoq
+     * shampan-oltinga (`#E2BE7E`). 20 ta variantdan egasi TANLAGAN
+     * aynan shu juftlik — o'zgartirilmagan.
      *
-     * Klassik "rose gold" (`#B76E79` kabi) oq matn bilan atigi ~3.98:1
-     * kontrast beradi — AA me'yori (4.5) dan past, ya'ni tugma
-     * matnini video fon ustida o'qish qiyinlashardi. Shuning uchun
-     * ikkala uch ham quyuqlashtirildi va oldindan hisoblandi:
-     *   boshi  #8B4B5C -> oq matn bilan 6.45:1
-     *   oxiri  #8C6530 -> oq matn bilan 5.22:1
-     * Ikkalasi ham AA dan yuqori, gradient bo'ylab pasaymaydi. Ko'zga
-     * baribir "rose gold" bo'lib ko'rinadi — faqat quyuqroq soyada.
+     * ⚠️ Lekin OQ matn bilan ishlamaydi: bu rang juda och, hisoblandi —
+     *   boshi  #C68690 -> oq matn bilan atigi 2.91:1
+     *   oxiri  #E2BE7E -> oq matn bilan hatto 1.77:1
+     * Ikkalasi ham AA me'yori (4.5) dan ancha past — oltin uchida matn
+     * deyarli o'qilmas edi.
+     *
+     * Shuning uchun rang O'ZGARTIRILMADI, faqat matn OQ emas, TO'Q
+     * qilindi (`text-brand-950`, `#091729` — saytning o'z siyoh
+     * rangi). Xuddi shu fon bilan:
+     *   boshi  6.18:1
+     *   oxiri  10.19:1
+     * Bu tasodifiy emas: och rose gold fonda to'q matn — zargarlik va
+     * premium brendlarda keng tarqalgan juftlik.
      */
-    image: 'linear-gradient(100deg, #8B4B5C 0%, #8C6530 100%)',
-    shadow: '0 12px 44px -12px rgba(139,75,92,0.6)',
-    text: 'text-white',
+    image: 'linear-gradient(100deg, #C68690 0%, #E2BE7E 100%)',
+    shadow: '0 12px 44px -12px rgba(198,134,144,0.55)',
+    text: 'text-brand-950',
     ring: 1,
   },
   ghost: {
