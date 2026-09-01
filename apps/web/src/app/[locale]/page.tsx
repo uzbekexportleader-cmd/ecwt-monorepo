@@ -100,7 +100,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               Konteyner keng ekranda matnni markazga tortadi va chapda
               katta bo'sh joy qoladi. Logotip esa o'ng tepadagi panel
               kabi chetga mahkamlanadi — ikkalasi bir chiziqda turadi. */}
-          <header className="flex items-center pl-4 pr-4 sm:pl-6 sm:pr-[31rem]">
+          <header className="flex items-center gap-4 pl-4 pr-4 sm:gap-5 sm:pl-6 sm:pr-[31rem]">
             {/* Egasi bergan HAQIQIY logotip fayli (`logo-ecwt.png`) —
                 avvalgi CSS bilan qayta yasalgan variant o'rniga.
 
@@ -114,48 +114,56 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                 qoladi (PNG alfa-kanali), matn oq, nuqtalar qizil. */}
             <img
               src="/logo-ecwt.png"
-              alt="ECWT — O'zbekiston elektron tijorat kompaniyasi"
-              className="h-[68px] w-auto sm:h-[86px]"
+              alt="ECWT"
+              className="h-[68px] w-auto shrink-0 sm:h-[86px]"
               style={{ filter: 'invert(1) hue-rotate(180deg)' }}
             />
+            {/* To'liq nom ALOHIDA matn sifatida, rasm ICHIDA emas.
+                Rasmdagi tagline juda mayda edi — logotipni sarlavha
+                balandligiga moslab kichraytirsak, ichidagi mayda matn
+                o'qib bo'lmas darajada kichrayardi. Bu yerda esa u
+                o'zining shrift o'lchamiga ega va logotip qanchalik
+                kichik bo'lmasin, doim o'qiladi. */}
+            <span className="max-w-[13rem] text-[13px] font-semibold uppercase leading-[1.35] tracking-[0.12em] text-white sm:max-w-[20rem] sm:text-[17px] sm:leading-tight sm:tracking-[0.16em]">
+              {t.companyLines.join(' ')}
+            </span>
           </header>
 
-          {/* Matn o'ng yarimda. Chapda ilgari faqat fondagi video
-              ko'rinardi — egasi so'ragach, o'sha bo'sh joyga
-              asoschining o'z surati (`founder-asror.png`) qo'yildi.
-              Faqat keng ekranda (`lg:`): tor ekranda hero allaqachon
-              to'liq, surat qo'shilsa u yerga sig'maydi va matn bilan
-              ustma-ust tushib qoladi.
-
-              `-ml-*` — egasi "chaproqqa" dedi: `container-page` ning
-              standart chap bo'shlig'idan tashqariga, ekran chetiga
-              yaqinroq suriladi. Rasm o'zi ham kattalashtirildi
-              (300/360 -> 340/420) va `opacity-90` bilan sal
-              shaffoflashtirildi. */}
-          <div className="container-page flex flex-1 items-end pb-6 pt-10 lg:items-center lg:justify-between lg:pb-0">
-            <div className="hidden h-full shrink-0 flex-col items-center lg:-ml-6 lg:flex lg:w-[340px] xl:-ml-10 xl:w-[420px]">
-              {/* eslint-disable-next-line @next/next/no-img-element --
-                  shaffof PNG, optimallashtirish shart emas */}
-              <img
-                src="/founder-asror.png"
-                alt=""
-                aria-hidden="true"
-                className="h-auto max-h-[78%] w-full object-contain object-bottom opacity-90"
-              />
-              {/* Ism va lavozim — pitch deck'dagi "ASROR SHAKIROV / CEO
-                  & FOUNDER" kartochkasi uslubida, lekin bezaksiz: bu
-                  yerda quti, chiziq yoki fon kerak emas, matnning o'zi
-                  yetadi. */}
-              <div className="mt-3 flex flex-col items-center text-center">
-                <span className="text-on-video-strong text-[15px] font-bold uppercase tracking-[0.08em]">
-                  Asror Shakirov
-                </span>
-                <span className="mt-0.5 text-[11px] font-medium uppercase tracking-[0.22em] text-brand-200/80">
-                  CEO &amp; Founder
-                </span>
-              </div>
+          {/* Asoschining surati — ekranning CHAP DEVORIGA tirab
+              qo'yilgan (`lg:absolute lg:left-0`). Ataylab flex oqimidan
+              CHIQARILGAN: `container-page` ning o'zi 80rem'da
+              cheklanadi va markazga tortiladi, ya'ni undagi har qanday
+              manfiy margin baribir "haqiqiy" chap devorga yetmaydi —
+              faqat konteyner ichidagi bo'shliqni yeydi. Bu yerda esa
+              rasm `<section>` ga (u `relative`) to'g'ridan-to'g'ri
+              bog'lanadi, shuning uchun `left-0` ekranning O'ZIGA,
+              container'ning emas. */}
+          <div className="pointer-events-none absolute inset-y-0 left-0 hidden lg:flex lg:w-[340px] lg:flex-col lg:items-center lg:justify-end lg:pb-10 xl:w-[420px]">
+            {/* eslint-disable-next-line @next/next/no-img-element --
+                shaffof PNG, optimallashtirish shart emas */}
+            <img
+              src="/founder-asror.png"
+              alt=""
+              aria-hidden="true"
+              className="h-auto max-h-[78%] w-full object-contain object-bottom opacity-90"
+            />
+            {/* Ism va lavozim — pitch deck'dagi "ASROR SHAKIROV / CEO
+                & FOUNDER" kartochkasi uslubida, lekin bezaksiz: bu
+                yerda quti, chiziq yoki fon kerak emas, matnning o'zi
+                yetadi. */}
+            <div className="mt-3 flex flex-col items-center text-center">
+              <span className="text-on-video-strong text-[15px] font-bold uppercase tracking-[0.08em]">
+                Asror Shakirov
+              </span>
+              <span className="mt-0.5 text-[11px] font-medium uppercase tracking-[0.22em] text-brand-200/80">
+                CEO &amp; Founder
+              </span>
             </div>
+          </div>
 
+          {/* Matn o'ng yarimda: chapda endi asoschining surati turadi
+              (yuqorida, mustaqil joylashtirilgan). */}
+          <div className="container-page flex flex-1 items-end pb-6 pt-10 lg:items-center lg:justify-end lg:pb-0">
             <div className="flex w-full flex-col items-center text-center lg:max-w-[34rem] lg:items-start lg:text-left">
               <Reveal>
                 {/* Ko'z tushadigan birinchi satr */}
