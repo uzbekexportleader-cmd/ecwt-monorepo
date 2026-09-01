@@ -132,7 +132,15 @@ export function TypewriterHeadline({ phrases, className }: TypewriterHeadlinePro
         transition: visible
           ? 'none'
           : `opacity ${FADE_MS}ms cubic-bezier(0.4,0,1,1), transform ${FADE_MS}ms cubic-bezier(0.4,0,1,1), filter ${FADE_MS}ms cubic-bezier(0.4,0,1,1)`,
-        display: 'inline-block',
+        // `inline-block` EMAS, `block`. Ikkalasi ham transform'ni
+        // ishga tushiradi, lekin `inline-block` matn oqimidagi
+        // `vertical-align: baseline` qoidasiga bo'ysunadi — matn 1
+        // qatordan 2 qatorga o'tganda balandligi o'zgaradi, demak
+        // "asos chizig'i" ham qayta hisoblanadi va BUTUN BLOK
+        // tepaga-pastga siljib ko'rinadi (egasi "sakraydi" deb
+        // ta'rifladi). `block` esa oddiy yuqoridan pastga oqadi,
+        // hech qanday asos-chiziq hisobisiz.
+        display: 'block',
       }}
     >
       {text}
