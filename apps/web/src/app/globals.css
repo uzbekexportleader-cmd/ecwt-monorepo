@@ -427,7 +427,26 @@ h2 {
 }
 
 @utility animate-marquee {
-  animation: ecwt-marquee 140s linear infinite;
+  animation: ecwt-marquee 90s linear infinite;
+  will-change: transform;
+}
+
+/**
+ * Asosiy tugma ustidan sekin o'tib ketadigan yorug' chiziq.
+ *
+ * 0% dan 16% gacha (taxminan 0.8s) chiziq tugma ustidan o'tadi, qolgan
+ * 84% (4.2s) esa u ekrandan tashqarida "dam oladi" — shuning uchun
+ * effekt har 5 soniyada BIR MARTA, kamdan-kam ko'rinadi. Doimiy
+ * yaltirab turish diqqatni tortib, matnni o'qishga xalaqit berardi.
+ */
+@keyframes ecwt-sheen {
+  0% { transform: translateX(-140%) skewX(-20deg); }
+  16% { transform: translateX(220%) skewX(-20deg); }
+  100% { transform: translateX(220%) skewX(-20deg); }
+}
+
+@utility animate-sheen {
+  animation: ecwt-sheen 5s ease-in-out infinite;
   will-change: transform;
 }
 

@@ -130,12 +130,18 @@ const ZOOM = 1.35;
 /**
  * Bitta nusxada ro'yxat necha marta takrorlanadi.
  *
- * Sikl `-50%` ga suriladi, ya'ni BITTA nusxa ekran kengligidan katta
- * bo'lishi shart. Ro'yxat yigirmata bo'lganda bu o'z-o'zidan bajarilgan
- * edi; o'n bittaga tushgach, keng monitorda lentaning oxiri ko'rinib
- * qolishi mumkin. Ikki marta takrorlash buni yopadi.
+ * ── 2 EMAS, 1 ────────────────────────────────────────────────────────
+ * Ilgari bu yerda 2 turardi: fikr shu ediki, ro'yxat (14 ta) keng
+ * monitorda ekran kengligiga yetmasligi mumkin edi. Lekin buning
+ * narxi kattaroq chiqdi — tashqi `[0,1].map` allaqachon ikkita nusxa
+ * chizadi (uzluksiz sikl uchun), shu ustiga yana 2 marta ko'paytirilsa,
+ * bitta ekranda AYNAN BIR XIL 14 ta logotip ketma-ket ikki marta
+ * ko'rinib qolardi — bu "uzluksiz oqim" emas, "ikki marta bosilgan
+ * xato" bo'lib ko'rinardi (egasi shundan shikoyat qildi). Endi
+ * takrorlash faqat sikl uchun kerakli tashqi ikkita nusxa bilan
+ * chegaralanadi.
  */
-const REPEAT = 2;
+const REPEAT = 1;
 
 export function MarketplaceMarquee({ label }: { label: string }) {
   return (

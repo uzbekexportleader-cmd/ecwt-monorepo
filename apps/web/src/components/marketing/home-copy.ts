@@ -19,19 +19,32 @@ interface Stat {
   label: string;
 }
 
+/**
+ * Sarlavhada ketma-ket aylanadigan BITTA "slayd".
+ *
+ * `title` — yirik, qalin sarlavha (h1). `sub` — uning ostida, kichikroq
+ * shriftda yoziladigan izoh qatori. Ikkalasi ham bitta phrase bilan
+ * BIRGA yoziladi va BIRGA eriydi — go'yo bitta fikrning ikki qismi.
+ */
+interface HeroSlide {
+  title: string;
+  sub: string;
+}
+
 interface HomeCopy {
   /** Logotip yonidagi uch qatorli tavsif */
   companyLines: [string, string, string];
   /**
-   * Sarlavhada ketma-ket aylanadigan gaplar (yozilib-o'chiriladi).
+   * Sarlavhada ketma-ket aylanadigan sarlavha+izoh juftliklari
+   * (yozilib-o'chiriladi).
    *
    * Ilgari bu yerda bitta qat'iy gap bor edi (`titleLead` + rangli
    * `titleAccent` + `titleTail`). Endi bir nechta xabar ketma-ket
    * aytiladi, shuning uchun o'rtadagi so'zni alohida ranglash mantiqiy
    * emas — barchasi bir xil ranglanadi (`TypewriterHeadline`).
-   * Kamida ikkita gap bo'lishi kerak, aks holda aylanish ma'nosiz.
+   * Kamida ikkita juftlik bo'lishi kerak, aks holda aylanish ma'nosiz.
    */
-  heroRotating: readonly string[];
+  heroRotating: readonly HeroSlide[];
   subtitle: string;
   trustTitle: string;
   trustBody: string;
@@ -49,19 +62,6 @@ interface HomeCopy {
   features: Feature[];
 
   // ── Birinchi ekran ─────────────────────────────────────────────────
-  /**
-   * Sarlavha ostidagi izoh.
-   *
-   * Bir vaqtlar bu yerda "mahsulotlaringizni dunyoga olib chiqamiz"
-   * degan gap turgandi — ya'ni sarlavhaning boshqa so'z bilan
-   * takrori. U hech qanday yangi ma'lumot bermasdi va o'rnini bekorga
-   * egallardi.
-   *
-   * Endi u ANIQ ish haqida gapiradi: qaysi marketplace'lar va nima
-   * qilinadi. O'quvchi bir satrda kompaniya nima bilan shug'ullanishini
-   * tushunadi.
-   */
-  heroLead: string;
   /** Asosiy tugma. "Ro'yxatdan o'tish" emas — foydalanuvchi NIMA
    *  qilishini aytadi. */
   ctaPrimary: string;
@@ -122,14 +122,40 @@ export const HOME_COPY: Record<Locale, HomeCopy> = {
   uz: {
     companyLines: ['O‘ZBEKISTON', 'ELEKTRON TIJORAT', 'KOMPANIYASI'],
     heroRotating: [
-      'Maxsulotingizni dunyo bozoriga chiqaramiz!',
-      'Milliardlab xaridorga o‘zingizni ko‘rsating!',
-      '8 ta marketplace ixtiyoringizda — tanlang!',
-      'Brendingiz bilan dunyo bozoriga chiqing!',
-      'Savdongizni yangi bosqichga chiqaring!',
-      'Siz joylang, qolganini biz avtomatik bajaramiz!',
-      'Hujjatlar va logistika — hammasi bizning zimmamizda!',
-      '2018 yildan buyon dunyo bozorida ishonchli tajriba!',
+      { title: 'Butun Dunyoga shu yerdan chiqamiz!', sub: 'Mahalliy biznesingiz uchun yangi bozorlarni oching.' },
+      { title: 'Hammasi shu yerdan boshlanadi', sub: 'Ro‘yxatdan o‘ting va birinchi qadamingizni qo‘ying.' },
+      {
+        title: 'Eng yirik marketplace’lar — bir platformada',
+        sub: 'AQSH va kelajakda Xitoyning yetakchi savdo maydonlariga ulaning.',
+      },
+      {
+        title: 'Bir marta joylang. Qolganini bizga qo‘ying.',
+        sub: 'Kontentni qayta-qayta kiritishga hojat yo‘q.',
+      },
+      {
+        title: 'AI siz uchun ishlaydi',
+        sub: 'Kartochkalar, tavsiflar va joylashtirish jarayonlari avtomatlashtiriladi.',
+      },
+      {
+        title: 'Yangi xaridorlar sizni kashf etsin',
+        sub: 'Brendingizni ilgari yetib bormagan auditoriyaga olib boring.',
+      },
+      {
+        title: 'Biznesingiz kaftingizda',
+        sub: 'Mahsulotlar, buyurtmalar va natijalarni shaxsiy kabinetingizdan boshqaring.',
+      },
+      {
+        title: 'Buyurtma keldi — ish boshlandi',
+        sub: 'Onlayn buyurtmalarni qabul qiling, kuzating va boshqaring.',
+      },
+      {
+        title: 'Yetkazib berishni bizga ishoning',
+        sub: 'Logistika jarayonini ombordan xaridorgacha tashkil etamiz.',
+      },
+      {
+        title: 'Brendingizga o‘z manzili kerak',
+        sub: 'Siz uchun zamonaviy va professional e-commerce sayt yaratamiz.',
+      },
     ],
     subtitle:
       'O‘zbekiston maxsulotlarini global marketplace’larda soting, brendingizni dunyoga taniting',
@@ -153,8 +179,6 @@ export const HOME_COPY: Record<Locale, HomeCopy> = {
       { title: '24/7 qo‘llab-quvvatlash', body: 'Siz bilan doim aloqadamiz' },
     ],
 
-    heroLead:
-      'Amazon, eBay, Etsy, Walmart va boshqa global marketplace’larda savdoni siz uchun yo‘lga qo‘yamiz.',
     ctaPrimary: 'Maxsulotingizni soting',
     scrollHint: 'Pastga',
 
@@ -215,10 +239,40 @@ export const HOME_COPY: Record<Locale, HomeCopy> = {
   ru: {
     companyLines: ['УЗБЕКСКАЯ КОМПАНИЯ', 'ЭЛЕКТРОННОЙ', 'КОММЕРЦИИ'],
     heroRotating: [
-      'Выведите свой товар в мир.',
-      'Продавайте бренд в Америке.',
-      'Производите — остальное на нас.',
-      'Из Узбекистана — на мировой рынок.',
+      { title: 'Отсюда — на весь мир!', sub: 'Откройте новые рынки для местного бизнеса.' },
+      { title: 'Всё начинается здесь', sub: 'Зарегистрируйтесь и сделайте первый шаг.' },
+      {
+        title: 'Крупнейшие маркетплейсы — на одной платформе',
+        sub: 'Подключитесь к ведущим торговым площадкам США и, в будущем, Китая.',
+      },
+      {
+        title: 'Разместите один раз. Остальное — на нас.',
+        sub: 'Не нужно повторно создавать контент.',
+      },
+      {
+        title: 'ИИ работает за вас',
+        sub: 'Карточки, описания и публикация — всё автоматизировано.',
+      },
+      {
+        title: 'Пусть новые покупатели найдут вас',
+        sub: 'Покажите свой бренд аудитории, которая раньше была недоступна.',
+      },
+      {
+        title: 'Ваш бизнес — на ладони',
+        sub: 'Управляйте товарами, заказами и результатами из личного кабинета.',
+      },
+      {
+        title: 'Заказ пришёл — работа началась',
+        sub: 'Принимайте, отслеживайте и обрабатывайте онлайн-заказы.',
+      },
+      {
+        title: 'Доверьте доставку нам',
+        sub: 'Организуем логистику от склада до покупателя.',
+      },
+      {
+        title: 'Вашему бренду нужен свой адрес',
+        sub: 'Создадим для вас современный и профессиональный сайт.',
+      },
     ],
     subtitle:
       'Продавайте товары Узбекистана на глобальных маркетплейсах и покажите свой бренд миру',
@@ -242,8 +296,6 @@ export const HOME_COPY: Record<Locale, HomeCopy> = {
       { title: 'Поддержка 24/7', body: 'Мы всегда на связи' },
     ],
 
-    heroLead:
-      'Налаживаем для вас продажи на Amazon, eBay, Etsy, Walmart и других глобальных маркетплейсах.',
     ctaPrimary: 'Продавайте свой товар',
     scrollHint: 'Вниз',
 
@@ -304,10 +356,40 @@ export const HOME_COPY: Record<Locale, HomeCopy> = {
   en: {
     companyLines: ['UZBEKISTAN', 'E-COMMERCE', 'COMPANY'],
     heroRotating: [
-      'Take your product to the world.',
-      'Sell your brand in America.',
-      'You manufacture — we handle the rest.',
-      'From Uzbekistan to the global market.',
+      { title: 'From here to the whole world!', sub: 'Open new markets for your local business.' },
+      { title: 'It all starts here', sub: 'Sign up and take your first step.' },
+      {
+        title: 'The biggest marketplaces — on one platform',
+        sub: 'Connect to the top marketplaces in the US, and soon China.',
+      },
+      {
+        title: 'List it once. We handle the rest.',
+        sub: 'No need to re-enter your content again and again.',
+      },
+      {
+        title: 'AI works for you',
+        sub: 'Listings, descriptions, and publishing — all automated.',
+      },
+      {
+        title: 'Let new buyers discover you',
+        sub: 'Bring your brand to audiences it never reached before.',
+      },
+      {
+        title: 'Your business, in the palm of your hand',
+        sub: 'Manage products, orders, and results from your personal dashboard.',
+      },
+      {
+        title: 'Order in — work begins',
+        sub: 'Accept, track, and manage online orders.',
+      },
+      {
+        title: 'Trust us with delivery',
+        sub: 'We handle logistics from warehouse to buyer.',
+      },
+      {
+        title: 'Your brand deserves its own address',
+        sub: 'We’ll build you a modern, professional website.',
+      },
     ],
     subtitle:
       'Sell Uzbek products on global marketplaces and put your brand in front of the world',
@@ -331,8 +413,6 @@ export const HOME_COPY: Record<Locale, HomeCopy> = {
       { title: '24/7 support', body: 'We are always in touch' },
     ],
 
-    heroLead:
-      'We set up and run your sales on Amazon, eBay, Etsy, Walmart and other global marketplaces.',
     ctaPrimary: 'Sell your product',
     scrollHint: 'Scroll',
 

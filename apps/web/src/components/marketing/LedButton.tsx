@@ -54,40 +54,35 @@ interface Props {
 const VARIANTS = {
   primary: {
     /**
-     * Feruza (Teal) — 30 ta variantdan egasi tanlagan #10.
+     * Champagne-oltin — sarlavhadagi `#F0C987` bilan BIR XIL oila.
      *
-     * Asl tanlov `#0E7C8C -> #22B8C4` edi. Oq matn bilan tekshirilganda:
-     *   boshi  #0E7C8C -> 4.90:1  (AA dan yuqori)
-     *   oxiri  #22B8C4 -> 2.41:1  (AA'dan ancha past — och uchida
-     *                              matn o'qilmas edi)
-     * Ikkala uchda BIR XIL matn rangi (oq YOKI to'q) ishlashi kerak,
-     * lekin bu ikki rang orasida shunday "kesishish" borki, na oq, na
-     * to'q ikkalasini ham qondiradi (to'q matn boshida 3.67:1 chiqadi
-     * — u ham yetarli emas).
+     * Ilgari bu yerda Feruza (teal) turgan edi. Sarlavha oltin rangga
+     * o'tgach, sahifada IKKITA raqobatlashuvchi accent (oltin + feruza)
+     * paydo bo'ldi — bu "premium emas" deb topildi, chunki ko'z qayerga
+     * qarashni bilmay qoladi. Endi asosiy tugma ham SHU BITTA oltin
+     * oilasiga tegishli, shuning uchun sahifada yagona hukmron rang bor.
      *
-     * Shuning uchun OCH uch quyuqlashtirildi (`#22B8C4` -> `#0F6B75`),
-     * rang OILASI (feruza) saqlanib qoldi, faqat ikkalasi ham
-     * "chuqurroq feruza" bo'ldi:
-     *   boshi  #0E7C8C -> oq matn bilan 4.90:1
-     *   oxiri  #0F6B75 -> oq matn bilan 6.21:1
-     * Ikkalasi ham AA dan yuqori.
+     * Fon OCH (oltin) bo'lgani uchun matn OQ emas, TO'Q jigarrang:
+     *   boshi  #E8C583 -> to'q matn bilan 9.1:1
+     *   oxiri  #C9962E -> to'q matn bilan 5.8:1
+     * Ikkalasi ham AA dan (va aksariyati AAA dan) yuqori.
      */
-    image: 'linear-gradient(100deg, #0E7C8C 0%, #0F6B75 100%)',
-    shadow: '0 12px 44px -12px rgba(14,124,140,0.55)',
-    text: 'text-white',
+    image: 'linear-gradient(100deg, #E8C583 0%, #C9962E 100%)',
+    shadow: '0 12px 44px -12px rgba(201,150,46,0.5)',
+    text: 'text-[#2f1f04]',
     ring: 1,
   },
   ghost: {
     image: 'none',
     shadow: 'none',
     /**
-     * Oq emas — och feruza (`#8fe0e8`). Fon deyarli qora
+     * Oq emas — och oltin (`#f3d9a4`). Fon deyarli qora
      * (`rgba(3,6,15,0.72)`) bo'lgani uchun kontrast baribir juda
      * yuqori qoladi (istalgan och rang qora fonda AA'dan ancha
-     * yuqori chiqadi); shu bilan birga tugma aniq Feruza oilasiga
+     * yuqori chiqadi); shu bilan birga tugma aniq Oltin oilasiga
      * tegishli ko'rinadi, oddiy oq matn kabi "rangsiz" emas.
      */
-    text: 'text-[#8fe0e8]',
+    text: 'text-[#f3d9a4]',
     // Yorug'lik halqasi ancha xira: ikkinchi darajali tugma
     // asosiysining diqqatini tortmasligi kerak
     ring: 0.35,
@@ -97,17 +92,17 @@ const VARIANTS = {
 /**
  * Yorug' yoy: aylananing atigi ~20 darajasi yonadi.
  *
- * Ranglar asosiy gradientdan olingan — halqa ham o'sha bitta Feruza
- * oilasiga tegishli (ilgari Rose Gold, undan oldin ko'k/yashil edi).
+ * Ranglar asosiy gradientdan olingan — halqa ham o'sha bitta Oltin
+ * oilasiga tegishli (ilgari Feruza, undan oldin Rose Gold edi).
  */
 const RING = `conic-gradient(
   from 0deg,
   transparent 0deg,
   transparent 300deg,
-  rgba(34,184,196,0.35) 322deg,
-  #5fd4de 340deg,
+  rgba(240,201,135,0.35) 322deg,
+  #f7dfa8 340deg,
   #ffffff 350deg,
-  #14a3b0 358deg,
+  #c9962e 358deg,
   transparent 360deg
 )`;
 
@@ -127,18 +122,35 @@ export function LedButton({ href, children, variant = 'primary', className }: Pr
 
       <Link
         href={href}
-        className={`group relative z-10 inline-flex items-center gap-2.5 rounded-full px-7 py-3.5 text-[15px] font-semibold tracking-[0.01em] transition-transform hover:scale-[1.02] sm:px-8 sm:py-4 sm:text-[16px] ${skin.text} ${
+        className={`group relative z-10 inline-flex items-center gap-2.5 overflow-hidden rounded-full px-7 py-3.5 text-[15px] font-semibold tracking-[0.01em] transition-transform hover:scale-[1.02] sm:px-8 sm:py-4 sm:text-[16px] ${skin.text} ${
           // Ghost fon SHAFFOF emas, quyuq: ortida video turadi va
           // uning yorug' joylari matnni yeb qo'yardi. O'lchov bo'yicha
           // 0.72 quyuqlik eng yomon kadrda ham to'qqiz baravar
-          // kontrast beradi. Chegara Feruza rangida, TO'LIQ ko'rinarli.
-          ghost ? 'border border-[#22b8c4]/70 bg-[rgba(3,6,15,0.72)] backdrop-blur-md' : ''
+          // kontrast beradi. Chegara Oltin rangida, TO'LIQ ko'rinarli.
+          ghost ? 'border border-[#c9962e]/70 bg-[rgba(3,6,15,0.72)] backdrop-blur-md' : ''
         }`}
         style={{
           backgroundImage: ghost ? undefined : skin.image,
           boxShadow: ghost ? undefined : skin.shadow,
         }}
       >
+        {/* Nafis "yaltirash": kam-kam (har 5s da bir marta) tugma
+            ustidan o'tib ketadigan yorug' chiziq — faqat asosiy
+            (to'ldirilgan) tugmada, ghost'da emas, chunki uning foni
+            shaffof va effekt ko'rinmasdi. `mix-blend-mode: overlay`
+            matnni bosib qolmasdan, uning ustidan yorug'lik o'tganday
+            ko'rinish beradi. */}
+        {!ghost && (
+          <span
+            aria-hidden="true"
+            className="animate-sheen pointer-events-none absolute inset-y-0 left-0 w-1/4"
+            style={{
+              background:
+                'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.65) 50%, transparent 100%)',
+              mixBlendMode: 'overlay',
+            }}
+          />
+        )}
         {children}
       </Link>
     </span>

@@ -80,8 +80,8 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                 href={`/${l}`}
                 className={
                   l === locale
-                    ? 'rounded-full bg-white px-3 py-1.5 text-[12px] font-bold uppercase text-brand-950 sm:px-4 sm:py-2 sm:text-[13px]'
-                    : 'rounded-full px-3 py-1.5 text-[12px] font-medium uppercase text-brand-200 transition-colors hover:text-white sm:px-4 sm:py-2 sm:text-[13px]'
+                    ? 'rounded-full bg-[#F0C987] px-3 py-1.5 text-[12px] font-bold uppercase text-[#2f1f04] sm:px-4 sm:py-2 sm:text-[13px]'
+                    : 'rounded-full px-3 py-1.5 text-[12px] font-medium uppercase text-brand-200 transition-colors hover:text-[#F0C987] sm:px-4 sm:py-2 sm:text-[13px]'
                 }
               >
                 {l}
@@ -160,76 +160,69 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               Asoschining surati bu yerda BO'LGAN edi, lekin egasi
               natijani ko'rib "olib tashla" dedi — o'chirildi.
               `founder-asror.png` diskda qoldi, hozircha ishlatilmaydi. */}
-          <div className="container-page flex flex-1 items-end pb-6 pt-10 lg:items-center lg:justify-end lg:pb-0">
-            <div className="flex w-full flex-col items-center text-center lg:max-w-[52rem] lg:items-start lg:text-left">
+          <div className="container-page flex min-w-0 flex-1 items-end pb-6 pt-10 lg:items-center lg:justify-end lg:pb-0">
+            {/* `min-w-0` — busiz flex elementlar standart holatda
+                `min-width: auto` oladi, ya'ni ICHIDAGI eng KENG
+                bo'linmagan matnga (`white-space: nowrap`,
+                `TypewriterHeadline` ichida) moslashib, o'zining
+                `max-width` chegarasini E'TIBORSIZ qoldiradi. Aynan shu
+                sababdan uzun gap butun ekrandan pastga chiqib ketardi:
+                `52rem` chegara emas, faqat "istak" bo'lib qolgan edi.
+                `min-w-0` flex elementga o'z kengligidan CHIQMASLIKKA
+                ruxsat beradi, shunda `TypewriterHeadline`ning o'z
+                ichki kichraytirish mantig'i ishga tushadi. */}
+            <div className="flex w-full min-w-0 flex-col items-center text-center lg:max-w-[52rem] lg:items-start lg:text-left">
               <Reveal>
                 {/* Ko'z tushadigan birinchi satr */}
                 <span className="mb-6 inline-flex items-center gap-2.5 rounded-full border border-white/[0.12] bg-white/[0.04] px-4 py-1.5 text-[11px] font-medium uppercase tracking-[0.16em] text-brand-200 backdrop-blur-md sm:mb-7">
                   <span className="relative flex h-1.5 w-1.5">
-                    <span className="animate-ping-slow absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-70" />
-                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-green-400" />
+                    <span className="animate-ping-slow absolute inline-flex h-full w-full rounded-full bg-[#F0C987] opacity-70" />
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#F0C987]" />
                   </span>
                   {t.marketplacesTitle}
                 </span>
               </Reveal>
 
-              <Reveal delay={80}>
+              {/* `className="w-full"` — HAQIQIY ILDIZ SABAB shu yerda
+                  edi. Ota-blok `items-start` bilan bolalarni
+                  CHO'ZMAYDI, shuning uchun `Reveal`ning o'z (nomsiz)
+                  `<div>` qobig'i h1 qanchalik kichik bo'lsa, shunchalik
+                  qisqarib qolardi (52rem ustunga emas). h1'dagi
+                  `w-full` bekorga ketardi — u shu tor qobiqning
+                  "100%" iga, ya'ni yana o'sha kichik qiymatga
+                  cho'zilardi. Endi Reveal'ning o'zi kengga cho'ziladi,
+                  h1 esa HAQIQIY 52rem'ga nisbatan "100%" oladi. */}
+              <Reveal delay={80} className="w-full">
                 {/* Sarlavha — sahifaning bosh qahramoni. `tracking` manfiy:
                     yirik o'lchamda harflar orasi kengaygandek ko'rinadi va
                     uni qaytarib tortish kerak.
 
-                    Bir nechta gap ketma-ket yozilib-eritiladi
-                    (`TypewriterHeadline`) — bitta qat'iy shior o'rniga
-                    mahsulotning turli qirralari ko'rsatiladi.
+                    Bir nechta sarlavha+izoh JUFTLIGI ketma-ket
+                    yozilib-eritiladi (`TypewriterHeadline`) — bitta
+                    qat'iy shior o'rniga mahsulotning turli qirralari
+                    ko'rsatiladi. `TypewriterHeadline` o'zi `<h1>` va
+                    ostidagi izoh `<p>`sini BIRGA chiqaradi, chunki
+                    ikkalasi bitta fikr sifatida BIRGA yozilib, BIRGA
+                    eriydi.
 
-                    `h-[2.14em] overflow-hidden` — 2 QATOR + kichik
-                    zaxira (`leading-[0.98]` * 2, ustiga +0.18em). Aniq
-                    `* 2` da "g", "y", "q" kabi harflarning pastki dumi
-                    (descender) kesilib qolgan edi — egasi buni ko'rib
-                    payqadi. Zaxira shu dumlarga joy beradi.
-
-                    ── `text-balance` OLIB TASHLANDI ────────────────
-                    U statik ko'p qatorli sarlavhalar uchun juda
-                    yaxshi (qatorlarni "muvozanatlab" chiroyli
-                    bo'lishga majbur qiladi), LEKIN bu matn harf-harf
-                    O'SIB boruvchi (`TypewriterHeadline`). Har yangi
-                    harf qo'shilganda brauzer BUTUN matnning
-                    "muvozanatli" sinish nuqtasini qaytadan
-                    hisoblardi — natijada 1-qatordagi so'zlar
-                    to'satdan 2-qatorga (yoki aksincha) sakrab
-                    o'tib turardi. Egasi buni "tepa-past bo'lib
-                    sakrayapti" deb ta'rifladi. Dinamik o'suvchi matn
-                    uchun `text-balance` mos EMAS ekan.
-
-                    Avval 5 qator berilgan edi,
-                    lekin gaplar 2 dan 5 qatorgacha turlicha
-                    o'ralgani uchun quti ichida matn goh yuqorida, goh
-                    pastda "sakrab" turgandek ko'rinardi (egasi buni
-                    "likkillash" deb ta'rifladi). Endi ustun kengligi
-                    ham oshirildi (`34rem` -> `52rem`, pastdagi
-                    o'zgarishga qarang), shunda barcha gaplar ANIQ 2
-                    qatorga sig'adi — balandlik hech qachon
-                    o'zgarmaydi. ATAYLAB `min-height` EMAS,
-                    `height`: `min-height` faqat pastki chegara beradi
-                    — uzunroq gap kelsa quti baribir kattalashib,
-                    pastdagi paragraf va tugmalarni surib yuborardi
-                    (birinchi urinishda aynan shu bo'lgan). Qat'iy
-                    `height` + `overflow-hidden` esa hech qachon
-                    o'smaydi: uzun gapning ortiqcha qismi shunchaki
-                    ko'rinmay qoladi, lekin pastki blok abadiy joyida
-                    qotib turadi. `em` birligi shrift o'lchamining
-                    o'ziga bog'liq, shuning uchun har uch breakpoint'da
-                    (2.75rem / 3.75rem / 4.5rem) alohida qiymat kerak
-                    emas — nisbat o'zi to'g'ri keladi. */}
-                <h1 className="font-display text-on-video-strong h-[2.14em] overflow-hidden text-[2.75rem] font-bold leading-[0.98] tracking-[-0.035em] sm:text-[3.75rem] lg:text-[4.5rem] [@media(max-height:820px)]:lg:text-[3.5rem]">
-                  <TypewriterHeadline phrases={t.heroRotating} />
-                </h1>
-              </Reveal>
-
-              <Reveal delay={160}>
-                <p className="text-on-video-strong mt-2 [@media(max-height:820px)]:mt-2 max-w-[38ch] text-balance text-[15px] leading-[1.65] text-[#d6e6f5]/85 sm:mt-3 sm:text-[17px]">
-                  {t.heroLead}
-                </p>
+                    ── QATOR CHEGARASI OLDINDAN HISOBLANADI ───────────
+                    Bir necha usul sinaldi: tabiiy ko'chirish (matn
+                    o'sganda so'z 2-qatorga sakrab o'tardi), bitta
+                    qatorga majburlab avtomatik kichraytirish (egasi
+                    buni ham xohlamadi — "2 qatorda, 1-si to'liq
+                    bo'lib, keyin 2-si" ko'rinishini so'radi). Endi
+                    `TypewriterHeadline` sarlavha yozila BOSHLASHIDAN
+                    OLDIN uni ikkiga bo'ladi (ko'rinmas o'lchov +
+                    `Range` orqali), keyin har qatorni MUSTAQIL,
+                    alohida harf-harf yozadi. 1-qator hech qachon
+                    qayta hisoblanmaydi — u to'liq tugagach, 2-qator
+                    boshlanadi. Shuning uchun bu yerda balandlik ANIQ
+                    2 QATOR + descender zaxirasi. */}
+                <TypewriterHeadline
+                  phrases={t.heroRotating}
+                  titleClassName="font-display text-on-video-strong text-[#F0C987] h-[2.14em] w-full overflow-hidden text-[2.75rem] font-bold leading-[0.98] tracking-[-0.035em] sm:text-[3.75rem] lg:text-[4.5rem] [@media(max-height:820px)]:lg:text-[3.5rem]"
+                  subClassName="text-on-video-strong mt-2 [@media(max-height:820px)]:mt-2 max-w-[46ch] min-h-[3.3em] text-[21px] leading-[1.55] text-[#d9d0bb]/85 sm:mt-3 sm:text-[24px]"
+                />
               </Reveal>
 
               {/* Ikkita chaqiruv yonma-yon: yangi foydalanuvchi uchun
@@ -264,6 +257,10 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                   yerda vazirlik NOMIning o'zi ishlaydi. */}
               <Reveal delay={320} className="mt-7 sm:mt-8 [@media(max-height:820px)]:mt-5">
                 <span className="flex max-w-[36rem] flex-col items-center gap-2 lg:items-start">
+                  {/* Ingichka oltin chiziqcha — ishonch blokini
+                      sarlavha bilan bir "tilda" gaplashtiradi, oddiy
+                      kulrang matnni butunlay begonalashtirmasdan. */}
+                  <span aria-hidden="true" className="mb-0.5 h-px w-6 bg-[#C9962E]/60" />
                   <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-brand-200/60">
                     {t.partnersTitle}
                   </span>
@@ -296,7 +293,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                   ko'rinadi va o'quvchi "bular kim?" deb o'ylaydi.
                   Yorliq esa aniq va'dani aytadi: mahsulot AYNAN shu
                   joylarda sotiladi. */}
-              <p className="container-page mb-5 text-[10px] font-medium uppercase tracking-[0.2em] text-brand-200/60 sm:text-[11px]">
+              <p className="container-page mb-5 text-[12px] font-medium uppercase tracking-[0.2em] text-brand-200/60 sm:text-[13px]">
                 {t.marketplacesLabel}
               </p>
               <MarketplaceMarquee label={t.marketplacesLabel} />
@@ -306,7 +303,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           {/* Pastga ishora — davomi borligini aytadi */}
           <span className="animate-scroll-cue mx-auto flex flex-col items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.18em] text-brand-200/70">
             {t.scrollHint}
-            <span aria-hidden="true" className="text-[13px] leading-none">
+            <span aria-hidden="true" className="text-[20px] leading-none">
               ↓
             </span>
           </span>

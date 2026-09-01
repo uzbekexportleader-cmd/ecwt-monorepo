@@ -145,8 +145,8 @@ export function ChatWidget({ copy }: { copy: ChatCopy }) {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-label={open ? copy.close : copy.open}
-        className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_10px_40px_-10px_rgba(37,120,220,0.8)] transition-transform hover:scale-105 sm:bottom-7 sm:right-7"
-        style={{ backgroundImage: 'linear-gradient(135deg, #2b66ad 0%, #22c55e 100%)' }}
+        className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full text-[#2f1f04] shadow-[0_10px_40px_-10px_rgba(201,150,46,0.7)] transition-transform hover:scale-105 sm:bottom-7 sm:right-7"
+        style={{ backgroundImage: 'linear-gradient(135deg, #E8C583 0%, #C9962E 100%)' }}
       >
         <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" aria-hidden="true">
           {open ? (
