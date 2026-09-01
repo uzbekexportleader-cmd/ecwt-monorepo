@@ -140,8 +140,18 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                 balandligiga moslab kichraytirsak, ichidagi mayda matn
                 o'qib bo'lmas darajada kichrayardi. Bu yerda esa u
                 o'zining shrift o'lchamiga ega va logotip qanchalik
-                kichik bo'lmasin, doim o'qiladi. */}
-            <span className="max-w-[13rem] text-[13px] font-semibold uppercase leading-[1.35] tracking-[0.12em] text-white sm:max-w-[20rem] sm:text-[17px] sm:leading-tight sm:tracking-[0.16em]">
+                kichik bo'lmasin, doim o'qiladi.
+
+                ── "Premium" ko'rinish ──────────────────────────────
+                Egasi buni kichraytirib, nafisroq qilishni so'radi.
+                Naqsh — qalin logotip + YUPQA, keng oraliqli tagline —
+                zargarlik va premium brendlarda keng tarqalgan
+                kontrast: `font-semibold` -> `font-light`, harflar
+                orasi ikki barobardan ko'proq kengaytirildi
+                (0.12/0.16em -> 0.26/0.3em), rang esa to'liq oqdan
+                sal xiraroqqa (`text-white/75`) — shunda u qalin
+                logotip bilan TALASHMAYDI, balki uni to'ldiradi. */}
+            <span className="max-w-[13rem] text-[10px] font-light uppercase leading-[1.5] tracking-[0.26em] text-white/75 sm:max-w-[20rem] sm:text-[12px] sm:leading-relaxed sm:tracking-[0.3em]">
               {t.companyLines.join(' ')}
             </span>
           </header>
