@@ -75,6 +75,15 @@ interface HomeCopy {
   partnersTitle: string;
   /** Davlat muassasalari. Raqam emas, NOM ishonch beradi. */
   partners: [string, string, string, string];
+  /**
+   * Founder-ning shaxsiy eksport tajribasi — bitta halol jumla.
+   *
+   * Platformaning o'zi hali daromadsiz (MVP bosqichi), shuning uchun
+   * bu yerda "mijozlarimiz mamnun" kabi soxta dalil YO'Q. Faqat
+   * tekshiriladigan fakt: asoschi shaxsan eksport qilgan. Ishonch
+   * shu orqali quriladi, o'ylab topilgan otzivlar orqali emas.
+   */
+  founderNote: string;
 
   // ── Uchinchi ekran: jarayon ────────────────────────────────────────
   processTitle: string;
@@ -149,6 +158,8 @@ export const HOME_COPY: Record<Locale, HomeCopy> = {
       'IT Park',
       'Innovatsion rivojlanish vazirligi',
     ],
+    founderNote:
+      'Asoschining shaxsiy eksport tajribasi: AQSH — 2018 yildan, Italiya — 2021 yildan',
 
     processTitle: 'Biz hammasini qilamiz.',
     processSteps: ['E’lon', 'Kontent', 'Logistika', 'Reklama', 'Savdo'],
@@ -233,6 +244,8 @@ export const HOME_COPY: Record<Locale, HomeCopy> = {
       'IT Park',
       'Министерство инновационного развития',
     ],
+    founderNote:
+      'Личный опыт основателя в экспорте: США — с 2018 года, Италия — с 2021 года',
 
     processTitle: 'Мы делаем всё.',
     processSteps: ['Листинг', 'Контент', 'Логистика', 'Реклама', 'Продажи'],
@@ -317,6 +330,8 @@ export const HOME_COPY: Record<Locale, HomeCopy> = {
       'IT Park',
       'Ministry of Innovative Development',
     ],
+    founderNote:
+      "Founder's personal export track record: US since 2018, Italy since 2021",
 
     processTitle: 'We handle all of it.',
     processSteps: ['Listing', 'Content', 'Logistics', 'Ads', 'Sales'],

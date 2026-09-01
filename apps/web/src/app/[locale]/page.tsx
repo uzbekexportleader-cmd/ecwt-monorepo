@@ -190,6 +190,16 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                   </span>
                 </span>
               </Reveal>
+
+              {/* Founder tajribasi — bir jumlalik, halol ishonch belgisi.
+                  Platforma hali daromadsiz, shuning uchun bu yerda
+                  o'ylab topilgan mijoz otzivi YO'Q. Faqat tekshiriladigan
+                  fakt: asoschi shaxsan eksport qilgan. */}
+              <Reveal delay={360} className="mt-3">
+                <p className="text-on-video-strong text-balance text-center text-[11.5px] leading-[1.5] text-brand-200/70 lg:text-left">
+                  {t.founderNote}
+                </p>
+              </Reveal>
             </div>
           </div>
 
