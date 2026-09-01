@@ -188,6 +188,19 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                     (descender) kesilib qolgan edi — egasi buni ko'rib
                     payqadi. Zaxira shu dumlarga joy beradi.
 
+                    ── `text-balance` OLIB TASHLANDI ────────────────
+                    U statik ko'p qatorli sarlavhalar uchun juda
+                    yaxshi (qatorlarni "muvozanatlab" chiroyli
+                    bo'lishga majbur qiladi), LEKIN bu matn harf-harf
+                    O'SIB boruvchi (`TypewriterHeadline`). Har yangi
+                    harf qo'shilganda brauzer BUTUN matnning
+                    "muvozanatli" sinish nuqtasini qaytadan
+                    hisoblardi — natijada 1-qatordagi so'zlar
+                    to'satdan 2-qatorga (yoki aksincha) sakrab
+                    o'tib turardi. Egasi buni "tepa-past bo'lib
+                    sakrayapti" deb ta'rifladi. Dinamik o'suvchi matn
+                    uchun `text-balance` mos EMAS ekan.
+
                     Avval 5 qator berilgan edi,
                     lekin gaplar 2 dan 5 qatorgacha turlicha
                     o'ralgani uchun quti ichida matn goh yuqorida, goh
@@ -208,7 +221,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                     o'ziga bog'liq, shuning uchun har uch breakpoint'da
                     (2.75rem / 3.75rem / 4.5rem) alohida qiymat kerak
                     emas — nisbat o'zi to'g'ri keladi. */}
-                <h1 className="font-display text-on-video-strong h-[2.14em] overflow-hidden text-balance text-[2.75rem] font-bold leading-[0.98] tracking-[-0.035em] sm:text-[3.75rem] lg:text-[4.5rem] [@media(max-height:820px)]:lg:text-[3.5rem]">
+                <h1 className="font-display text-on-video-strong h-[2.14em] overflow-hidden text-[2.75rem] font-bold leading-[0.98] tracking-[-0.035em] sm:text-[3.75rem] lg:text-[4.5rem] [@media(max-height:820px)]:lg:text-[3.5rem]">
                   <TypewriterHeadline phrases={t.heroRotating} />
                 </h1>
               </Reveal>
