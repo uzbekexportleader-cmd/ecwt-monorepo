@@ -101,42 +101,61 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               katta bo'sh joy qoladi. Logotip esa o'ng tepadagi panel
               kabi chetga mahkamlanadi — ikkalasi bir chiziqda turadi. */}
           <header className="flex items-center pl-4 pr-4 sm:pl-6 sm:pr-[31rem]">
-            {/* Pitch deck'dagi so'z belgisi (egasi rasmda aylantirib
-                ko'rsatgan): "E.C.W.T" ustida, "Ai" ostida — ikkalasi
-                bitta ustunda, alohida ikonka YO'Q. Asl variant oq
-                fonda qora edi; bu yerda video fon ustida turgani
-                uchun oq rangga aylantirildi, faqat "Ai" yonidagi
-                qizil nuqtalar o'z rangida qoldi — yagona urg'u sifatida. */}
-            <span className="flex flex-col gap-0 leading-[1.05]">
-              <span className="text-[26px] font-bold tracking-[0.03em] sm:text-[32px]">
-                E.C.W.T
-              </span>
-              <span className="relative inline-block w-fit text-[26px] font-bold tracking-[0.02em] sm:text-[32px]">
-                Ai
-                {/* Asl rasmda nuqtalar harfga ZICH yopishgan, yuqori
-                    o'ng burchakda — floating emas. `absolute` bilan
-                    harfning o'ziga mahkamlandi. */}
-                <span
-                  aria-hidden="true"
-                  className="absolute -right-[9px] top-0 flex gap-[3px] sm:-right-[11px]"
-                >
-                  <span className="h-[4px] w-[4px] rounded-full bg-[#e2483a] sm:h-[5px] sm:w-[5px]" />
-                  <span className="h-[4px] w-[4px] rounded-full bg-[#e2483a] sm:h-[5px] sm:w-[5px]" />
-                </span>
-              </span>
-              {/* Kompaniyaning to'liq nomi. Asl rasmda bu ZICH, deyarli
-                  bo'shliqsiz logotip ostida turadi — shuning uchun
-                  katta bo'shliq (avval mt-2) va keng harf oralig'i
-                  (0.42em) olib tashlandi. */}
-              <span className="mt-0.5 max-w-[17rem] text-[10.5px] font-medium uppercase leading-[1.4] tracking-[0.18em] text-brand-200 sm:max-w-none sm:text-[12px] sm:leading-tight sm:tracking-[0.2em]">
-                {t.companyLines.join(' ')}
-              </span>
-            </span>
+            {/* Egasi bergan HAQIQIY logotip fayli (`logo-ecwt.png`) —
+                avvalgi CSS bilan qayta yasalgan variant o'rniga.
+
+                Fayl oq fonda qora matn. Sayt fonida esa qora matn
+                ko'rinmay qolardi, shuning uchun `invert(1)
+                hue-rotate(180deg)` qo'llandi: bu trik OQ-QORA
+                (yorug'lik)ni almashtiradi, lekin TO'YINGAN ranglarni
+                (qizil nuqtalar) deyarli asl holida qaytaradi — invert
+                qizilni siyanga aylantiradi, keyingi 180° burish esa
+                uni yana qizilga qaytaradi. Natijada: fon shaffof
+                qoladi (PNG alfa-kanali), matn oq, nuqtalar qizil. */}
+            <img
+              src="/logo-ecwt.png"
+              alt="ECWT — O'zbekiston elektron tijorat kompaniyasi"
+              className="h-[68px] w-auto sm:h-[86px]"
+              style={{ filter: 'invert(1) hue-rotate(180deg)' }}
+            />
           </header>
 
-          {/* Matn o'ng yarimda: chapda fondagi Yer turadi.
-              Kichik ekranda pastga tushadi va markazga tekislanadi. */}
-          <div className="container-page flex flex-1 items-end pb-6 pt-10 lg:items-center lg:justify-end lg:pb-0">
+          {/* Matn o'ng yarimda. Chapda ilgari faqat fondagi video
+              ko'rinardi — egasi so'ragach, o'sha bo'sh joyga
+              asoschining o'z surati (`founder-asror.png`) qo'yildi.
+              Faqat keng ekranda (`lg:`): tor ekranda hero allaqachon
+              to'liq, surat qo'shilsa u yerga sig'maydi va matn bilan
+              ustma-ust tushib qoladi.
+
+              `-ml-*` — egasi "chaproqqa" dedi: `container-page` ning
+              standart chap bo'shlig'idan tashqariga, ekran chetiga
+              yaqinroq suriladi. Rasm o'zi ham kattalashtirildi
+              (300/360 -> 340/420) va `opacity-90` bilan sal
+              shaffoflashtirildi. */}
+          <div className="container-page flex flex-1 items-end pb-6 pt-10 lg:items-center lg:justify-between lg:pb-0">
+            <div className="hidden h-full shrink-0 flex-col items-center lg:-ml-6 lg:flex lg:w-[340px] xl:-ml-10 xl:w-[420px]">
+              {/* eslint-disable-next-line @next/next/no-img-element --
+                  shaffof PNG, optimallashtirish shart emas */}
+              <img
+                src="/founder-asror.png"
+                alt=""
+                aria-hidden="true"
+                className="h-auto max-h-[78%] w-full object-contain object-bottom opacity-90"
+              />
+              {/* Ism va lavozim — pitch deck'dagi "ASROR SHAKIROV / CEO
+                  & FOUNDER" kartochkasi uslubida, lekin bezaksiz: bu
+                  yerda quti, chiziq yoki fon kerak emas, matnning o'zi
+                  yetadi. */}
+              <div className="mt-3 flex flex-col items-center text-center">
+                <span className="text-on-video-strong text-[15px] font-bold uppercase tracking-[0.08em]">
+                  Asror Shakirov
+                </span>
+                <span className="mt-0.5 text-[11px] font-medium uppercase tracking-[0.22em] text-brand-200/80">
+                  CEO &amp; Founder
+                </span>
+              </div>
+            </div>
+
             <div className="flex w-full flex-col items-center text-center lg:max-w-[34rem] lg:items-start lg:text-left">
               <Reveal>
                 {/* Ko'z tushadigan birinchi satr */}
