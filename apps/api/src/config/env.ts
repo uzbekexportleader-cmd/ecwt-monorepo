@@ -43,8 +43,8 @@ const envSchema = z
     S3_SECRET_ACCESS_KEY: z.string().optional(),
     S3_PUBLIC_URL: z.string().optional(),
 
-    // SMS (OTP uchun) — Eskiz.uz yoki Play Mobile
-    SMS_PROVIDER: z.enum(['NONE', 'ESKIZ', 'PLAYMOBILE']).default('NONE'),
+    // SMS (OTP uchun) — Eskiz.uz, Play Mobile yoki Twilio
+    SMS_PROVIDER: z.enum(['NONE', 'ESKIZ', 'PLAYMOBILE', 'TWILIO']).default('NONE'),
     SMS_API_URL: z.string().default('https://notify.eskiz.uz/api'),
     // Eskiz tokeni email+parol orqali olinadi va ~30 kun yashaydi.
     // Tayyor token qo'lda berilsa (SMS_API_TOKEN), u ustuvor bo'ladi.
@@ -52,6 +52,15 @@ const envSchema = z
     SMS_API_PASSWORD: z.string().optional(),
     SMS_API_TOKEN: z.string().optional(),
     SMS_SENDER: z.string().default('4546'),
+
+    /**
+     * Twilio — Eskiz yuridik shaxs va matn moderatsiyasini talab qilgani
+     * uchun tez ishga tushadigan muqobil. `TWILIO_FROM` raqam (+1...)
+     * yoki Messaging Service identifikatori (MG...) bo'lishi mumkin.
+     */
+    TWILIO_ACCOUNT_SID: z.string().optional(),
+    TWILIO_AUTH_TOKEN: z.string().optional(),
+    TWILIO_FROM: z.string().optional(),
     /**
      * SMS matni. `{code}` o'rniga kod qo'yiladi.
      *
@@ -120,6 +129,8 @@ export function isSmsConfigured(env: Env): boolean {
       return Boolean(env.SMS_API_TOKEN || (env.SMS_API_EMAIL && env.SMS_API_PASSWORD));
     case 'PLAYMOBILE':
       return Boolean(env.SMS_API_TOKEN);
+    case 'TWILIO':
+      return Boolean(env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN && env.TWILIO_FROM);
     default:
       return false;
   }

@@ -25,13 +25,13 @@
  * `object-cover` da esa u butun ekranni egallaydi va sahifaning o'zi
  * bo'lib qoladi; matn uning ustida turadi, ajratishni parda bajaradi.
  *
- * ── Parda kuchi o'lchab tanlangan ────────────────────────────────────
- * Matn turadigan hudud bo'ylab videoning yorug'ligi o'lchandi: mediana
- * 19, lekin shahar chiroqlari o'tganda 99.9% qiymat 233 ga chiqadi.
- * O'sha eng yomon holatda eng xira element uchun:
- *   parda 0.62 -> 4.1:1  (AA dan past)
- *   parda 0.70 -> 4.9:1  <- tanlangan
- * Chap tomonda parda nolga tushadi: u yerda shar ochiq qolishi kerak.
+ * ── Kontrast fonda emas, HARFLARDA ──────────────────────────────────
+ * Ilgari bu yerda matn hududini qoraytiruvchi keng gradient bor edi
+ * (0.70 gacha). U o'lchov bilan tanlangan edi, lekin videoning katta
+ * qismini xiralashtirardi — pleyerda tiniq ko'ringan kadr saytda hira
+ * bo'lib qolgandi. Endi parda yo'q: kontrast `text-on-video-strong`
+ * orqali harflarning o'ziga tushadi (`globals.css`), video esa
+ * yuqori chekkadan tashqari butun ekranda ochiq qoladi.
  *
  * ── Yulduzlar qanday joylashtirilgan ─────────────────────────────────
  * `Math.random()` ISHLATILMAYDI. U serverda bir xil, brauzerda boshqa
@@ -172,42 +172,19 @@ export function NightBackdrop() {
           preload="metadata"
         />
 
-        {/* Matn tomonini quyuqlashtirish.
-            Keng ekranda o'ng yarim, tor ekranda esa pastki yarim.
+        {/* Matn tomonini qoraytiruvchi keng parda ATAYLAB YO'Q.
 
-            ── Nega parda YENGILLASHTIRILDI ──────────────────────────
-            Avval u 0.93 gacha chiqardi va video shu tomonda deyarli
-            o'chib ketardi: o'lchovda ekranning 75% joyida videoning
-            yorug'ligining atigi 22% i qolgan edi. Egasi buni to'g'ri
-            payqadi — pleyerda tiniq ko'ringan video saytda hira
-            bo'lib qolgandi.
+            Bu yerda ilgari ikki gradient bor edi (o'ng yarim yoki
+            pastki yarim, 0.6 gacha qora), lekin ular videoning katta
+            qismini xiralashtirardi — egasi buni "pleyerda tiniq,
+            saytda hira" deb to'g'ri payqadi.
 
-            Qayta hisoblandi. Matn hududida videoning eng yorug' joyi
-            255 ga chiqadi (bog'lanish chiziqlari o'tganda). O'sha eng
-            yomon holatda oq matn uchun:
-              parda 0.93 -> 18.3:1   (keragidan ikki barobar ortiq)
-              parda 0.70 ->  8.2:1
-              parda 0.60 ->  5.6:1   <- tanlandi, AA dan yuqori
-              parda 0.55 ->  4.7:1   (chegaraga juda yaqin)
-              parda 0.50 ->  3.9:1   (AA dan past)
-
-            Ya'ni 0.60 da ham matn xavfsiz o'qiladi, video esa besh
-            barobardan ko'proq yorug' ko'rinadi. Qo'shimcha zaxira
-            uchun matnning o'ziga soya berilgan (`text-on-video`). */}
-        <div
-          className="absolute inset-0 lg:hidden"
-          style={{
-            background:
-              'linear-gradient(180deg, rgba(3,6,15,0.42) 0%, rgba(3,6,15,0.16) 26%, rgba(3,6,15,0.58) 56%, rgba(3,6,15,0.72) 100%)',
-          }}
-        />
-        <div
-          className="absolute inset-0 hidden lg:block"
-          style={{
-            background:
-              'linear-gradient(100deg, rgba(3,6,15,0) 0%, rgba(3,6,15,0.03) 38%, rgba(3,6,15,0.4) 56%, rgba(3,6,15,0.56) 70%, rgba(3,6,15,0.6) 100%)',
-          }}
-        />
+            Pastdagi raqamlar bo'limi xuddi shu muammoni fon EMAS,
+            HARFLARNING o'zi bilan hal qilgan edi (`text-on-video-strong`
+            — glif chegarasiga tor, zich soya). Hero matni endi o'sha
+            texnikaga o'tkazildi, shuning uchun bu yerda parda kerak
+            emas: video butun ekranda ochiq qoladi, matn esa har qanday
+            kadrda o'zi bilan o'qiladi. */}
 
         {/* Yuqori chekka — sarlavha paneli o'qilishi uchun.
             Bu ham yengillashtirildi (0.82 -> 0.62): o'sha hisob bo'yicha

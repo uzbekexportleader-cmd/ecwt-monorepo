@@ -44,3 +44,7 @@ coverage/
 
 # Yuklangan fayllar (lokal)
 uploads/
+
+# .env nusxalari va mahalliy vositalar (sirlar, binary fayllar)
+*.env.backup
+/tools/

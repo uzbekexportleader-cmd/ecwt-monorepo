@@ -136,7 +136,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                 {/* Sarlavha — sahifaning bosh qahramoni. `tracking` manfiy:
                     yirik o'lchamda harflar orasi kengaygandek ko'rinadi va
                     uni qaytarib tortish kerak. */}
-                <h1 className="text-on-video text-balance text-[2.75rem] font-bold leading-[0.98] tracking-[-0.035em] sm:text-[3.75rem] lg:text-[4.5rem] [@media(max-height:820px)]:lg:text-[3.5rem]">
+                <h1 className="text-on-video-strong text-balance text-[2.75rem] font-bold leading-[0.98] tracking-[-0.035em] sm:text-[3.75rem] lg:text-[4.5rem] [@media(max-height:820px)]:lg:text-[3.5rem]">
                   {t.titleLead}
                   <br />
                   <span className="text-[#5eb3ff]">{t.titleAccent}</span>
@@ -145,7 +145,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               </Reveal>
 
               <Reveal delay={160}>
-                <p className="text-on-video mt-6 [@media(max-height:820px)]:mt-4 max-w-[38ch] text-balance text-[15px] leading-[1.65] text-[#d6e6f5]/85 sm:mt-7 sm:text-[17px]">
+                <p className="text-on-video-strong mt-6 [@media(max-height:820px)]:mt-4 max-w-[38ch] text-balance text-[15px] leading-[1.65] text-[#d6e6f5]/85 sm:mt-7 sm:text-[17px]">
                   {t.heroLead}
                 </p>
               </Reveal>
@@ -185,7 +185,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                   <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-brand-200/60">
                     {t.partnersTitle}
                   </span>
-                  <span className="text-on-video text-balance text-center text-[12.5px] leading-[1.55] text-[#d6e6f5]/80 lg:text-left">
+                  <span className="text-on-video-strong text-balance text-center text-[12.5px] leading-[1.55] text-[#d6e6f5]/80 lg:text-left">
                     {t.partners.join('  ·  ')}
                   </span>
                 </span>
