@@ -54,40 +54,40 @@ interface Props {
 const VARIANTS = {
   primary: {
     /**
-     * "Oltin qizarish" — och pushti (`#C68690`) dan yumshoq
-     * shampan-oltinga (`#E2BE7E`). 20 ta variantdan egasi TANLAGAN
-     * aynan shu juftlik — o'zgartirilmagan.
+     * Feruza (Teal) — 30 ta variantdan egasi tanlagan #10.
      *
-     * ⚠️ Lekin OQ matn bilan ishlamaydi: bu rang juda och, hisoblandi —
-     *   boshi  #C68690 -> oq matn bilan atigi 2.91:1
-     *   oxiri  #E2BE7E -> oq matn bilan hatto 1.77:1
-     * Ikkalasi ham AA me'yori (4.5) dan ancha past — oltin uchida matn
-     * deyarli o'qilmas edi.
+     * Asl tanlov `#0E7C8C -> #22B8C4` edi. Oq matn bilan tekshirilganda:
+     *   boshi  #0E7C8C -> 4.90:1  (AA dan yuqori)
+     *   oxiri  #22B8C4 -> 2.41:1  (AA'dan ancha past — och uchida
+     *                              matn o'qilmas edi)
+     * Ikkala uchda BIR XIL matn rangi (oq YOKI to'q) ishlashi kerak,
+     * lekin bu ikki rang orasida shunday "kesishish" borki, na oq, na
+     * to'q ikkalasini ham qondiradi (to'q matn boshida 3.67:1 chiqadi
+     * — u ham yetarli emas).
      *
-     * Shuning uchun rang O'ZGARTIRILMADI, faqat matn OQ emas, TO'Q
-     * qilindi (`text-brand-950`, `#091729` — saytning o'z siyoh
-     * rangi). Xuddi shu fon bilan:
-     *   boshi  6.18:1
-     *   oxiri  10.19:1
-     * Bu tasodifiy emas: och rose gold fonda to'q matn — zargarlik va
-     * premium brendlarda keng tarqalgan juftlik.
+     * Shuning uchun OCH uch quyuqlashtirildi (`#22B8C4` -> `#0F6B75`),
+     * rang OILASI (feruza) saqlanib qoldi, faqat ikkalasi ham
+     * "chuqurroq feruza" bo'ldi:
+     *   boshi  #0E7C8C -> oq matn bilan 4.90:1
+     *   oxiri  #0F6B75 -> oq matn bilan 6.21:1
+     * Ikkalasi ham AA dan yuqori.
      */
-    image: 'linear-gradient(100deg, #C68690 0%, #E2BE7E 100%)',
-    shadow: '0 12px 44px -12px rgba(198,134,144,0.55)',
-    text: 'text-brand-950',
+    image: 'linear-gradient(100deg, #0E7C8C 0%, #0F6B75 100%)',
+    shadow: '0 12px 44px -12px rgba(14,124,140,0.55)',
+    text: 'text-white',
     ring: 1,
   },
   ghost: {
     image: 'none',
     shadow: 'none',
     /**
-     * Oq emas — iliq shampan-oltin (`#f0c9a0`). Fon deyarli qora
+     * Oq emas — och feruza (`#8fe0e8`). Fon deyarli qora
      * (`rgba(3,6,15,0.72)`) bo'lgani uchun kontrast baribir juda
      * yuqori qoladi (istalgan och rang qora fonda AA'dan ancha
-     * yuqori chiqadi); shu bilan birga tugma aniq Rose Gold oilasiga
+     * yuqori chiqadi); shu bilan birga tugma aniq Feruza oilasiga
      * tegishli ko'rinadi, oddiy oq matn kabi "rangsiz" emas.
      */
-    text: 'text-[#f0c9a0]',
+    text: 'text-[#8fe0e8]',
     // Yorug'lik halqasi ancha xira: ikkinchi darajali tugma
     // asosiysining diqqatini tortmasligi kerak
     ring: 0.35,
@@ -97,17 +97,17 @@ const VARIANTS = {
 /**
  * Yorug' yoy: aylananing atigi ~20 darajasi yonadi.
  *
- * Ranglar asosiy gradientdan olingan — halqa ham o'sha bitta Rose
- * Gold oilasiga tegishli (ilgari ko'k/yashil edi).
+ * Ranglar asosiy gradientdan olingan — halqa ham o'sha bitta Feruza
+ * oilasiga tegishli (ilgari Rose Gold, undan oldin ko'k/yashil edi).
  */
 const RING = `conic-gradient(
   from 0deg,
   transparent 0deg,
   transparent 300deg,
-  rgba(224,159,140,0.35) 322deg,
-  #f0b8a6 340deg,
+  rgba(34,184,196,0.35) 322deg,
+  #5fd4de 340deg,
   #ffffff 350deg,
-  #e8c07a 358deg,
+  #14a3b0 358deg,
   transparent 360deg
 )`;
 
@@ -131,10 +131,8 @@ export function LedButton({ href, children, variant = 'primary', className }: Pr
           // Ghost fon SHAFFOF emas, quyuq: ortida video turadi va
           // uning yorug' joylari matnni yeb qo'yardi. O'lchov bo'yicha
           // 0.72 quyuqlik eng yomon kadrda ham to'qqiz baravar
-          // kontrast beradi. Chegara Rose Gold rangida, TO'LIQ
-          // ko'rinarli (0.35 emas, 0.7) — ilgari juda xira edi va
-          // tugma oddiy qora bo'lib ko'rinardi.
-          ghost ? 'border border-[#e8c07a]/70 bg-[rgba(3,6,15,0.72)] backdrop-blur-md' : ''
+          // kontrast beradi. Chegara Feruza rangida, TO'LIQ ko'rinarli.
+          ghost ? 'border border-[#22b8c4]/70 bg-[rgba(3,6,15,0.72)] backdrop-blur-md' : ''
         }`}
         style={{
           backgroundImage: ghost ? undefined : skin.image,
