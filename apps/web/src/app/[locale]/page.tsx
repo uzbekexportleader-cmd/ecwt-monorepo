@@ -13,7 +13,6 @@ import { LedButton } from '@/components/marketing/LedButton';
 import { SiteFooter } from '@/components/marketing/SiteFooter';
 import { Reveal } from '@/components/marketing/Reveal';
 import { CountUp } from '@/components/marketing/CountUp';
-import { EcwtMark } from '@/components/marketing/EcwtMark';
 
 /**
  * Bosh sahifa — bir yarim ekran.
@@ -102,18 +101,30 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               katta bo'sh joy qoladi. Logotip esa o'ng tepadagi panel
               kabi chetga mahkamlanadi — ikkalasi bir chiziqda turadi. */}
           <header className="flex items-center pl-4 pr-4 sm:pl-6 sm:pr-[31rem]">
-            <span className="flex items-center gap-4 sm:gap-5">
-              <EcwtMark className="h-12 w-12 shrink-0 sm:h-14 sm:w-14" />
-              <span className="flex flex-col gap-2.5 leading-none">
-                <span className="text-[21px] font-bold tracking-[-0.02em] sm:text-[24px]">ECWT</span>
-                {/* Kompaniyaning to'liq nomi.
-                    Harflar orasi ataylab juda keng (0.42em): shu tufayli u
-                    logotip ostidagi mayda izoh emas, o'zi bir belgi bo'lib
-                    o'qiladi. Tor ekranda oraliq kamayadi va matn ikki
-                    qatorga o'raladi — aks holda u sig'maydi. */}
-                <span className="max-w-[17rem] text-[10.5px] font-medium uppercase leading-[1.8] tracking-[0.24em] text-brand-200 sm:max-w-none sm:text-[13px] sm:leading-none sm:tracking-[0.42em]">
-                  {t.companyLines.join(' ')}
+            {/* Pitch deck'dagi so'z belgisi (egasi rasmda aylantirib
+                ko'rsatgan): "E.C.W.T" ustida, "Ai" ostida — ikkalasi
+                bitta ustunda, alohida ikonka YO'Q. Asl variant oq
+                fonda qora edi; bu yerda video fon ustida turgani
+                uchun oq rangga aylantirildi, faqat "Ai" yonidagi
+                qizil nuqtalar o'z rangida qoldi — yagona urg'u sifatida. */}
+            <span className="flex flex-col leading-[0.85]">
+              <span className="text-[26px] font-bold tracking-[0.05em] sm:text-[32px]">
+                E.C.W.T
+              </span>
+              <span className="mt-0.5 flex items-center gap-1.5 text-[26px] font-bold tracking-[0.02em] sm:text-[32px]">
+                Ai
+                <span aria-hidden="true" className="flex gap-1 self-start pt-1.5">
+                  <span className="h-[5px] w-[5px] rounded-full bg-[#e2483a] sm:h-[6px] sm:w-[6px]" />
+                  <span className="h-[5px] w-[5px] rounded-full bg-[#e2483a] sm:h-[6px] sm:w-[6px]" />
                 </span>
+              </span>
+              {/* Kompaniyaning to'liq nomi.
+                  Harflar orasi ataylab juda keng (0.42em): shu tufayli u
+                  logotip ostidagi mayda izoh emas, o'zi bir belgi bo'lib
+                  o'qiladi. Tor ekranda oraliq kamayadi va matn ikki
+                  qatorga o'raladi — aks holda u sig'maydi. */}
+              <span className="mt-2 max-w-[17rem] text-[10.5px] font-medium uppercase leading-[1.8] tracking-[0.24em] text-brand-200 sm:max-w-none sm:text-[13px] sm:leading-none sm:tracking-[0.42em]">
+                {t.companyLines.join(' ')}
               </span>
             </span>
           </header>
