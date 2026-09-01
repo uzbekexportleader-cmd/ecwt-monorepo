@@ -45,37 +45,42 @@ interface Props {
  * TO'RTTA accent rang yig'ilgandi. Natijada ko'z qayerga qarashni
  * bilmay qolardi: hamma narsa "muhim" bo'lsa, hech narsa muhim emas.
  *
- * Endi bitta brend accenti — ko'kdan yashilga o'tuvchi gradient. U
- * faqat ASOSIY amalda ishlatiladi. Ikkinchi tugma esa rangsiz: u bor,
- * lekin talashmaydi. Shu tufayli qaysi tugma asosiy ekani bir
- * qarashda ko'rinadi.
+ * Endi bitta brend accenti — Rose Gold: chuqur pushti-atirgul rangdan
+ * quyuq oltin-bronzaga o'tuvchi gradient. U faqat ASOSIY amalda
+ * ishlatiladi. Ikkinchi tugma esa to'liq rangsiz qolmaydi — chegara
+ * va yorug'lik halqasi orqali oilaviy ohangni ko'rsatadi, lekin
+ * fon-matni video ustida o'qilishi uchun quyuq turadi.
  */
 const VARIANTS = {
   primary: {
     /**
-     * Ko'kdan yashilga. Yashil uchi ATAYLAB chuqurroq (`#15803d`,
-     * brendning `#22c55e` si emas).
+     * Pushti-atirgul (`#8B4B5C`) dan oltin-bronzaga (`#8C6530`).
      *
-     * Sabab o'lchangan: oq matn `#22c55e` ustida atigi 2.28:1 kontrast
-     * beradi — AA me'yori 4.5 dan ikki barobar past, ya'ni tugmaning
-     * o'ng yarmidagi harflar va strelka o'qilmay qolardi. Gradient
-     * bo'ylab qiymatlar shunday edi:
-     *   5.82 -> 4.64 -> 3.65 -> 2.87 -> 2.28
-     *
-     * Chuqurroq yashil bilan esa butun bo'ylab barqaror:
-     *   5.82 -> 5.74 -> 5.57 -> 5.32 -> 5.02
-     *
-     * Ko'zga u baribir "ko'kdan yashilga" bo'lib qoladi.
+     * Klassik "rose gold" (`#B76E79` kabi) oq matn bilan atigi ~3.98:1
+     * kontrast beradi — AA me'yori (4.5) dan past, ya'ni tugma
+     * matnini video fon ustida o'qish qiyinlashardi. Shuning uchun
+     * ikkala uch ham quyuqlashtirildi va oldindan hisoblandi:
+     *   boshi  #8B4B5C -> oq matn bilan 6.45:1
+     *   oxiri  #8C6530 -> oq matn bilan 5.22:1
+     * Ikkalasi ham AA dan yuqori, gradient bo'ylab pasaymaydi. Ko'zga
+     * baribir "rose gold" bo'lib ko'rinadi — faqat quyuqroq soyada.
      */
-    image: 'linear-gradient(100deg, #2b66ad 0%, #15803d 100%)',
-    shadow: '0 12px 44px -12px rgba(37,120,220,0.75)',
+    image: 'linear-gradient(100deg, #8B4B5C 0%, #8C6530 100%)',
+    shadow: '0 12px 44px -12px rgba(139,75,92,0.6)',
     text: 'text-white',
     ring: 1,
   },
   ghost: {
     image: 'none',
     shadow: 'none',
-    text: 'text-white',
+    /**
+     * Oq emas — iliq shampan-oltin (`#f0c9a0`). Fon deyarli qora
+     * (`rgba(3,6,15,0.72)`) bo'lgani uchun kontrast baribir juda
+     * yuqori qoladi (istalgan och rang qora fonda AA'dan ancha
+     * yuqori chiqadi); shu bilan birga tugma aniq Rose Gold oilasiga
+     * tegishli ko'rinadi, oddiy oq matn kabi "rangsiz" emas.
+     */
+    text: 'text-[#f0c9a0]',
     // Yorug'lik halqasi ancha xira: ikkinchi darajali tugma
     // asosiysining diqqatini tortmasligi kerak
     ring: 0.35,
@@ -85,17 +90,17 @@ const VARIANTS = {
 /**
  * Yorug' yoy: aylananing atigi ~20 darajasi yonadi.
  *
- * Ranglar asosiy gradientdan olingan — halqa ham o'sha bitta accent
- * oilasiga tegishli.
+ * Ranglar asosiy gradientdan olingan — halqa ham o'sha bitta Rose
+ * Gold oilasiga tegishli (ilgari ko'k/yashil edi).
  */
 const RING = `conic-gradient(
   from 0deg,
   transparent 0deg,
   transparent 300deg,
-  rgba(94,179,255,0.35) 322deg,
-  #7cc4ff 340deg,
+  rgba(224,159,140,0.35) 322deg,
+  #f0b8a6 340deg,
   #ffffff 350deg,
-  #6ee7a8 358deg,
+  #e8c07a 358deg,
   transparent 360deg
 )`;
 
@@ -119,8 +124,10 @@ export function LedButton({ href, children, variant = 'primary', className }: Pr
           // Ghost fon SHAFFOF emas, quyuq: ortida video turadi va
           // uning yorug' joylari matnni yeb qo'yardi. O'lchov bo'yicha
           // 0.72 quyuqlik eng yomon kadrda ham to'qqiz baravar
-          // kontrast beradi.
-          ghost ? 'border border-white/22 bg-[rgba(3,6,15,0.72)] backdrop-blur-md' : ''
+          // kontrast beradi. Chegara Rose Gold rangida, TO'LIQ
+          // ko'rinarli (0.35 emas, 0.7) — ilgari juda xira edi va
+          // tugma oddiy qora bo'lib ko'rinardi.
+          ghost ? 'border border-[#e8c07a]/70 bg-[rgba(3,6,15,0.72)] backdrop-blur-md' : ''
         }`}
         style={{
           backgroundImage: ghost ? undefined : skin.image,

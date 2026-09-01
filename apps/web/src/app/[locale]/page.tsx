@@ -138,16 +138,30 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                     yirik o'lchamda harflar orasi kengaygandek ko'rinadi va
                     uni qaytarib tortish kerak.
 
-                    Bir nechta gap ketma-ket yozilib-o'chiriladi
+                    Bir nechta gap ketma-ket yozilib-eritiladi
                     (`TypewriterHeadline`) — bitta qat'iy shior o'rniga
-                    mahsulotning turli qirralari ko'rsatiladi. */}
-                <h1 className="text-on-video-strong text-balance text-[2.75rem] font-bold leading-[0.98] tracking-[-0.035em] sm:text-[3.75rem] lg:text-[4.5rem] [@media(max-height:820px)]:lg:text-[3.5rem]">
+                    mahsulotning turli qirralari ko'rsatiladi.
+
+                    `h-[3.43em] overflow-hidden` — QAT'IY 3.5 QATOR joy
+                    (`leading-[0.98]` * 3.5). ATAYLAB `min-height` EMAS,
+                    `height`: `min-height` faqat pastki chegara beradi
+                    — uzunroq gap kelsa quti baribir kattalashib,
+                    pastdagi paragraf va tugmalarni surib yuborardi
+                    (birinchi urinishda aynan shu bo'lgan). Qat'iy
+                    `height` + `overflow-hidden` esa hech qachon
+                    o'smaydi: uzun gapning ortiqcha qismi shunchaki
+                    ko'rinmay qoladi, lekin pastki blok abadiy joyida
+                    qotib turadi. `em` birligi shrift o'lchamining
+                    o'ziga bog'liq, shuning uchun har uch breakpoint'da
+                    (2.75rem / 3.75rem / 4.5rem) alohida qiymat kerak
+                    emas — nisbat o'zi to'g'ri keladi. */}
+                <h1 className="font-display text-on-video-strong h-[3.43em] overflow-hidden text-balance text-[2.75rem] font-bold leading-[0.98] tracking-[-0.035em] sm:text-[3.75rem] lg:text-[4.5rem] [@media(max-height:820px)]:lg:text-[3.5rem]">
                   <TypewriterHeadline phrases={t.heroRotating} />
                 </h1>
               </Reveal>
 
               <Reveal delay={160}>
-                <p className="text-on-video-strong mt-6 [@media(max-height:820px)]:mt-4 max-w-[38ch] text-balance text-[15px] leading-[1.65] text-[#d6e6f5]/85 sm:mt-7 sm:text-[17px]">
+                <p className="text-on-video-strong mt-2 [@media(max-height:820px)]:mt-2 max-w-[38ch] text-balance text-[15px] leading-[1.65] text-[#d6e6f5]/85 sm:mt-3 sm:text-[17px]">
                   {t.heroLead}
                 </p>
               </Reveal>

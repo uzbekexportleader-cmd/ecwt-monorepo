@@ -122,13 +122,13 @@ export const HOME_COPY: Record<Locale, HomeCopy> = {
   uz: {
     companyLines: ['O‘ZBEKISTON', 'ELEKTRON TIJORAT', 'KOMPANIYASI'],
     heroRotating: [
-      'Mahsulotingizni dunyoga olib chiqing.',
+      'Maxsulotingizni dunyoga olib chiqing.',
       'Brendingizni Amerikaga chiqaring.',
-      'Ishlab chiqaring — qolganini biz qilamiz.',
-      'O‘zbekistondan dunyo bozoriga.',
+      'Ishlab chiqaring — qolgani bizda.',
+      'Kichik ustadan — katta bozorga.',
     ],
     subtitle:
-      'O‘zbekiston mahsulotlarini global marketplace’larda soting, brendingizni dunyoga taniting',
+      'O‘zbekiston maxsulotlarini global marketplace’larda soting, brendingizni dunyoga taniting',
     trustTitle: 'Xavfsiz va ishonchli platforma',
     trustBody: 'Ma’lumotlaringiz himoyalangan',
     cardTagline: 'Dunyoni bog‘laymiz, biznesingizni o‘stiramiz',
@@ -151,7 +151,7 @@ export const HOME_COPY: Record<Locale, HomeCopy> = {
 
     heroLead:
       'Amazon, eBay, Etsy, Walmart va boshqa global marketplace’larda savdoni siz uchun yo‘lga qo‘yamiz.',
-    ctaPrimary: 'Mahsulotingizni soting',
+    ctaPrimary: 'Maxsulotingizni soting',
     scrollHint: 'Pastga',
 
     stats: [
@@ -195,7 +195,7 @@ export const HOME_COPY: Record<Locale, HomeCopy> = {
       send: 'Yuborish',
       close: 'Yopish',
       greeting:
-        'Salom! Men ECWT yordamchisiman. Mahsulotni marketplace’ga chiqarish haqida so‘rang.',
+        'Salom! Men ECWT yordamchisiman. Maxsulotni marketplace’ga chiqarish haqida so‘rang.',
       suggestions: [
         'Qanday boshlayman?',
         'Qaysi marketplace’larga chiqarasiz?',
@@ -213,7 +213,7 @@ export const HOME_COPY: Record<Locale, HomeCopy> = {
     heroRotating: [
       'Выведите свой товар в мир.',
       'Продавайте бренд в Америке.',
-      'Вы производите — остальное берём на себя.',
+      'Производите — остальное на нас.',
       'Из Узбекистана — на мировой рынок.',
     ],
     subtitle:
