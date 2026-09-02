@@ -54,6 +54,13 @@ interface HomeCopy {
   register: string;
   login: string;
   marketplacesTitle: string;
+  /**
+   * Bosh ekrandagi kichik plashka ichida ketma-ket yozilib turadigan
+   * qisqa yorliqlar (`BadgeTypewriter`). Avval bu yerda statik
+   * `marketplacesTitle` turardi — egasi o'rniga "yozuv yoziladigan"
+   * (typewriter) narsa so'radi.
+   */
+  badgeTags: readonly string[];
   /** Logotiplar lentasining yorlig'i — nima ko'rsatilayotganini aytadi */
   marketplacesLabel: string;
   /** Qavs ichidagi qo'lyozma shior — matnni "imzo"ga aylantiradi */
@@ -167,6 +174,7 @@ export const HOME_COPY: Record<Locale, HomeCopy> = {
     register: 'Ro‘yxatdan o‘tish',
     login: 'Kirish',
     marketplacesTitle: 'Global marketplace’lar',
+    badgeTags: ['GLOBAL MARKETPLACE’LAR', 'AI YORDAMIDA', '50+ MARKETPLACE', '24/7 QO‘LLAB-QUVVATLASH'],
     marketplacesLabel: 'Biz chiqaradigan marketplace’lar',
     bracketTagline: 'o‘zbekistondan dunyoga',
     menu: 'MENYU',
@@ -284,6 +292,7 @@ export const HOME_COPY: Record<Locale, HomeCopy> = {
     register: 'Регистрация',
     login: 'Войти',
     marketplacesTitle: 'Глобальные маркетплейсы',
+    badgeTags: ['ГЛОБАЛЬНЫЕ МАРКЕТПЛЕЙСЫ', 'С ПОМОЩЬЮ AI', '50+ МАРКЕТПЛЕЙСОВ', 'ПОДДЕРЖКА 24/7'],
     marketplacesLabel: 'Маркетплейсы, на которые мы выводим',
     bracketTagline: 'из узбекистана в мир',
     menu: 'МЕНЮ',
@@ -401,6 +410,7 @@ export const HOME_COPY: Record<Locale, HomeCopy> = {
     register: 'Create an account',
     login: 'Sign in',
     marketplacesTitle: 'Global marketplaces',
+    badgeTags: ['GLOBAL MARKETPLACES', 'POWERED BY AI', '50+ MARKETPLACES', '24/7 SUPPORT'],
     marketplacesLabel: 'Marketplaces we sell on',
     bracketTagline: 'from uzbekistan to the world',
     menu: 'MENU',

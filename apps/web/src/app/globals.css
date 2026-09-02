@@ -62,14 +62,14 @@
   --color-signal: #ff2936;
 
   --font-sans:
-    var(--font-inter), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    var(--font-plus-jakarta), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
     'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
 
   /* Freshman shriftlari — spec’dagi original nomlar bepul emas,
      shuning uchun o‘sha spec taklif qilgan almashtiruvchilar olindi:
-     Editorial New -> Cormorant Garamond, TT Firs Neue -> Inter,
-     Altform -> Oswald (Druk/Tungsten o‘rniga, kirill qo‘llab-quvvatlashi
-     bilan), Wasted Year -> Caveat. */
+     Editorial New -> Cormorant Garamond, TT Firs Neue -> Plus Jakarta
+     Sans, Altform -> Oswald (Druk/Tungsten o‘rniga, kirill
+     qo‘llab-quvvatlashi bilan), Wasted Year -> Caveat. */
   --font-display: var(--font-cormorant), ui-serif, Georgia, serif;
   --font-condensed: var(--font-oswald), ui-sans-serif, system-ui, sans-serif;
   --font-hand: var(--font-caveat), ui-serif, cursive;
@@ -518,6 +518,50 @@ h2 {
 
 @utility animate-logo-glow {
   animation: ecwt-logo-glow 5s ease-in-out infinite;
+}
+
+/**
+ * Oq sarlavha matni atrofidagi QORA konturning "yonib-yonib
+ * turishi" (pulsatsiya).
+ *
+ * ── Nega `text-shadow` inline `style`dan CSS klassga ko'chirildi ────
+ * `TypewriterHeadline.tsx` avval kontur+porlashni to'g'ridan-to'g'ri
+ * inline `style.textShadow`ga yozardi — lekin inline style CSS
+ * `@keyframes`ga BOG'LANA OLMAYDI (animatsiya klass orqali ishlaydi).
+ * Shuning uchun kontur endi shu klass ichida, animatsiya esa uning
+ * ustidan `text-shadow`ning O'ZINI ikkita holat orasida almashtiradi.
+ *
+ * Ikkala holatda ham HAR BIR soya QATLAMINING POZITSIYASI bir xil
+ * qoladi (faqat porlash qatlamining RANG SHAFFOFLIGI/radiusi
+ * o'zgaradi) — aks holda brauzer soyalarni to'g'ri interpolatsiya
+ * qila olmay, "sakrab" almashtirib qo'yishi mumkin edi.
+ */
+@keyframes ecwt-title-outline-glow {
+  0%,
+  100% {
+    text-shadow:
+      -1px -1px 0 #000,
+      1px -1px 0 #000,
+      -1px 1px 0 #000,
+      1px 1px 0 #000,
+      0 0 3px rgba(0, 0, 0, 0.6),
+      0 4px 16px rgba(3, 6, 15, 0.5),
+      0 0 6px rgba(0, 0, 0, 0.45);
+  }
+  50% {
+    text-shadow:
+      -1px -1px 0 #000,
+      1px -1px 0 #000,
+      -1px 1px 0 #000,
+      1px 1px 0 #000,
+      0 0 3px rgba(0, 0, 0, 0.6),
+      0 4px 16px rgba(3, 6, 15, 0.5),
+      0 0 18px rgba(0, 0, 0, 1);
+  }
+}
+
+@utility title-outline-glow {
+  animation: ecwt-title-outline-glow 2.4s ease-in-out infinite;
 }
 
 /* Video ustidagi matn uchun soya.

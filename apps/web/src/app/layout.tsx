@@ -1,31 +1,46 @@
 import type { ReactNode } from 'react';
 import { headers } from 'next/headers';
-import { Cormorant_Garamond, Inter } from 'next/font/google';
+import { Cormorant_Garamond, Plus_Jakarta_Sans } from 'next/font/google';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/config';
 import './globals.css';
 
 /**
- * Inter — interfeys shrifti (Freshman spec'idagi TT Firs Neue o'rniga).
+ * Plus Jakarta Sans — butun sayt uchun interfeys shrifti.
+ *
+ * Avval Inter ishlatilgan edi (neytral, lekin "oddiy" — deyarli har
+ * qanday saytda uchraydi). Egasi butun saytning shriftini "10/10,
+ * premium" qilishni so'radi — Plus Jakarta Sans xuddi shu maqsadda
+ * ko'plab premium mahsulot saytlarida ishlatiladi: Inter kabi
+ * professional/aniq, lekin harflarning o'ziga xos siyrak, biroz
+ * "yumshoq burchakli" shakli bor — shuning uchun neytral EMAS,
+ * KO'ZGA TASHLANADIGAN xarakter beradi.
+ *
+ * Sarlavha (`TypewriterHeadline`) uchun ikkita boshqa display shrift
+ * (Bricolage Grotesque, keyin Outfit) sinaldi — ikkalasi ham egasiga
+ * "juda qalin/semiz" ko'rindi. Oxir-oqibat sarlavha ham AYNAN shu
+ * shriftga (`font-sans`) o'tkazildi — "Ro'yxatdan o'tish" tugmasi
+ * ichidagi matn bilan BIR XIL shrift bo'lsin, dedi.
  *
  * `next/font` shriftni qurish paytida yuklab olib, loyihaning o'ziga
  * joylashtiradi: ish paytida Google'ga hech qanday so'rov ketmaydi.
- * Prezentatsiya internetsiz o'tsa ham shrift joyida qoladi.
- *
  * `latin-ext` to'plami o'zbek lotinidagi belgilar uchun kerak.
  */
-const inter = Inter({
+const plusJakarta = Plus_Jakarta_Sans({
   subsets: ['latin', 'latin-ext'],
   display: 'swap',
-  variable: '--font-inter',
+  variable: '--font-plus-jakarta',
 });
 
 /**
- * Cormorant Garamond — "premium" sarlavha shrifti.
+ * Cormorant Garamond — sarlavha (`TypewriterHeadline`) uchun.
  *
- * `globals.css` da `--font-display` bu shriftga ishora qilib kelgan
- * (Freshman spec'idagi Editorial New o'rniga), lekin shrift hech qachon
- * yuklanmagan edi — `font-display` klassi mavjud bo'lsa ham, harfiy
- * jihatdan hech narsani o'zgartirmasdi. Endi ulandi.
+ * Bir nechta sans-serif variant (Bricolage Grotesque, Outfit,
+ * Plus Jakarta Sans) sinaldi — hammasi egasiga "qalin/semiz"
+ * ko'rindi. Egasi keyin nafis, INGICHKA KLASSIK SERIF namunasi
+ * (Canva shablonidagi "Blue Wood" yozuvi) ko'rsatdi — Cormorant
+ * Garamond xuddi shunga mos: yupqa, baland, nafis serif harflar.
+ * `weight: '500'` — oldingi 600/700'dan yengilroq, "Blue Wood"dagi
+ * kabi nozik chiziqlar uchun.
  *
  * ⚠️ Kirill yo'q: Google Fonts'dagi Cormorant Garamond faqat lotin
  * to'plamlarini beradi. Rus tilidagi sarlavha shuning uchun
@@ -36,11 +51,10 @@ const inter = Inter({
  */
 const cormorant = Cormorant_Garamond({
   subsets: ['latin', 'latin-ext'],
-  weight: ['600', '700'],
+  weight: ['500', '600'],
   display: 'swap',
   variable: '--font-cormorant',
 });
-
 
 /**
  * Ildiz layout — faqat `<html>` va `<body>`.
@@ -57,7 +71,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   return (
     <html
       lang={lang}
-      className={`${inter.variable} ${cormorant.variable}`}
+      className={`${plusJakarta.variable} ${cormorant.variable}`}
     >
       <body className="min-h-screen bg-white antialiased">{children}</body>
     </html>

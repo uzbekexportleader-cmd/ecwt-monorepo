@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { LOCALES, type Locale } from '@ecwt/contracts';
 import { isLocale } from '@/i18n';
 import { NightBackdrop } from '@/components/marketing/NightBackdrop';
+import { BadgeTypewriter } from '@/components/marketing/BadgeTypewriter';
 import { CursorOrbitDots } from '@/components/marketing/CursorOrbitDots';
 import { CursorNetworkDots } from '@/components/marketing/CursorNetworkDots';
 import { HOME_COPY } from '@/components/marketing/home-copy';
@@ -220,15 +221,18 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                 `min-w-0` flex elementga o'z kengligidan CHIQMASLIKKA
                 ruxsat beradi, shunda `TypewriterHeadline`ning o'z
                 ichki kichraytirish mantig'i ishga tushadi. */}
-            <div className="flex w-full min-w-0 flex-col items-center text-center lg:max-w-[52rem] lg:items-start lg:text-left">
+            <div className="flex w-full min-w-0 flex-col items-center text-center lg:-translate-y-12 lg:max-w-[52rem] lg:items-start lg:text-left">
               <Reveal>
-                {/* Ko'z tushadigan birinchi satr */}
+                {/* Ko'z tushadigan birinchi satr — avval statik
+                    "GLOBAL MARKETPLACE'LAR" turardi, egasi o'rniga
+                    yozuv-yozuv chiqadigan (typewriter) qisqa
+                    yorliqlarni so'radi (`BadgeTypewriter`). */}
                 <span className="mb-6 inline-flex items-center gap-2.5 rounded-full border border-white/[0.12] bg-white/[0.04] px-4 py-1.5 text-[11px] font-medium uppercase tracking-[0.16em] text-brand-200 backdrop-blur-md sm:mb-7">
                   <span className="relative flex h-1.5 w-1.5">
                     <span className="animate-ping-slow absolute inline-flex h-full w-full rounded-full bg-[#4FE0FF] opacity-70" />
                     <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#4FE0FF]" />
                   </span>
-                  {t.marketplacesTitle}
+                  <BadgeTypewriter words={t.badgeTags} />
                 </span>
               </Reveal>
 
@@ -264,12 +268,13 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                     OLDIN uni ikkiga bo'ladi (ko'rinmas o'lchov +
                     `Range` orqali), keyin har qatorni MUSTAQIL,
                     alohida harf-harf yozadi. 1-qator hech qachon
-                    qayta hisoblanmaydi — u to'liq tugagach, 2-qator
-                    boshlanadi. Shuning uchun bu yerda balandlik ANIQ
-                    2 QATOR + descender zaxirasi. */}
+                    qayta hisoblanmaydi — qatorlar KETMA-KET, biri
+                    tugagach keyingisi boshlanadi. Shuning uchun bu
+                    yerda balandlik ANIQ 3 QATOR + descender
+                    zaxirasi. */}
                 <TypewriterHeadline
                   phrases={t.heroRotating}
-                  titleClassName="font-display text-on-video-strong text-black h-[2.14em] w-full overflow-hidden text-[2.75rem] font-bold leading-[0.98] tracking-[-0.035em] sm:text-[3.75rem] lg:text-[4.5rem] [@media(max-height:820px)]:lg:text-[3.5rem]"
+                  titleClassName="font-display text-on-video-strong text-white h-[3.2em] w-full overflow-hidden text-[2.75rem] font-medium leading-[0.86] tracking-[-0.02em] sm:text-[3.75rem] lg:text-[4.5rem] [@media(max-height:820px)]:lg:text-[3.5rem]"
                   subClassName="text-on-video-strong mt-2 [@media(max-height:820px)]:mt-2 max-w-[46ch] h-[4.65em] overflow-hidden text-[21px] leading-[1.55] text-white sm:mt-3 sm:text-[24px]"
                 />
               </Reveal>
@@ -278,7 +283,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                   ro'yxatdan o'tish, qaytgani uchun kirish. "Kirish"
                   ilgari o'ng tepadagi panelda edi — bu yerda u ko'proq
                   ko'zga tashlanadi va ikkalasi bir joyda turadi. */}
-              <Reveal delay={240} className="mt-8 sm:mt-10 [@media(max-height:820px)]:mt-6">
+              <Reveal delay={240} className="mt-8 sm:mt-10 [@media(max-height:820px)]:mt-5">
                 <span className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 lg:justify-start">
                   <LedButton href={`/${locale}/demo`} variant="primary">
                     {t.register}
@@ -336,7 +341,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               34rem ga sig'ardi va bir vaqtda to'rttagina logotip
               ko'rinardi. */}
           <Reveal className="w-full" delay={400}>
-            <div className="mb-9 mt-10 sm:mb-10">
+            <div className="mb-9 mt-5 sm:mb-10">
               {/* Lentaning ustidagi yorliq.
                   Busiz lenta shunchaki logotiplar to'plami bo'lib
                   ko'rinadi va o'quvchi "bular kim?" deb o'ylaydi.

@@ -2,8 +2,48 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-type Phase = 'typingLine1' | 'typingLine2' | 'typingSub' | 'pausedFull' | 'fading' | 'pausedEmpty';
+type Phase = 'typingTitle' | 'typingSub' | 'pausedFull' | 'fading' | 'pausedEmpty';
 
+/** Sarlavha necha qatorga bo'linadi (egasi "3 ta qisqa qator" so'radi) */
+const MAX_TITLE_LINES = 3;
+/**
+ * Qator chegaralarini TOPISH uchun ishlatiladigan "sun'iy tor" kenglik
+ * — h1'ning HAQIQIY kengligining shu ulushi.
+ *
+ * ── Nega kerak: haqiqiy kenglikda ko'pi bilan 1 QATOR bo'lardi ────────
+ * Sarlavha matnlari (masalan "Hammasi shu yerdan boshlanadi") h1'ning
+ * TO'LIQ kengligida (yirik shriftda ham) osongina BITTA qatorga
+ * sig'ib ketardi — egasi esa "3 ta QISQA qator" so'radi. Yechim:
+ * qatorlarga BO'LISH uchun brauzerga h1'ning haqiqiy emas, SUN'IY
+ * TORROQ (shu koeffitsientga ko'paytirilgan) kenglikni "ko'rsatamiz"
+ * — shu tor kenglikda matn tabiiy ravishda ko'proq (taxminan 3 ta)
+ * qatorga bo'linadi. LEKIN chiqqan QATOR MATNLARINING O'ZI keyin
+ * HAQIQIY (kengroq) konteynerga joylashtiriladi — ular sun'iy tor
+ * kenglikka nisbatan hisoblanganligi uchun haqiqiy (kengroq) joyga
+ * albatta ORTIQCHASI bilan sig'adi, demak ICHKARIDA QAYTA KO'CHISH
+ * (bu ilgari "3-qatorga toshib ketish" bugini keltirib chiqargan edi)
+ * XAVFI YO'Q.
+ */
+const SPLIT_WIDTH_RATIO = 0.44;
+/**
+ * h1'ning QAT'IY balandligi — `em`larda, bazaviy (100%) shrift
+ * o'lchamiga nisbatan (pastga qarang, `fontSize` bilan bir xil
+ * mantiq).
+ *
+ * ── Nega BUTUNLAY BOSHQA joyda (Tailwind `h-[3.2em]`da) EMAS ─────────
+ * Avval bu qiymat `titleClassName`ning ichida oddiy Tailwind
+ * `h-[3.2em]` klassi sifatida turardi. LEKIN `em` HAR DOIM shu
+ * ELEMENTNING O'ZINING joriy shriftiga nisbatan hisoblanadi — va h1
+ * shrifti (`fontScale`) HAR GAP uchun turlicha KICHRAYADI (uzun
+ * gaplar 3 qatorga sig'ishi uchun). Natijada "qat'iy" `3.2em`
+ * balandlik HAR GAPDA BOSHQA-BOSHQA piksel qiymatiga aylanardi —
+ * ba'zi gaplarda h1 balandligi 100+px farq qilib, ostidagi
+ * "Ro'yxatdan o'tish" tugmasini tepaga-pastga "sakratardi". Yechim:
+ * xuddi `fontSize`dagi kabi, balandlikni ham piksellarda, FAQAT
+ * bazaviy (100%) shriftga nisbatan hisoblaymiz — shunda u fontScale
+ * qanchalik kichraysa ham HECH QACHON o'zgarmaydi.
+ */
+const TITLE_HEIGHT_EM = 3.2;
 /** Bir harf yozilishi orasidagi kechikish */
 const TYPE_MS = 30;
 /** Ikki qator (yoki sarlavha->izoh) orasidagi kichik tin olish */
@@ -13,11 +53,11 @@ const HOLD_FULL_MS = 4200;
 /** O'ngdan chapga o'chirish (erase) animatsiyasining HAR BIR bosqich davomiyligi */
 const ERASE_MS = 700;
 /**
- * Ketma-ket o'chirish jami davomiyligi: avval PASTKI guruh (2-qator +
- * izoh) TO'LIQ o'chib bo'lgach, keyin TEPA qator (1-qator) o'chiy
- * boshlaydi — ikkalasi hech qachon bir vaqtda o'chmaydi.
+ * Ketma-ket o'chirish jami davomiyligi: PASTKI qatordan (+ izoh)
+ * boshlab, bir-birlab TEPAGA qarab TO'LIQ o'chib bo'lgach, ustidagisi
+ * o'chiy boshlaydi — ikkitasi hech qachon bir vaqtda o'chmaydi.
  */
-const TOTAL_ERASE_MS = ERASE_MS * 2;
+const TOTAL_ERASE_MS = ERASE_MS * MAX_TITLE_LINES;
 /** Butunlay o'chib bo'lgach, keyingi gap yozila boshlashidan oldingi tin olish */
 const HOLD_EMPTY_MS = 300;
 
@@ -37,55 +77,53 @@ interface TypewriterHeadlineProps {
 }
 
 /**
- * Har bir slaydning SARLAVHASI ikkita QAT'IY, OLDINDAN HISOBLANGAN
+ * Har bir slaydning SARLAVHASI uchta QAT'IY, OLDINDAN HISOBLANGAN
  * qatorga yozilib, so'ng ostida IZOH qatori yoziladi; o'chirilganda
- * esa AVVAL PASTKI guruh (2-qator + izoh) TO'LIQ O'NGDAN CHAPGA
- * o'chiydi, FAQAT SHUNDAN KEYIN 1-qator (tepa) o'chiy boshlaydi —
- * ikkalasi hech qachon bir vaqtda o'chmaydi — va keyingi slayd
- * boshlanadi.
+ * esa qatorlar PASTDAN TEPAGA qarab, bittalab, TO'LIQ O'NGDAN CHAPGA
+ * o'chiydi — ikkitasi hech qachon bir vaqtda o'chmaydi — va keyingi
+ * slayd boshlanadi.
  *
  * ── Uzun tarix: bir necha marta "sakrash" chiqdi ────────────────────
  * Avval matn TABIIY (brauzerning o'zi) ko'chirilardi. Bu uch xil
  * shaklda muammo berdi: `text-balance` qayta muvozanatlardi, kursor
  * asos chizig'ini buzardi, va eng asosiysi — harf-harf terilganda
- * qator oxiridagi so'z o'sib-o'sib butunlay 2-qatorga ko'chib
- * ketardi. Keyin BITTA QATORGA majburlab, avtomatik kichraytirish
- * sinaldi — lekin egasi buni yoqtirmadi, "ikki qatorda, birinchisi
- * to'liq yozilib bo'lib, keyin ikkinchisi" ko'rinishini so'radi.
+ * qator oxiridagi so'z o'sib-o'sib keyingi qatorga ko'chib ketardi.
+ * Keyin BITTA QATORGA majburlab, avtomatik kichraytirish sinaldi —
+ * lekin egasi buni yoqtirmadi, "har qator to'liq yozilib bo'lib,
+ * keyin keyingisi" ko'rinishini so'radi.
  *
- * ── Yechim: qator chegarasi OLDINDAN hisoblanadi ────────────────────
+ * ── Yechim: qator chegaralari OLDINDAN hisoblanadi ──────────────────
  * Brauzerga "qayerda ko'chirishni" QAROR QILDIRISH o'rniga, sarlavha
- * yozila boshlashidan OLDIN qaysi so'zlar 1-qatorga, qaysilari
- * 2-qatorga tushishi bir marta hisoblanadi (`computeFit`) —
- * ko'rinmas o'lchov elementida to'liq matn joylashtirilib, `Range`
- * orqali har harfning qaysi qatorda turishi tekshiriladi. Shundan
- * keyin ikkalasi ham MUSTAQIL, ALOHIDA harf-harf yoziladi — birinchi
- * TO'LIQ tugagach, ikkinchisi boshlanadi. Qator chegarasi hech qachon
- * QAYTA HISOBLANMAYDI, shuning uchun 1-qator hech qachon o'zgarmaydi,
- * "sakramaydi".
+ * yozila boshlashidan OLDIN qaysi so'zlar qaysi qatorga tushishi bir
+ * marta hisoblanadi (`computeFit`) — ko'rinmas o'lchov elementida
+ * to'liq matn joylashtirilib, `Range` orqali har harfning qaysi
+ * qatorda turishi tekshiriladi. Shundan keyin har qator MUSTAQIL,
+ * ALOHIDA harf-harf yoziladi — biri TO'LIQ tugagach, keyingisi
+ * boshlanadi. Qator chegaralari hech qachon QAYTA HISOBLANMAYDI,
+ * shuning uchun oldingi qatorlar hech qachon o'zgarmaydi, "sakramaydi".
  *
  * ── OGOHLANTIRISH: matnni HARF-HARF alohida `<span>`ga BO'LMANG ─────
  * Bir marta "rang o'zgarib so'nish" effekti uchun har bir harf
  * o'zining `<span>`iga o'ralgan edi — natijada brauzer so'zlarni
  * HARFLAR ORASIDA HAM bo'la boshladi (chunki har bir harf endi
  * alohida "quti", va qutilar orasida qator ko'chirish joizdir),
- * sarlavha so'z o'rtasidan ikkiga bo'linib, hatto 3-qatorga toshib
- * ketdi. Hozirgi "o'ngdan chapga o'chirish" effekti esa BUTUN qatorni
- * (bitta `<span>`) `clip-path` orqali FAQAT O'NG chekkadan chapga
- * qarab yeydi — matn DOM'da hamon oddiy, uzluksiz satr, harflarga
- * bo'linmagan.
+ * sarlavha so'z o'rtasidan ikkiga bo'linib, hatto ortiqcha qatorga
+ * toshib ketdi. Hozirgi "o'ngdan chapga o'chirish" effekti esa BUTUN
+ * qatorni (bitta `<span>`) `clip-path` orqali FAQAT O'NG chekkadan
+ * chapga qarab yeydi — matn DOM'da hamon oddiy, uzluksiz satr,
+ * harflarga bo'linmagan.
  */
 export function TypewriterHeadline({ phrases, titleClassName, subClassName }: TypewriterHeadlineProps) {
-  const [line1, setLine1] = useState('');
-  const [line2, setLine2] = useState('');
+  const [lines, setLines] = useState<string[]>(() => Array(MAX_TITLE_LINES).fill(''));
   const [subText, setSubText] = useState('');
   const [visible, setVisible] = useState(true);
   const [reduced, setReduced] = useState(false);
   const [fontScale, setFontScale] = useState(1);
   const phraseIndex = useRef(0);
   const charIndex = useRef(0);
-  const phase = useRef<Phase>('typingLine1');
-  const targetLines = useRef<[string, string]>(['', '']);
+  const lineIndex = useRef(0);
+  const phase = useRef<Phase>('typingTitle');
+  const targetLines = useRef<string[]>(Array(MAX_TITLE_LINES).fill(''));
   const targetSub = useRef('');
   const titleRef = useRef<HTMLHeadingElement>(null);
   /**
@@ -107,8 +145,7 @@ export function TypewriterHeadline({ phrases, titleClassName, subClassName }: Ty
   /**
    * O'NGDAN CHAPGA o'chirilish: gap tugab, bir oz turgach, matnning
    * O'NG chekkasi chapga qarab siljib, matnni "yeb kirib" boradi —
-   * oxirida faqat chap chekka (va undan keyingi lippillovchi kursor)
-   * qoladi.
+   * oxirida faqat chap chekka qoladi.
    *
    * ── Nega `width: fit-content` SHART ────────────────────────────────
    * `clip-path` foizi ELEMENT QUTISINING kengligiga nisbatan
@@ -123,13 +160,13 @@ export function TypewriterHeadline({ phrases, titleClassName, subClassName }: Ty
    * `clip-path` bu qismni kesib tashlardi.
    *
    * ── `delayMs` — KETMA-KET o'chirish uchun ───────────────────────────
-   * Egasi ikkala qator BIR VAQTDA emas, PASTKI TO'LIQ tugagach TEPASI
-   * boshlansin dedi. Buni alohida state/timer bilan emas, oddiygina
-   * CSS `transition-delay` bilan hal qilindi: PASTKI guruh (2-qator +
-   * izoh) delaysiz (0ms) boshlaydi, TEPA qator (1-qator) esa PASTKI
-   * guruh tugagandan keyin (`ERASE_MS`) boshlaydi — bitta umumiy
-   * `visible=false` signalidan ikkita mustaqil vaqtda boshlanadigan
-   * animatsiya kelib chiqadi.
+   * Egasi qatorlar BIR VAQTDA emas, PASTDAN TEPAGA qarab, biri
+   * TO'LIQ tugagach ustidagisi boshlansin dedi. Buni alohida
+   * state/timer bilan emas, oddiygina CSS `transition-delay` bilan
+   * hal qilindi: ENG PASTKI qator (+ izoh) delaysiz (0ms) boshlaydi,
+   * har ustidagi qator bir bosqich (`ERASE_MS`) kechroq boshlaydi —
+   * bitta umumiy `visible=false` signalidan bir nechta mustaqil
+   * vaqtda boshlanadigan animatsiya kelib chiqadi.
    *
    * ── Nega `display: 'inline-block'`, `'block'` EMAS ──────────────────
    * Izoh (`subText`) `<p>` ICHIDA render qilinadi, va HTML qoidasiga
@@ -144,7 +181,7 @@ export function TypewriterHeadline({ phrases, titleClassName, subClassName }: Ty
    *
    * ── `allowWrap` — IZOH yozilayotganda NEGA "sakrardi" ───────────────
    * `width:'fit-content'` (shrink-to-fit) BIR QATORLI matn uchun
-   * barqaror (1/2-qator hech qachon ko'chmaydi, `computeFit` buni
+   * barqaror (qatorlar hech qachon ko'chmaydi, `computeFit` buni
    * kafolatlaydi). LEKIN izoh matni UZUN bo'lsa 2 QATORGA KO'CHISHI
    * MUMKIN — va shrink-to-fit ALGORITMI "matn siqilmasdan sig'adimi"
    * chegarasiga juda YAQIN uzunliklarda BARQAROR ISHLAMAYDI: bir
@@ -199,21 +236,23 @@ export function TypewriterHeadline({ phrases, titleClassName, subClassName }: Ty
   }
 
   /**
-   * Ko'rsatilgan matnni ikki qatorga bo'ladi — brauzerning o'z
-   * tabiiy ko'chirish qoidasidan foydalanib, lekin faqat BIR MARTA,
-   * animatsiya boshlanishidan oldin.
+   * Ko'rsatilgan matnni ko'p qatorga bo'ladi (kamida `maxLines` taga
+   * qadar) — brauzerning o'z tabiiy ko'chirish qoidasidan foydalanib,
+   * lekin faqat BIR MARTA, animatsiya boshlanishidan oldin.
    *
    * `Range.getClientRects()` o'ralgan matn uchun HAR QATOR uchun
-   * alohida to'rtburchak qaytaradi. Har bir harfni alohida
-   * o'ramga (`Range`) olib, uning tepa chizig'ini 1-qatornikiga
-   * solishtirib, chegarani topamiz.
+   * alohida to'rtburchak qaytaradi. Har bir harfni alohida o'ramga
+   * (`Range`) olib, uning tepa chizig'i OLDINGI harfnikidan farq
+   * qilgan joyni "qator chegarasi" deb belgilaymiz.
    */
-  function splitAtFontSize(
+  function splitIntoLines(
     text: string,
     width: number,
     cs: CSSStyleDeclaration,
     fontSizePx: number,
-  ): [string, string] {
+    maxLines: number,
+  ): string[] {
+    const out = Array(maxLines).fill('');
     const measurer = createMeasurer(width, cs, fontSizePx);
     const textNode = document.createTextNode(text);
     measurer.appendChild(textNode);
@@ -225,68 +264,75 @@ export function TypewriterHeadline({ phrases, titleClassName, subClassName }: Ty
 
     if (rects.length <= 1) {
       document.body.removeChild(measurer);
-      return [text, ''];
+      out[0] = text;
+      return out;
     }
 
-    const line1Top = rects[0].top;
-    let splitIndex = text.length;
-
-    for (let i = 0; i < text.length; i++) {
+    const boundaries: number[] = [];
+    let currentTop: number | null = null;
+    for (let i = 0; i < text.length; i += 1) {
       const charRange = document.createRange();
       charRange.setStart(textNode, i);
       charRange.setEnd(textNode, i + 1);
       const r = charRange.getBoundingClientRect();
-      if (Math.abs(r.top - line1Top) > 1) {
-        splitIndex = i;
-        break;
+      if (currentTop === null) {
+        currentTop = r.top;
+      } else if (Math.abs(r.top - currentTop) > 1) {
+        boundaries.push(i);
+        currentTop = r.top;
       }
     }
 
     document.body.removeChild(measurer);
 
-    return [text.slice(0, splitIndex).trimEnd(), text.slice(splitIndex).trimStart()];
+    const parts: string[] = [];
+    let start = 0;
+    for (const b of boundaries) {
+      parts.push(text.slice(start, b).trim());
+      start = b;
+    }
+    parts.push(text.slice(start).trim());
+
+    for (let i = 0; i < Math.min(parts.length, maxLines); i += 1) {
+      out[i] = parts[i];
+    }
+    return out;
   }
 
   /**
-   * Sarlavhani ikki qatorga sig'diradi — kerak bo'lsa shriftni
-   * kichraytirib.
+   * Sarlavhani `MAX_TITLE_LINES` qatorga sig'diradi.
    *
-   * ── Nega kerak: UZUN gaplar 3-QATORGA "toshib ketardi" ──────────────
-   * Oldingi versiya matnni faqat BIRINCHI tabiiy qator chegarasidan
-   * bo'lardi va qolganini "2-qator" deb hisoblardi — lekin qolgan qism
-   * o'zi ham keng bo'lsa, 2-qatorning span'i ichida yana ikkiga
-   * bo'linib, natijada 3, hatto 4 qator hosil bo'lardi (egasi buni
-   * "yarmi 3-qatorga tushyapti" deb topdi). Endi avval TO'LIQ matn
-   * joriy shriftda necha qatorga sig'ishi tekshiriladi; agar 2 dan
-   * ko'p bo'lsa, shrift ikkilik qidiruv bilan ANIQ shu ikki qatorga
-   * sig'guncha kichraytiriladi, va bo'lish shu YANGI o'lchamda amalga
-   * oshiriladi.
+   * ── Nega SHRIFT HECH QACHON kichraymaydi (`scale` doim 1) ────────────
+   * Avval uzun gaplar uchun shrift kichraytirilar edi — natijada har
+   * xil gaplar EKRANDA HAR XIL O'LCHAMDA chiqardi ("bir katta, bir
+   * kichkina" — egasi buni yoqtirmadi). Endi shrift DOIM bir xil
+   * (bazaviy) o'lchamda qoladi; buning o'rniga QATORGA BO'LISH uchun
+   * ishlatiladigan "sinov kengligi" KENGAYTIRILADI: avval TOR
+   * (`SPLIT_WIDTH_RATIO`) kenglikda necha qatorga bo'linishi
+   * tekshiriladi (qisqa, "chiroyli" qatorlar uchun) — agar shu tor
+   * kenglikda `MAX_TITLE_LINES`dan KO'P qator kerak bo'lsa (matn juda
+   * uzun), sinov kengligi HAQIQIY kenglikka yetguncha bosqichma-bosqich
+   * KENGAYTIRILADI, toki aynan `MAX_TITLE_LINES`ga sig'adigan eng TOR
+   * (demak eng qisqa qatorli) variant topilguncha. Shrift esa bunga
+   * umuman aloqasi yo'q — har doim bazaviy o'lchamda qoladi.
    */
   function computeFit(
     text: string,
     width: number,
     sample: HTMLElement,
-  ): { scale: number; lines: [string, string] } {
+  ): { scale: number; lines: string[] } {
     const cs = getComputedStyle(sample);
     if (baseFontSizeRef.current === null) {
       baseFontSizeRef.current = parseFloat(cs.fontSize);
     }
     const baseFontSize = baseFontSizeRef.current;
 
-    let scale = 1;
-    if (countLines(text, width, cs, baseFontSize) > 2) {
-      let lo = 0.5;
-      let hi = 1;
-      for (let i = 0; i < 10; i += 1) {
-        const mid = (lo + hi) / 2;
-        const lines = countLines(text, width, cs, baseFontSize * mid);
-        if (lines > 2) hi = mid;
-        else lo = mid;
-      }
-      scale = lo;
+    let testWidth = width * SPLIT_WIDTH_RATIO;
+    while (testWidth < width && countLines(text, testWidth, cs, baseFontSize) > MAX_TITLE_LINES) {
+      testWidth = Math.min(testWidth * 1.25, width);
     }
 
-    return { scale, lines: splitAtFontSize(text, width, cs, baseFontSize * scale) };
+    return { scale: 1, lines: splitIntoLines(text, testWidth, cs, baseFontSize, MAX_TITLE_LINES) };
   }
 
   useEffect(() => {
@@ -303,41 +349,44 @@ export function TypewriterHeadline({ phrases, titleClassName, subClassName }: Ty
       targetSub.current = current.sub;
       setFontScale(fit.scale);
       charIndex.current = 0;
-      setLine1('');
-      setLine2('');
+      lineIndex.current = 0;
+      setLines(Array(MAX_TITLE_LINES).fill(''));
       setSubText('');
-      phase.current = 'typingLine1';
+      phase.current = 'typingTitle';
       timeoutId = setTimeout(tick, TYPE_MS);
     };
 
     const tick = () => {
-      const [l1, l2] = targetLines.current;
+      const currentLines = targetLines.current;
       const sub = targetSub.current;
 
       switch (phase.current) {
-        case 'typingLine1':
+        case 'typingTitle': {
+          const currentLine = currentLines[lineIndex.current] ?? '';
           charIndex.current += 1;
-          setLine1(l1.slice(0, charIndex.current));
-          if (charIndex.current >= l1.length) {
+          const idx = lineIndex.current;
+          const nextText = currentLine.slice(0, charIndex.current);
+          setLines((prev) => {
+            const next = [...prev];
+            next[idx] = nextText;
+            return next;
+          });
+          if (charIndex.current >= currentLine.length) {
             charIndex.current = 0;
-            phase.current = l2 ? 'typingLine2' : 'typingSub';
-            timeoutId = setTimeout(tick, LINE_GAP_MS);
+            let nextIdx = lineIndex.current + 1;
+            while (nextIdx < currentLines.length && !currentLines[nextIdx]) nextIdx += 1;
+            if (nextIdx < currentLines.length) {
+              lineIndex.current = nextIdx;
+              timeoutId = setTimeout(tick, LINE_GAP_MS);
+            } else {
+              phase.current = 'typingSub';
+              timeoutId = setTimeout(tick, LINE_GAP_MS);
+            }
           } else {
             timeoutId = setTimeout(tick, TYPE_MS);
           }
           break;
-
-        case 'typingLine2':
-          charIndex.current += 1;
-          setLine2(l2.slice(0, charIndex.current));
-          if (charIndex.current >= l2.length) {
-            charIndex.current = 0;
-            phase.current = 'typingSub';
-            timeoutId = setTimeout(tick, LINE_GAP_MS);
-          } else {
-            timeoutId = setTimeout(tick, TYPE_MS);
-          }
-          break;
+        }
 
         case 'typingSub':
           charIndex.current += 1;
@@ -360,8 +409,7 @@ export function TypewriterHeadline({ phrases, titleClassName, subClassName }: Ty
           // Matnni ko'rinishga qaytarishdan OLDIN tozalash kerak — aks
           // holda eski gap bir zumga TO'LIQ qaytib ko'rinib, keyin
           // yo'qolardi ("sakrab qaytish" effekti).
-          setLine1('');
-          setLine2('');
+          setLines(Array(MAX_TITLE_LINES).fill(''));
           setSubText('');
           setVisible(true);
           phraseIndex.current += 1;
@@ -381,8 +429,7 @@ export function TypewriterHeadline({ phrases, titleClassName, subClassName }: Ty
     targetLines.current = firstFit.lines;
     targetSub.current = first.sub;
     setFontScale(firstFit.scale);
-    setLine1(targetLines.current[0]);
-    setLine2(targetLines.current[1]);
+    setLines(targetLines.current);
     setSubText(first.sub);
     phase.current = 'pausedFull';
     timeoutId = setTimeout(tick, HOLD_FULL_MS);
@@ -394,7 +441,12 @@ export function TypewriterHeadline({ phrases, titleClassName, subClassName }: Ty
     <>
       <h1
         ref={titleRef}
-        className={titleClassName}
+        // `title-outline-glow` (globals.css) — harflar atrofidagi OCH
+        // KO'K konturni "yonib-yonib" pulsatsiya qildiradi. Shu sabab
+        // bu kontur+porlash endi INLINE `style.textShadow` emas, CSS
+        // KLASS orqali beriladi — inline style `@keyframes`ga
+        // bog'lana OLMAYDI, animatsiya faqat klass orqali ishlaydi.
+        className={`${titleClassName} title-outline-glow`}
         style={{
           // FOIZ EMAS, PIKSEL: `${fontScale*100}%` h1'ning O'Z Tailwind
           // klassi (masalan `text-[4.5rem]`) o'rniga h1'NING OTASI
@@ -403,55 +455,61 @@ export function TypewriterHeadline({ phrases, titleClassName, subClassName }: Ty
           // sarlavha kutilmaganda 16px atrofida cho'kib qolardi.
           // Piksel qiymati esa hech kimga bog'liq emas, har doim
           // to'g'ri hisoblanadi.
+          //
+          // `height` ham xuddi shu sababdan PIKSELDA: `TITLE_HEIGHT_EM`
+          // izohiga qarang — `em`da qolsa, HAR GAP fontScale'iga qarab
+          // balandlik o'zgarib, ostidagi tugmani "sakratardi".
           ...(baseFontSizeRef.current !== null
-            ? { fontSize: `${baseFontSizeRef.current * fontScale}px` }
+            ? {
+                fontSize: `${baseFontSizeRef.current * fontScale}px`,
+                height: `${baseFontSizeRef.current * TITLE_HEIGHT_EM}px`,
+              }
             : null),
           display: 'block',
-          // `text-on-video-strong` (className) faqat video ustida
-          // O'QISH uchun TOR, quyuq soya beradi. Bu yerga esa yana
-          // ikki narsa qo'shiladi: (1) harflar ATROFIGA to'rt
-          // tomonlama OCH KO'K (neon) RANGLI kontur (4 burchakka 1px
-          // siljigan qattiq soya — klassik "stroke" texnikasi, haqiqiy
-          // `-webkit-text-stroke` o'rniga, chunki u ba'zi
-          // brauzerlarda harf ichini ham yeb qo'yishi mumkin — matn
-          // O'ZI QORA, atrofi OCH KO'K bo'lishi kerak), va (2) ORQADA
-          // ingichka OCH KO'K porlash — "orqa soya".
-          //
-          // ── Nega xira radiusi KICHIK ──────────────────────────────
-          // Avval 34px/70px xira radiusi sinaldi — natija YOMON
-          // chiqdi: h1 ning o'zi `overflow-hidden` bo'lgani uchun
-          // (2 qator balandligiga qat'iy kesilgan), shuncha katta
-          // soya shu chegaraga borib to'satdan KESILIB QOLARDI —
-          // sarlavha ORQASIDA aniq TO'RTBURCHAK ko'rinardi (egasi
-          // shuni to'g'ri payqadi). Kichik radius chegaraga yetmasdan
-          // o'zi so'nadi, shuning uchun to'rtburchak yo'qoladi.
-          //
-          // Inline `style` klassdan kuchliroq bo'lgani uchun hammasi
-          // shu yerda BIRGA yoziladi, aks holda birortasi yo'qolib
-          // qolardi.
-          textShadow: `
-            -1px -1px 0 #4FE0FF,
-            1px -1px 0 #4FE0FF,
-            -1px 1px 0 #4FE0FF,
-            1px 1px 0 #4FE0FF,
-            0 0 3px rgba(0,0,0,0.6),
-            0 4px 16px rgba(3,6,15,0.5),
-            0 0 8px rgba(79,224,255,0.6)
-          `,
         }}
       >
         {/* Har qator ALOHIDA quti — ustma-ust turadi, lekin
             bir-birining kengligiga yoki qator sinishiga ta'sir
-            qilmaydi. 1-qator hech qachon o'zgarmaydi: u to'liq
-            yozilgach, faqat 2-qator pastda paydo bo'ladi. Matn
-            ODDIY (harf-harf alohida `<span>`ga BO'LINMAGAN) — aks
-            holda so'zlar o'rtasidan bo'linib ketardi. */}
-        <span style={{ display: 'block' }}>
-          <span style={eraseBoxStyle(ERASE_MS)}>{line1}</span>
-        </span>
-        <span style={{ display: 'block' }}>
-          <span style={eraseBoxStyle(0)}>{line2}</span>
-        </span>
+            qilmaydi. Oldingi qatorlar hech qachon o'zgarmaydi: biri
+            to'liq yozilgach, faqat keyingisi pastda paydo bo'ladi.
+            Matn ODDIY (harf-harf alohida `<span>`ga BO'LINMAGAN) —
+            aks holda so'zlar o'rtasidan bo'linib ketardi.
+
+            Erase kechikishi PASTDAN TEPAGA: eng pastki qator (index
+            MAX_TITLE_LINES-1) 0ms kechikish bilan (izoh bilan BIRGA)
+            boshlaydi, har ustidagi qator bir bosqich (`ERASE_MS`)
+            kechroq boshlaydi.
+
+            1-qator ostidagi TILLA CHIZIQ: qo'shimcha `<span>` emas,
+            shu qatorning O'ZINING `borderBottom`i — chunki bu quti
+            `width:'fit-content'` (harf-harf o'sib boradi), border
+            ham AYNAN shu kenglikda, matn bilan BIRGA "chizilib"
+            boradi — alohida animatsiya kerak emas.
+
+            `paddingRight` SHART: h1'da MANFIY `letter-spacing`
+            (tracking) bor — bu OXIRGI harfdan KEYIN ham qo'llanadi,
+            shuning uchun `fit-content` quti oxirgi harfning haqiqiy
+            (ko'zga ko'ringan) o'ng chekkasidan bir oz OLDIN tugardi,
+            va chiziq oxirgi harfgacha YETMAY qolardi. Kichik
+            `paddingRight` shu farqni qoplaydi. */}
+        {lines.map((lineText, i) => (
+          <span key={i} style={{ display: 'block' }}>
+            <span
+              style={{
+                ...eraseBoxStyle((MAX_TITLE_LINES - 1 - i) * ERASE_MS),
+                ...(i === 0
+                  ? {
+                      borderBottom: '0.06em solid #F0C987',
+                      paddingBottom: '0.14em',
+                      paddingRight: '0.06em',
+                    }
+                  : null),
+              }}
+            >
+              {lineText}
+            </span>
+          </span>
+        ))}
       </h1>
 
       <p
