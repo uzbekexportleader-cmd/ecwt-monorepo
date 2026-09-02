@@ -450,6 +450,76 @@ h2 {
   will-change: transform;
 }
 
+/**
+ * Tagline harflari birma-bir "yonib" o'tadigan to'lqin.
+ *
+ * Har bir harf shu BITTA animatsiyani ishlatadi, lekin JSX'da
+ * berilgan `animationDelay` (harf tartib raqamiga qarab hisoblangan)
+ * tufayli ular BIR VAQTDA emas, ketma-ket yonadi — natijada yorug'lik
+ * chapdan o'ngga "yugurib" o'tganday ko'rinadi, keyin sikl qaytadan
+ * boshlanadi.
+ */
+@keyframes ecwt-letter-glow {
+  0%,
+  88%,
+  100% {
+    color: inherit;
+    text-shadow: none;
+  }
+  4% {
+    color: #4fe0ff;
+    text-shadow: 0 0 7px rgba(79, 224, 255, 0.9);
+  }
+}
+
+@utility animate-letter-glow {
+  animation: ecwt-letter-glow 4s ease-in-out infinite;
+}
+
+/**
+ * Yozish kursori — "|" chizig'i to'liq YONIB, keyin to'liq O'CHIB
+ * turadi (haqiqiy terminal kursori kabi), oldingi `animate-pulse`
+ * (Tailwind) esa faqat yumshoq XIRALASHARDI (1 -> 0.5 -> 1), to'liq
+ * o'chmasdi — egasi aynan shu farqni "lippillab yonib-o'chsin" deb
+ * ta'kidladi.
+ */
+@keyframes ecwt-cursor-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@utility animate-cursor-blink {
+  animation: ecwt-cursor-blink 1s steps(1) infinite;
+}
+
+/**
+ * Logotip orqasidagi fon yoritgich — `animate-sheen` bilan BIR XIL
+ * 5 soniyalik davrga sozlangan, toki chiziq o'tayotgan payt bilan
+ * yoritgichning yorqinlashishi bir vaqtga to'g'ri kelsin.
+ */
+@keyframes ecwt-logo-glow {
+  0%,
+  100% {
+    opacity: 0.18;
+  }
+  10% {
+    opacity: 1;
+  }
+  28% {
+    opacity: 0.18;
+  }
+}
+
+@utility animate-logo-glow {
+  animation: ecwt-logo-glow 5s ease-in-out infinite;
+}
+
 /* Video ustidagi matn uchun soya.
 
    Nega kerak: fon pardasi ataylab yengil qoldirildi — aks holda video

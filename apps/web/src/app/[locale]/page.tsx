@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation';
 import { LOCALES, type Locale } from '@ecwt/contracts';
 import { isLocale } from '@/i18n';
 import { NightBackdrop } from '@/components/marketing/NightBackdrop';
+import { CursorOrbitDots } from '@/components/marketing/CursorOrbitDots';
+import { CursorNetworkDots } from '@/components/marketing/CursorNetworkDots';
 import { HOME_COPY } from '@/components/marketing/home-copy';
 import { MarketplaceMarquee, MARKETPLACE_COUNT } from '@/components/marketing/MarketplaceMarquee';
 import { TashkentClock } from '@/components/marketing/TashkentClock';
@@ -49,6 +51,8 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       className="relative isolate min-h-screen overflow-hidden bg-[#03060f] text-white"
     >
       <NightBackdrop />
+      <CursorNetworkDots />
+      <CursorOrbitDots />
 
       {/* Ovoz. Hech narsa chizmaydi: ko'rinadigan boshqaruvi yo'q va
           sahifadagi birinchi bosishda o'zi yoqiladi. */}
@@ -80,8 +84,8 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                 href={`/${l}`}
                 className={
                   l === locale
-                    ? 'rounded-full bg-[#F0C987] px-3 py-1.5 text-[12px] font-bold uppercase text-[#2f1f04] sm:px-4 sm:py-2 sm:text-[13px]'
-                    : 'rounded-full px-3 py-1.5 text-[12px] font-medium uppercase text-brand-200 transition-colors hover:text-[#F0C987] sm:px-4 sm:py-2 sm:text-[13px]'
+                    ? 'rounded-full bg-[#4FE0FF] px-3 py-1.5 text-[12px] font-bold uppercase text-[#04222E] sm:px-4 sm:py-2 sm:text-[13px]'
+                    : 'rounded-full px-3 py-1.5 text-[12px] font-medium uppercase text-brand-200 transition-colors hover:text-[#4FE0FF] sm:px-4 sm:py-2 sm:text-[13px]'
                 }
               >
                 {l}
@@ -123,17 +127,49 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                 (~76% balandlik) `object-cover` bilan kesiladi, pastki
                 tagline qatori umuman ko'rinmaydi — u yerda faqat
                 ALOHIDA matn (pastda) qoladi, bittagina nusxada. */}
-            <div className="h-[52px] w-[104px] shrink-0 overflow-hidden sm:h-[65px] sm:w-[130px]">
-              {/* `h-auto` bilan rasm o'z tabiiy nisbatida (1571:1001)
-                  to'liq kengligicha chiziladi — gorizontal QIRQILMAYDI.
-                  Ota-blok esa undan PASTROQ, shuning uchun rasmning
-                  pastki qismi (tagline qatori) shunchaki ko'rinmaydi. */}
-              <img
-                src="/logo-ecwt.png"
-                alt="ECWT"
-                className="h-auto w-[104px] sm:w-[130px]"
-                style={{ filter: 'invert(1) hue-rotate(180deg)' }}
+            {/* Tashqi qobiq `overflow-hidden` EMAS — orqadagi porlash
+                (pastda) rasm chegarasidan CHETGA chiqib xiralashishi
+                kerak. Faqat ICHKARIDAGI qobiq kesadi (rasmning pastki
+                tagline qatorini yashirish uchun). */}
+            <div className="relative shrink-0">
+              {/* Fon yoritgich — sheen chiziq o'tayotgan paytda (5s
+                  siklning boshida) yorqinlashadigan xira nur. Egasi
+                  "sheen o'zi juda sust, bilinmayabdi" dedi — endi
+                  logotip ORQASIDA aniq ko'rinadigan porlash bor,
+                  `animate-sheen` bilan BIR XIL 5s davrda sinxron
+                  (`ecwt-logo-glow`, `globals.css`). */}
+              <span
+                aria-hidden="true"
+                className="animate-logo-glow pointer-events-none absolute -inset-3 rounded-full sm:-inset-4"
+                style={{
+                  background: 'radial-gradient(circle, rgba(79,224,255,0.65) 0%, transparent 72%)',
+                  filter: 'blur(10px)',
+                }}
               />
+              <div className="relative h-[52px] w-[104px] overflow-hidden sm:h-[65px] sm:w-[130px]">
+                {/* `h-auto` bilan rasm o'z tabiiy nisbatida (1571:1001)
+                    to'liq kengligicha chiziladi — gorizontal QIRQILMAYDI.
+                    Ota-blok esa undan PASTROQ, shuning uchun rasmning
+                    pastki qismi (tagline qatori) shunchaki ko'rinmaydi. */}
+                <img
+                  src="/logo-ecwt.png"
+                  alt="ECWT"
+                  className="relative h-auto w-[104px] sm:w-[130px]"
+                  style={{ filter: 'invert(1) hue-rotate(180deg)' }}
+                />
+                {/* "Ro'yxatdan o'tish" tugmasidagi bilan BIR XIL yaltirash
+                    (`animate-sheen`, `globals.css`) — logotip ustidan ham
+                    kam-kam yorug' chiziq o'tib turadi. */}
+                <span
+                  aria-hidden="true"
+                  className="animate-sheen pointer-events-none absolute inset-y-0 left-0 w-1/4"
+                  style={{
+                    background:
+                      'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.65) 50%, transparent 100%)',
+                    mixBlendMode: 'overlay',
+                  }}
+                />
+              </div>
             </div>
             {/* To'liq nom ALOHIDA matn sifatida, rasm ICHIDA emas.
                 Rasmdagi tagline juda mayda edi — logotipni sarlavha
@@ -151,8 +187,21 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                 (0.12/0.16em -> 0.26/0.3em), rang esa to'liq oqdan
                 sal xiraroqqa (`text-white/75`) — shunda u qalin
                 logotip bilan TALASHMAYDI, balki uni to'ldiradi. */}
+            {/* Har bir harf BIR XIL `animate-letter-glow` animatsiyasini
+                ishlatadi, lekin `animationDelay` harf tartibiga qarab
+                hisoblanadi — shuning uchun ular bir vaqtda emas,
+                ketma-ket "yonib" o'tadi, go'yo yorug'lik chapdan o'ngga
+                yugurayotganday. */}
             <span className="max-w-[13rem] text-[10px] font-light uppercase leading-[1.5] tracking-[0.26em] text-white/75 sm:max-w-[20rem] sm:text-[12px] sm:leading-relaxed sm:tracking-[0.3em]">
-              {t.companyLines.join(' ')}
+              {t.companyLines.join(' ').split('').map((ch, i, arr) => (
+                <span
+                  key={i}
+                  className="animate-letter-glow"
+                  style={{ animationDelay: `${(i / arr.length) * 4}s` }}
+                >
+                  {ch}
+                </span>
+              ))}
             </span>
           </header>
 
@@ -176,8 +225,8 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                 {/* Ko'z tushadigan birinchi satr */}
                 <span className="mb-6 inline-flex items-center gap-2.5 rounded-full border border-white/[0.12] bg-white/[0.04] px-4 py-1.5 text-[11px] font-medium uppercase tracking-[0.16em] text-brand-200 backdrop-blur-md sm:mb-7">
                   <span className="relative flex h-1.5 w-1.5">
-                    <span className="animate-ping-slow absolute inline-flex h-full w-full rounded-full bg-[#F0C987] opacity-70" />
-                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#F0C987]" />
+                    <span className="animate-ping-slow absolute inline-flex h-full w-full rounded-full bg-[#4FE0FF] opacity-70" />
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#4FE0FF]" />
                   </span>
                   {t.marketplacesTitle}
                 </span>
@@ -220,8 +269,8 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                     2 QATOR + descender zaxirasi. */}
                 <TypewriterHeadline
                   phrases={t.heroRotating}
-                  titleClassName="font-display text-on-video-strong text-[#F0C987] h-[2.14em] w-full overflow-hidden text-[2.75rem] font-bold leading-[0.98] tracking-[-0.035em] sm:text-[3.75rem] lg:text-[4.5rem] [@media(max-height:820px)]:lg:text-[3.5rem]"
-                  subClassName="text-on-video-strong mt-2 [@media(max-height:820px)]:mt-2 max-w-[46ch] min-h-[3.3em] text-[21px] leading-[1.55] text-[#d9d0bb]/85 sm:mt-3 sm:text-[24px]"
+                  titleClassName="font-display text-on-video-strong text-black h-[2.14em] w-full overflow-hidden text-[2.75rem] font-bold leading-[0.98] tracking-[-0.035em] sm:text-[3.75rem] lg:text-[4.5rem] [@media(max-height:820px)]:lg:text-[3.5rem]"
+                  subClassName="text-on-video-strong mt-2 [@media(max-height:820px)]:mt-2 max-w-[46ch] h-[4.65em] overflow-hidden text-[21px] leading-[1.55] text-white sm:mt-3 sm:text-[24px]"
                 />
               </Reveal>
 
@@ -260,7 +309,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                   {/* Ingichka oltin chiziqcha — ishonch blokini
                       sarlavha bilan bir "tilda" gaplashtiradi, oddiy
                       kulrang matnni butunlay begonalashtirmasdan. */}
-                  <span aria-hidden="true" className="mb-0.5 h-px w-6 bg-[#C9962E]/60" />
+                  <span aria-hidden="true" className="mb-0.5 h-px w-6 bg-[#16AEDB]/60" />
                   <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-brand-200/60">
                     {t.partnersTitle}
                   </span>

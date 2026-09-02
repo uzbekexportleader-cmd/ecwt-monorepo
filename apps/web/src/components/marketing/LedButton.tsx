@@ -54,35 +54,34 @@ interface Props {
 const VARIANTS = {
   primary: {
     /**
-     * Champagne-oltin — sarlavhadagi `#F0C987` bilan BIR XIL oila.
+     * Neon och ko'k — sarlavhadagi `#4FE0FF` bilan BIR XIL oila.
      *
-     * Ilgari bu yerda Feruza (teal) turgan edi. Sarlavha oltin rangga
-     * o'tgach, sahifada IKKITA raqobatlashuvchi accent (oltin + feruza)
-     * paydo bo'ldi — bu "premium emas" deb topildi, chunki ko'z qayerga
-     * qarashni bilmay qoladi. Endi asosiy tugma ham SHU BITTA oltin
-     * oilasiga tegishli, shuning uchun sahifada yagona hukmron rang bor.
+     * Ilgari bu yerda Champagne-oltin (`#F0C987`) turgan edi — egasi
+     * uni "neon och ko'k"ka almashtirishni so'radi. Rang oilasi
+     * O'ZGARDI, lekin naqsh saqlanib qoldi: sahifada FAQAT BITTA
+     * hukmron accent bo'lishi kerak.
      *
-     * Fon OCH (oltin) bo'lgani uchun matn OQ emas, TO'Q jigarrang:
-     *   boshi  #E8C583 -> to'q matn bilan 9.1:1
-     *   oxiri  #C9962E -> to'q matn bilan 5.8:1
-     * Ikkalasi ham AA dan (va aksariyati AAA dan) yuqori.
+     * Fon OCH (neon ko'k) bo'lgani uchun matn OQ emas, TO'Q ko'k-qora:
+     *   boshi  #B9F5FF -> to'q matn bilan ~13.8:1
+     *   oxiri  #16AEDB -> to'q matn bilan ~6.4:1
+     * Ikkalasi ham AA dan (boshi AAA dan ham) yuqori.
      */
-    image: 'linear-gradient(100deg, #E8C583 0%, #C9962E 100%)',
-    shadow: '0 12px 44px -12px rgba(201,150,46,0.5)',
-    text: 'text-[#2f1f04]',
+    image: 'linear-gradient(100deg, #B9F5FF 0%, #16AEDB 100%)',
+    shadow: '0 12px 44px -12px rgba(22,174,219,0.5)',
+    text: 'text-[#04222E]',
     ring: 1,
   },
   ghost: {
     image: 'none',
     shadow: 'none',
     /**
-     * Oq emas — och oltin (`#f3d9a4`). Fon deyarli qora
+     * Oq emas — och neon ko'k (`#a8ecff`). Fon deyarli qora
      * (`rgba(3,6,15,0.72)`) bo'lgani uchun kontrast baribir juda
      * yuqori qoladi (istalgan och rang qora fonda AA'dan ancha
-     * yuqori chiqadi); shu bilan birga tugma aniq Oltin oilasiga
+     * yuqori chiqadi); shu bilan birga tugma aniq shu rang oilasiga
      * tegishli ko'rinadi, oddiy oq matn kabi "rangsiz" emas.
      */
-    text: 'text-[#f3d9a4]',
+    text: 'text-[#a8ecff]',
     // Yorug'lik halqasi ancha xira: ikkinchi darajali tugma
     // asosiysining diqqatini tortmasligi kerak
     ring: 0.35,
@@ -92,17 +91,17 @@ const VARIANTS = {
 /**
  * Yorug' yoy: aylananing atigi ~20 darajasi yonadi.
  *
- * Ranglar asosiy gradientdan olingan — halqa ham o'sha bitta Oltin
- * oilasiga tegishli (ilgari Feruza, undan oldin Rose Gold edi).
+ * Ranglar asosiy gradientdan olingan — halqa ham o'sha bitta Neon
+ * ko'k oilasiga tegishli (ilgari Oltin, undan oldin Feruza edi).
  */
 const RING = `conic-gradient(
   from 0deg,
   transparent 0deg,
   transparent 300deg,
-  rgba(240,201,135,0.35) 322deg,
-  #f7dfa8 340deg,
+  rgba(79,224,255,0.35) 322deg,
+  #d6faff 340deg,
   #ffffff 350deg,
-  #c9962e 358deg,
+  #16aedb 358deg,
   transparent 360deg
 )`;
 
@@ -126,8 +125,8 @@ export function LedButton({ href, children, variant = 'primary', className }: Pr
           // Ghost fon SHAFFOF emas, quyuq: ortida video turadi va
           // uning yorug' joylari matnni yeb qo'yardi. O'lchov bo'yicha
           // 0.72 quyuqlik eng yomon kadrda ham to'qqiz baravar
-          // kontrast beradi. Chegara Oltin rangida, TO'LIQ ko'rinarli.
-          ghost ? 'border border-[#c9962e]/70 bg-[rgba(3,6,15,0.72)] backdrop-blur-md' : ''
+          // kontrast beradi. Chegara Neon ko'k rangida, TO'LIQ ko'rinarli.
+          ghost ? 'border border-[#16aedb]/70 bg-[rgba(3,6,15,0.72)] backdrop-blur-md' : ''
         }`}
         style={{
           backgroundImage: ghost ? undefined : skin.image,

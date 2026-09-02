@@ -92,8 +92,8 @@ export function TashkentClock({ locale }: { locale: Locale }) {
     >
       {/* Tirik ekanini ko'rsatuvchi nuqta */}
       <span className="relative flex h-2 w-2 shrink-0">
-        <span className="animate-ping-slow absolute inline-flex h-full w-full rounded-full bg-[#F0C987] opacity-70" />
-        <span className="relative inline-flex h-2 w-2 rounded-full bg-[#F0C987]" />
+        <span className="animate-ping-slow absolute inline-flex h-full w-full rounded-full bg-[#4FE0FF] opacity-70" />
+        <span className="relative inline-flex h-2 w-2 rounded-full bg-[#4FE0FF]" />
       </span>
 
       <span className="flex flex-col gap-0.5 leading-none">

@@ -10,9 +10,15 @@ const TYPE_MS = 30;
 const LINE_GAP_MS = 180;
 /** Hammasi TO'LIQ yozilib bo'lgach, o'chishdan oldin necha vaqt turadi */
 const HOLD_FULL_MS = 4200;
-/** "Shamol uchirgan qum" animatsiyasining davomiyligi */
-const FADE_MS = 900;
-/** Uchib ketgach, keyingi gap yozila boshlashidan oldingi tin olish */
+/** O'ngdan chapga o'chirish (erase) animatsiyasining HAR BIR bosqich davomiyligi */
+const ERASE_MS = 700;
+/**
+ * Ketma-ket o'chirish jami davomiyligi: avval PASTKI guruh (2-qator +
+ * izoh) TO'LIQ o'chib bo'lgach, keyin TEPA qator (1-qator) o'chiy
+ * boshlaydi — ikkalasi hech qachon bir vaqtda o'chmaydi.
+ */
+const TOTAL_ERASE_MS = ERASE_MS * 2;
+/** Butunlay o'chib bo'lgach, keyingi gap yozila boshlashidan oldingi tin olish */
 const HOLD_EMPTY_MS = 300;
 
 /** Bitta aylanadigan "slayd": yirik sarlavha + ostidagi kichik izoh */
@@ -32,8 +38,11 @@ interface TypewriterHeadlineProps {
 
 /**
  * Har bir slaydning SARLAVHASI ikkita QAT'IY, OLDINDAN HISOBLANGAN
- * qatorga yozilib, so'ng ostida IZOH qatori yoziladi; ikkalasi ham
- * birga erib, keyingi slayd boshlanadi.
+ * qatorga yozilib, so'ng ostida IZOH qatori yoziladi; o'chirilganda
+ * esa AVVAL PASTKI guruh (2-qator + izoh) TO'LIQ O'NGDAN CHAPGA
+ * o'chiydi, FAQAT SHUNDAN KEYIN 1-qator (tepa) o'chiy boshlaydi —
+ * ikkalasi hech qachon bir vaqtda o'chmaydi — va keyingi slayd
+ * boshlanadi.
  *
  * ── Uzun tarix: bir necha marta "sakrash" chiqdi ────────────────────
  * Avval matn TABIIY (brauzerning o'zi) ko'chirilardi. Bu uch xil
@@ -54,6 +63,17 @@ interface TypewriterHeadlineProps {
  * TO'LIQ tugagach, ikkinchisi boshlanadi. Qator chegarasi hech qachon
  * QAYTA HISOBLANMAYDI, shuning uchun 1-qator hech qachon o'zgarmaydi,
  * "sakramaydi".
+ *
+ * ── OGOHLANTIRISH: matnni HARF-HARF alohida `<span>`ga BO'LMANG ─────
+ * Bir marta "rang o'zgarib so'nish" effekti uchun har bir harf
+ * o'zining `<span>`iga o'ralgan edi — natijada brauzer so'zlarni
+ * HARFLAR ORASIDA HAM bo'la boshladi (chunki har bir harf endi
+ * alohida "quti", va qutilar orasida qator ko'chirish joizdir),
+ * sarlavha so'z o'rtasidan ikkiga bo'linib, hatto 3-qatorga toshib
+ * ketdi. Hozirgi "o'ngdan chapga o'chirish" effekti esa BUTUN qatorni
+ * (bitta `<span>`) `clip-path` orqali FAQAT O'NG chekkadan chapga
+ * qarab yeydi — matn DOM'da hamon oddiy, uzluksiz satr, harflarga
+ * bo'linmagan.
  */
 export function TypewriterHeadline({ phrases, titleClassName, subClassName }: TypewriterHeadlineProps) {
   const [line1, setLine1] = useState('');
@@ -83,6 +103,73 @@ export function TypewriterHeadline({ phrases, titleClassName, subClassName }: Ty
   useEffect(() => {
     setReduced(window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   }, []);
+
+  /**
+   * O'NGDAN CHAPGA o'chirilish: gap tugab, bir oz turgach, matnning
+   * O'NG chekkasi chapga qarab siljib, matnni "yeb kirib" boradi —
+   * oxirida faqat chap chekka (va undan keyingi lippillovchi kursor)
+   * qoladi.
+   *
+   * ── Nega `width: fit-content` SHART ────────────────────────────────
+   * `clip-path` foizi ELEMENT QUTISINING kengligiga nisbatan
+   * hisoblanadi. Agar quti h1/p ning BUTUN kengligini egallasa, foiz
+   * matn oxiridan emas, QUTI oxiridan hisoblanardi — o'ng chekka
+   * matnning haqiqiy oxiriga to'g'ri kelmasdi. `fit-content` esa
+   * qutini ANIQ matn kengligiga moslashtiradi.
+   *
+   * Tepa/past chegaralar 0 EMAS, MANFIY (-0.2em / -0.4em) — "g", "y"
+   * kabi harflarning pastki "dumi" tor qator balandligidan bir oz
+   * chiqib turishi mumkin (leading 0.98 juda tor); aniq 0 chegarada
+   * `clip-path` bu qismni kesib tashlardi.
+   *
+   * ── `delayMs` — KETMA-KET o'chirish uchun ───────────────────────────
+   * Egasi ikkala qator BIR VAQTDA emas, PASTKI TO'LIQ tugagach TEPASI
+   * boshlansin dedi. Buni alohida state/timer bilan emas, oddiygina
+   * CSS `transition-delay` bilan hal qilindi: PASTKI guruh (2-qator +
+   * izoh) delaysiz (0ms) boshlaydi, TEPA qator (1-qator) esa PASTKI
+   * guruh tugagandan keyin (`ERASE_MS`) boshlaydi — bitta umumiy
+   * `visible=false` signalidan ikkita mustaqil vaqtda boshlanadigan
+   * animatsiya kelib chiqadi.
+   *
+   * ── Nega `display: 'inline-block'`, `'block'` EMAS ──────────────────
+   * Izoh (`subText`) `<p>` ICHIDA render qilinadi, va HTML qoidasiga
+   * ko'ra `<p>` faqat "phrasing content" (matn/inline elementlar)ni
+   * o'z ichiga OLA OLADI — BLOK elementni emas. `display:'block'`li
+   * `<span>` `<p>` ichiga qo'yilsa, brauzer buni NOTO'G'RI HTML deb
+   * hisoblab, `<p>`ni O'ZI yopib, DOM'ni kutilmagan tarzda qayta
+   * qurib qo'yardi. `inline-block` ham BLOK kabi o'z-o'zidan mos
+   * kengligini (`width:fit-content`) oladi, lekin HTML nuqtai
+   * nazaridan "phrasing content" hisoblanib, `<p>` ichida TO'G'RI
+   * joylashadi.
+   *
+   * ── `allowWrap` — IZOH yozilayotganda NEGA "sakrardi" ───────────────
+   * `width:'fit-content'` (shrink-to-fit) BIR QATORLI matn uchun
+   * barqaror (1/2-qator hech qachon ko'chmaydi, `computeFit` buni
+   * kafolatlaydi). LEKIN izoh matni UZUN bo'lsa 2 QATORGA KO'CHISHI
+   * MUMKIN — va shrink-to-fit ALGORITMI "matn siqilmasdan sig'adimi"
+   * chegarasiga juda YAQIN uzunliklarda BARQAROR ISHLAMAYDI: bir
+   * harf qo'shilganda quti to'satdan "1 qatorga sig'adigan tor quti"
+   * dan "to'liq kengga cho'zilib 2 qatorga ko'chgan quti" ga sakrab
+   * o'tishi (yoki aksincha) mumkin — aynan shu "sakrash" ko'rinardi.
+   * Yechim: YOZILAYOTGANDA (`visible && allowWrap`) qutini UMUMAN
+   * cheklamaymiz — oddiy `inline` sifatida `<p>`ning O'ZINING (barqaror)
+   * kengligida erkin ko'chadi. Faqat O'CHIRISH boshlanganda (matn
+   * ALLAQACHON TO'XTAGAN, o'zgarmaydi) qutini `fit-content`ga
+   * o'tkazamiz — shu payt hech qanday "sakrash" xavfi yo'q, chunki
+   * matn endi o'sib-o'zgarmaydi.
+   */
+  function eraseBoxStyle(delayMs: number, allowWrap: boolean = false): React.CSSProperties {
+    if (allowWrap && visible) {
+      return { display: 'inline' };
+    }
+    return {
+      display: 'inline-block',
+      position: 'relative',
+      width: 'fit-content',
+      clipPath: visible ? 'inset(-0.2em 0 -0.4em 0)' : 'inset(-0.2em 100% -0.4em 0)',
+      transition: visible ? 'none' : `clip-path ${ERASE_MS}ms ease-in ${delayMs}ms`,
+    };
+  }
 
   function createMeasurer(width: number, cs: CSSStyleDeclaration, fontSizePx: number): HTMLDivElement {
     const measurer = document.createElement('div');
@@ -266,7 +353,7 @@ export function TypewriterHeadline({ phrases, titleClassName, subClassName }: Ty
         case 'pausedFull':
           phase.current = 'fading';
           setVisible(false);
-          timeoutId = setTimeout(tick, FADE_MS);
+          timeoutId = setTimeout(tick, TOTAL_ERASE_MS);
           break;
 
         case 'fading':
@@ -303,29 +390,12 @@ export function TypewriterHeadline({ phrases, titleClassName, subClassName }: Ty
     return () => clearTimeout(timeoutId);
   }, [phrases, reduced]);
 
-  const typingLine1 = phase.current === 'typingLine1';
-  const typingLine2 = phase.current === 'typingLine2';
-  const typingSub = phase.current === 'typingSub';
-
-  const fadeStyle = {
-    opacity: visible ? 1 : 0,
-    transform: `translateX(${visible ? 0 : 2.5}em)`,
-    filter: visible ? 'blur(0px)' : 'blur(10px)',
-    // Faqat "uchib ketish" tomoni animatsiyalanadi. Qaytib holatga
-    // chiqish darhol — aks holda bo'sh matn ustida yangi gap
-    // harflari suriling-xira holda terila boshlardi.
-    transition: visible
-      ? 'none'
-      : `opacity ${FADE_MS}ms cubic-bezier(0.4,0,1,1), transform ${FADE_MS}ms cubic-bezier(0.4,0,1,1), filter ${FADE_MS}ms cubic-bezier(0.4,0,1,1)`,
-  } as const;
-
   return (
     <>
       <h1
         ref={titleRef}
         className={titleClassName}
         style={{
-          ...fadeStyle,
           // FOIZ EMAS, PIKSEL: `${fontScale*100}%` h1'ning O'Z Tailwind
           // klassi (masalan `text-[4.5rem]`) o'rniga h1'NING OTASI
           // shriftiga (standart 16px) nisbatan hisoblanardi — inline
@@ -339,69 +409,67 @@ export function TypewriterHeadline({ phrases, titleClassName, subClassName }: Ty
           display: 'block',
           // `text-on-video-strong` (className) faqat video ustida
           // O'QISH uchun TOR, quyuq soya beradi. Bu yerga esa yana
-          // ikki qatlam OLTIN "porlash" qo'shiladi — harflar orasidan
-          // yumshoq nur chiqib turganday. Inline `style` klassdan
-          // kuchliroq bo'lgani uchun ikkalasi shu yerda BIRGA
-          // yoziladi, aks holda birortasi yo'qolib qolardi.
+          // ikki narsa qo'shiladi: (1) harflar ATROFIGA to'rt
+          // tomonlama OCH KO'K (neon) RANGLI kontur (4 burchakka 1px
+          // siljigan qattiq soya — klassik "stroke" texnikasi, haqiqiy
+          // `-webkit-text-stroke` o'rniga, chunki u ba'zi
+          // brauzerlarda harf ichini ham yeb qo'yishi mumkin — matn
+          // O'ZI QORA, atrofi OCH KO'K bo'lishi kerak), va (2) ORQADA
+          // ingichka OCH KO'K porlash — "orqa soya".
+          //
+          // ── Nega xira radiusi KICHIK ──────────────────────────────
+          // Avval 34px/70px xira radiusi sinaldi — natija YOMON
+          // chiqdi: h1 ning o'zi `overflow-hidden` bo'lgani uchun
+          // (2 qator balandligiga qat'iy kesilgan), shuncha katta
+          // soya shu chegaraga borib to'satdan KESILIB QOLARDI —
+          // sarlavha ORQASIDA aniq TO'RTBURCHAK ko'rinardi (egasi
+          // shuni to'g'ri payqadi). Kichik radius chegaraga yetmasdan
+          // o'zi so'nadi, shuning uchun to'rtburchak yo'qoladi.
+          //
+          // Inline `style` klassdan kuchliroq bo'lgani uchun hammasi
+          // shu yerda BIRGA yoziladi, aks holda birortasi yo'qolib
+          // qolardi.
           textShadow: `
-            0 0 1px rgba(3,6,15,0.95),
-            0 1px 3px rgba(3,6,15,0.92),
-            0 2px 9px rgba(3,6,15,0.8),
-            0 5px 24px rgba(3,6,15,0.6),
-            0 0 26px rgba(240,201,135,0.45),
-            0 0 56px rgba(240,201,135,0.25)
+            -1px -1px 0 #4FE0FF,
+            1px -1px 0 #4FE0FF,
+            -1px 1px 0 #4FE0FF,
+            1px 1px 0 #4FE0FF,
+            0 0 3px rgba(0,0,0,0.6),
+            0 4px 16px rgba(3,6,15,0.5),
+            0 0 8px rgba(79,224,255,0.6)
           `,
         }}
       >
-        {/* Har qator ALOHIDA `block` — ustma-ust turadi, lekin
+        {/* Har qator ALOHIDA quti — ustma-ust turadi, lekin
             bir-birining kengligiga yoki qator sinishiga ta'sir
             qilmaydi. 1-qator hech qachon o'zgarmaydi: u to'liq
-            yozilgach, faqat 2-qator pastda paydo bo'ladi. */}
+            yozilgach, faqat 2-qator pastda paydo bo'ladi. Matn
+            ODDIY (harf-harf alohida `<span>`ga BO'LINMAGAN) — aks
+            holda so'zlar o'rtasidan bo'linib ketardi. */}
         <span style={{ display: 'block' }}>
-          {line1}
-          {!reduced && typingLine1 && (
-            <span
-              aria-hidden="true"
-              className="ml-[0.05em] inline-block w-[2px] animate-pulse bg-current align-baseline"
-              style={{ height: '0.82em' }}
-            />
-          )}
+          <span style={eraseBoxStyle(ERASE_MS)}>{line1}</span>
         </span>
         <span style={{ display: 'block' }}>
-          {line2}
-          {!reduced && typingLine2 && (
-            <span
-              aria-hidden="true"
-              className="ml-[0.05em] inline-block w-[2px] animate-pulse bg-current align-baseline"
-              style={{ height: '0.82em' }}
-            />
-          )}
+          <span style={eraseBoxStyle(0)}>{line2}</span>
         </span>
       </h1>
 
       <p
         className={subClassName}
         style={{
-          ...fadeStyle,
           // Sarlavhadagi kabi — video ustida o'qish uchun quyuq soya
-          // + iliq porlash, faqat izoh KICHIKROQ matn bo'lgani uchun
+          // + OQ NEON porlash, faqat izoh KICHIKROQ matn bo'lgani uchun
           // porlash ham xiraroq (ko'zni band qilmasligi kerak).
           textShadow: `
             0 0 1px rgba(3,6,15,0.95),
             0 1px 3px rgba(3,6,15,0.9),
             0 2px 8px rgba(3,6,15,0.7),
-            0 0 18px rgba(217,208,187,0.3)
+            0 0 14px rgba(255,255,255,0.75),
+            0 0 26px rgba(255,255,255,0.4)
           `,
         }}
       >
-        {subText}
-        {!reduced && typingSub && (
-          <span
-            aria-hidden="true"
-            className="ml-[0.05em] inline-block w-[2px] animate-pulse bg-current align-baseline"
-            style={{ height: '0.82em' }}
-          />
-        )}
+        <span style={eraseBoxStyle(0, true)}>{subText}</span>
       </p>
     </>
   );

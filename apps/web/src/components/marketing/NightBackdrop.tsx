@@ -97,12 +97,11 @@ export function NightBackdrop() {
       <div
         className="absolute inset-x-0 top-0 h-svh"
         style={{
-          // Ilgari bu yerda yashil nur bor edi — sahifadagi yagona
-          // accent OLTIN bo'lgach, o'sha yashil begona rang bo'lib
-          // qoldi (deyarli sezilmas, lekin bor). Endi shu bitta
-          // oilaga tegishli.
+          // Ilgari bu yerda yashil, keyin oltin nur bor edi — sahifadagi
+          // yagona accent Neon ko'k bo'lgach, shu bitta oilaga
+          // tegishli qilindi.
           background:
-            'radial-gradient(78% 58% at 8% 88%, rgba(201,150,46,0.14) 0%, rgba(3,6,15,0) 62%)',
+            'radial-gradient(78% 58% at 8% 88%, rgba(22,174,219,0.14) 0%, rgba(3,6,15,0) 62%)',
         }}
       />
 
