@@ -1,153 +1,211 @@
 import { z } from 'zod';
 
 /**
- * Muhit o'zgaruvchilari ilova ishga tushishida tekshiriladi.
- * Noto'g'ri sozlama bilan server ko'tarilmaydi — bu ishlab chiqarishda
- * yashirin xatolardan ko'ra yaxshiroq.
+ * Environment validatsiyasi. Ilova noto'g'ri konfiguratsiya bilan ishga
+ * tushmasligi kerak — xato bo'lsa startda tushuntirib to'xtaydi.
  */
-const envSchema = z
-  .object({
-    NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-    PORT: z.coerce.number().int().min(1).max(65535).default(4000),
+const envSchema = z.object({
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  PORT: z.coerce.number().int().min(1).max(65535).default(4000),
+  CORS_ORIGINS: z.string().default('http://localhost:3000,http://localhost:8081'),
 
-    DATABASE_URL: z.string().min(1, 'DATABASE_URL kerak (Neon/Supabase Postgres ulanish satri)'),
+  DATABASE_URL: z.string().min(1, 'DATABASE_URL majburiy'),
+  /**
+   * Ulanishlar pooli hajmi.
+   * Lokal dev bazasi (PGlite) bir vaqtning o'zida bitta ulanishni qabul qiladi,
+   * shuning uchun default = 1. Real PostgreSQL uchun 10–20 qo'ying.
+   */
+  DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(100).default(1),
 
-    // Ikkalasi ham har xil bo'lishi shart — bittasi sizib chiqsa ikkinchisi himoya qiladi
-    JWT_ACCESS_SECRET: z.string().min(32, 'JWT_ACCESS_SECRET kamida 32 belgi bo‘lsin'),
-    JWT_REFRESH_SECRET: z.string().min(32, 'JWT_REFRESH_SECRET kamida 32 belgi bo‘lsin'),
-    JWT_ACCESS_TTL: z.string().default('15m'),
-    JWT_REFRESH_TTL_DAYS: z.coerce.number().int().min(1).max(365).default(30),
+  JWT_ACCESS_SECRET: z.string().min(16, 'JWT_ACCESS_SECRET kamida 16 belgi'),
+  JWT_REFRESH_SECRET: z.string().min(16, 'JWT_REFRESH_SECRET kamida 16 belgi'),
+  /** '15m' / '3600' ko'rinishida beriladi, soniyaga aylantiriladi */
+  JWT_ACCESS_TTL: z.string().default('15m').transform(parseDurationSeconds),
+  JWT_REFRESH_TTL_DAYS: z.coerce.number().int().min(1).default(30),
 
-    // Vergul bilan ajratilgan ro'yxat
-    CORS_ORIGINS: z.string().default('http://localhost:3000'),
+  SMS_PROVIDER: z.enum(['mock', 'eskiz', 'playmobile']).default('mock'),
+  /** Ikki OTP so‘rovi orasidagi minimal kutish (soniya) */
+  OTP_RESEND_COOLDOWN_SEC: z.coerce.number().int().min(0).optional(),
+  /** Bir telefon raqamiga soatiga ruxsat etilgan OTP so‘rovlari soni */
+  OTP_HOURLY_LIMIT: z.coerce.number().int().min(1).optional(),
+  /** Endpoint bo‘yicha daqiqadagi so‘rovlar limiti */
+  RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(10).optional(),
+  EXPOSE_DEV_OTP: z
+    .string()
+    .default('false')
+    .transform((v) => v === 'true'),
+  /** Elektron imzo tizimi (didox.uz) — kalitlar berilmasa ulanmaydi */
+  ESIGN_API_URL: z.string().optional(),
+  ESIGN_API_KEY: z.string().optional(),
+  ESIGN_TIN: z.string().optional(),
 
-    // To'lov tizimlari — bo'sh bo'lsa o'sha provayder o'chirilgan holatda qoladi
-    PAYME_MERCHANT_ID: z.string().optional(),
-    PAYME_KEY: z.string().optional(),
-    PAYME_CHECKOUT_URL: z.string().default('https://checkout.paycom.uz'),
+  ESKIZ_EMAIL: z.string().optional(),
+  ESKIZ_PASSWORD: z.string().optional(),
+  ESKIZ_BASE_URL: z.string().optional(),
+  /** Yuboruvchi nomi. Moderatsiyadan oldin Eskiz sinov raqami — 4546. */
+  ESKIZ_FROM: z.string().default('4546'),
+  PLAYMOBILE_LOGIN: z.string().optional(),
+  PLAYMOBILE_PASSWORD: z.string().optional(),
+  PLAYMOBILE_BASE_URL: z.string().optional(),
 
-    CLICK_MERCHANT_ID: z.string().optional(),
-    CLICK_SERVICE_ID: z.string().optional(),
-    CLICK_SECRET_KEY: z.string().optional(),
+  IDENTITY_PROVIDER: z.enum(['mock', 'oneid']).default('mock'),
+  ONEID_BASE_URL: z.string().optional(),
+  /** Telegram bot: yangi ariza haqida xabar yuboriladigan kanal */
+  TELEGRAM_BOT_TOKEN: z.string().optional(),
+  TELEGRAM_CHAT_ID: z.string().optional(),
 
-    UZUM_MERCHANT_ID: z.string().optional(),
-    UZUM_SECRET_KEY: z.string().optional(),
+  /** ECWT shartnoma namunasi fayli (yuridik bo'lim tayyorlaydi) */
+  CONTRACT_TEMPLATE_PATH: z.string().optional(),
 
-    STRIPE_SECRET_KEY: z.string().optional(),
-    STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  ONEID_CLIENT_ID: z.string().optional(),
+  ONEID_CLIENT_SECRET: z.string().optional(),
+  ONEID_REDIRECT_URI: z.string().optional(),
 
-    // Fayl yuklash (S3 mos keluvchi xotira)
-    S3_ENDPOINT: z.string().optional(),
-    S3_BUCKET: z.string().optional(),
-    S3_ACCESS_KEY_ID: z.string().optional(),
-    S3_SECRET_ACCESS_KEY: z.string().optional(),
-    S3_PUBLIC_URL: z.string().optional(),
+  SIGNATURE_PROVIDER: z.enum(['mock', 'eimzo']).default('mock'),
+  EIMZO_BASE_URL: z.string().optional(),
+  EIMZO_API_KEY: z.string().optional(),
 
-    // SMS (OTP uchun) — Eskiz.uz, Play Mobile yoki Twilio
-    SMS_PROVIDER: z.enum(['NONE', 'ESKIZ', 'PLAYMOBILE', 'TWILIO']).default('NONE'),
-    SMS_API_URL: z.string().default('https://notify.eskiz.uz/api'),
-    // Eskiz tokeni email+parol orqali olinadi va ~30 kun yashaydi.
-    // Tayyor token qo'lda berilsa (SMS_API_TOKEN), u ustuvor bo'ladi.
-    SMS_API_EMAIL: z.string().optional(),
-    SMS_API_PASSWORD: z.string().optional(),
-    SMS_API_TOKEN: z.string().optional(),
-    SMS_SENDER: z.string().default('4546'),
+  REGISTRY_PROVIDER: z.enum(['mock', 'real']).default('mock'),
+  TAX_REGISTRY_BASE_URL: z.string().optional(),
+  TAX_REGISTRY_API_KEY: z.string().optional(),
+  HUNARMAND_REGISTRY_BASE_URL: z.string().optional(),
+  HUNARMAND_REGISTRY_API_KEY: z.string().optional(),
 
-    /**
-     * Twilio — Eskiz yuridik shaxs va matn moderatsiyasini talab qilgani
-     * uchun tez ishga tushadigan muqobil. `TWILIO_FROM` raqam (+1...)
-     * yoki Messaging Service identifikatori (MG...) bo'lishi mumkin.
-     */
-    TWILIO_ACCOUNT_SID: z.string().optional(),
-    TWILIO_AUTH_TOKEN: z.string().optional(),
-    TWILIO_FROM: z.string().optional(),
-    /**
-     * SMS matni. `{code}` o'rniga kod qo'yiladi.
-     *
-     * MUHIM: Eskiz'da har bir matn oldindan moderatsiyadan o'tishi shart —
-     * tasdiqlanmagan matn yuborilmaydi. Shuning uchun matn koddan alohida,
-     * sozlama sifatida turadi: moderatsiyadan o'tgan variantni kod
-     * o'zgartirmasdan qo'yish mumkin.
-     */
-    SMS_OTP_TEMPLATE: z
-      .string()
-      .default('ECWT tasdiqlash kodi: {code}. Hech kimga aytmang.')
-      .refine((v) => v.includes('{code}'), {
-        message: 'SMS_OTP_TEMPLATE ichida {code} bo‘lishi SHART',
-      }),
+  STORAGE_DRIVER: z.enum(['local', 's3']).default('local'),
+  UPLOAD_DIR: z.string().default('./uploads'),
+  S3_ENDPOINT: z.string().optional(),
+  S3_REGION: z.string().optional(),
+  S3_BUCKET: z.string().optional(),
+  S3_ACCESS_KEY_ID: z.string().optional(),
+  S3_SECRET_ACCESS_KEY: z.string().optional(),
 
-    /** Kod amal qilish muddati va qayta yuborish oralig'i (soniya) */
-    OTP_TTL_SECONDS: z.coerce.number().int().min(60).max(900).default(300),
-    OTP_RESEND_SECONDS: z.coerce.number().int().min(15).max(300).default(60),
-    /** Bitta kodni necha marta noto'g'ri kiritish mumkin */
-    OTP_MAX_ATTEMPTS: z.coerce.number().int().min(3).max(10).default(5),
-  })
-  .superRefine((env, ctx) => {
-    if (env.JWT_ACCESS_SECRET === env.JWT_REFRESH_SECRET) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['JWT_REFRESH_SECRET'],
-        message: 'JWT_REFRESH_SECRET JWT_ACCESS_SECRET dan farq qilishi SHART',
-      });
-    }
-  });
+  MARKETPLACE_PROVIDER: z.enum(['mock', 'real']).default('mock'),
+
+  AI_PROVIDER: z.enum(['mock', 'openai', 'anthropic']).default('mock'),
+  OPENAI_API_KEY: z.string().optional(),
+  ANTHROPIC_API_KEY: z.string().optional(),
+
+  /**
+   * Sentry (xatolarni kuzatish). Bo'sh bo'lsa — o'chirilgan holda ishlaydi,
+   * shuning uchun lokal ishlab chiqishda hech narsa sozlash shart emas.
+   */
+  SENTRY_DSN: z.string().optional(),
+  /** Tranzaksiyalarning qancha qismi yig'iladi (0..1). Productionda 0.1 yetarli */
+  SENTRY_TRACES_SAMPLE_RATE: z.coerce.number().min(0).max(1).default(0.1),
+
+  SEED_ADMIN_PHONE: z.string().default('998900000001'),
+  SEED_ADMIN_PASSWORD: z.string().default('Admin12345!'),
+  SEED_DEMO_USER_PHONE: z.string().default('998901234567'),
+
+  BHM: z.coerce.number().int().min(1).default(412_000),
+});
+
+/** '15m', '2h', '30s' yoki oddiy son (soniya) → soniya. */
+function parseDurationSeconds(value: string): number {
+  const match = /^(\d+)\s*([smhd])?$/.exec(value.trim());
+  if (!match) return 900;
+  const amount = Number(match[1]);
+  switch (match[2]) {
+    case 'm':
+      return amount * 60;
+    case 'h':
+      return amount * 3600;
+    case 'd':
+      return amount * 86_400;
+    default:
+      return amount;
+  }
+}
 
 export type Env = z.infer<typeof envSchema>;
 
-export function validateEnv(raw: Record<string, unknown>): Env {
-  const parsed = envSchema.safeParse(raw);
+let cached: Env | null = null;
 
-  if (!parsed.success) {
-    const lines = parsed.error.issues.map((i) => `  - ${i.path.join('.')}: ${i.message}`);
-    throw new Error(
-      `Muhit o'zgaruvchilarida xato bor (.env faylini tekshiring):\n${lines.join('\n')}`,
-    );
+/**
+ * Namunaviy (`.env.example` dan ko'chirilgan) qiymatlar shu belgi bilan
+ * boshlanadi. Ular ommaga ma'lum, shuning uchun productionda ishlatilishi
+ * mumkin emas.
+ */
+const PLACEHOLDER_PREFIX = 'change-me';
+
+/**
+ * Productionda xavfli konfiguratsiya bilan ishga tushishni TO'XTATADI.
+ *
+ * Eng katta xavf — JWT kalitlari. Ular namunaviy holicha qolsa, kalit
+ * ommaga ma'lum bo'lgani uchun istalgan odam o'zini admin qilib ko'rsatuvchi
+ * token yasab, barcha hunarmandlarning pasport, JShShIR va bank
+ * ma'lumotlariga kirib oladi.
+ *
+ * Sxema faqat uzunlikni tekshiradi — mazmunini emas. Shu sababli bu alohida
+ * tekshiruv kerak. Xuddi shunday himoya `prisma/seed.ts` da ham bor
+ * (`assertSafeToSeed`).
+ */
+function assertProductionSafe(env: Env): void {
+  if (env.NODE_ENV !== 'production') return;
+
+  const problems: string[] = [];
+
+  if (env.JWT_ACCESS_SECRET.startsWith(PLACEHOLDER_PREFIX)) {
+    problems.push('JWT_ACCESS_SECRET hali namunaviy qiymatda');
+  }
+  if (env.JWT_REFRESH_SECRET.startsWith(PLACEHOLDER_PREFIX)) {
+    problems.push('JWT_REFRESH_SECRET hali namunaviy qiymatda');
+  }
+  if (env.JWT_ACCESS_SECRET === env.JWT_REFRESH_SECRET) {
+    problems.push('JWT_ACCESS_SECRET va JWT_REFRESH_SECRET bir xil — ular farq qilishi shart');
+  }
+  if (env.EXPOSE_DEV_OTP) {
+    problems.push('EXPOSE_DEV_OTP yoqiq — productionda SMS kodi javobda qaytmasligi kerak');
   }
 
+  if (problems.length > 0) {
+    throw new Error(
+      'Production uchun xavfli konfiguratsiya — server ishga tushirilmadi:\n' +
+        problems.map((p) => `  • ${p}`).join('\n') +
+        '\n\nYangi kalit yaratish: node -e "console.log(require(\'crypto\').randomBytes(48).toString(\'base64url\'))"',
+    );
+  }
+}
+
+export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
+  /*
+   * Kesh faqat haqiqiy `process.env` uchun ishlaydi — u ilova ishlashi
+   * davomida o'zgarmaydi, shuning uchun qayta-qayta tekshirish ortiqcha.
+   * Aniq berilgan boshqa manba (masalan testdagi sozlama) har safar
+   * qaytadan tekshiriladi, aks holda birinchi chaqiruv natijasi
+   * keyingilarini yashirib qo'yardi.
+   */
+  const useCache = source === process.env;
+  if (useCache && cached) return cached;
+
+  const parsed = envSchema.safeParse(source);
+  if (!parsed.success) {
+    const lines = parsed.error.issues.map((i) => `  • ${i.path.join('.')}: ${i.message}`);
+    throw new Error(`Environment konfiguratsiyasi noto'g'ri:\n${lines.join('\n')}`);
+  }
+  assertProductionSafe(parsed.data);
+
+  if (useCache) cached = parsed.data;
   return parsed.data;
 }
 
-/** "http://a.com, http://b.com" -> ["http://a.com", "http://b.com"] */
-export function splitOrigins(value: string): string[] {
-  return value
-    .split(',')
-    .map((o) => o.trim())
+export function corsOrigins(env: Env): string[] {
+  return env.CORS_ORIGINS.split(',')
+    .map((s) => s.trim())
     .filter(Boolean);
 }
 
 /**
- * SMS yuborish mumkinmi.
- *
- * `NONE` — bu xato emas, ataylab tanlangan holat: OTP demo rejimida
- * ishlaydi va kod ekranda ko'rsatiladi. Provayder tanlangan, lekin
- * kalitlari bo'lmasa ham `false` qaytadi — server ko'tariladi, faqat
- * SMS yuborilmaydi.
+ * Cheklovlar: productionda qat'iy, developmentda yumshoq.
+ * Dev muhitida sinov paytida foydalanuvchi bloklanib qolmasligi kerak.
  */
-export function isSmsConfigured(env: Env): boolean {
-  switch (env.SMS_PROVIDER) {
-    case 'ESKIZ':
-      return Boolean(env.SMS_API_TOKEN || (env.SMS_API_EMAIL && env.SMS_API_PASSWORD));
-    case 'PLAYMOBILE':
-      return Boolean(env.SMS_API_TOKEN);
-    case 'TWILIO':
-      return Boolean(env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN && env.TWILIO_FROM);
-    default:
-      return false;
-  }
+export function limits(env: Env) {
+  const dev = env.NODE_ENV !== 'production';
+  return {
+    otpResendCooldownSec: env.OTP_RESEND_COOLDOWN_SEC ?? (dev ? 10 : 60),
+    otpHourlyLimit: env.OTP_HOURLY_LIMIT ?? (dev ? 200 : 5),
+    ratePerMinute: env.RATE_LIMIT_PER_MINUTE ?? (dev ? 300 : 60),
+  };
 }
 
-/** Provayder sozlangan-sozlanmaganini bilish uchun */
-export function isProviderConfigured(env: Env, provider: string): boolean {
-  switch (provider) {
-    case 'PAYME':
-      return Boolean(env.PAYME_MERCHANT_ID && env.PAYME_KEY);
-    case 'CLICK':
-      return Boolean(env.CLICK_MERCHANT_ID && env.CLICK_SERVICE_ID && env.CLICK_SECRET_KEY);
-    case 'UZUM':
-      return Boolean(env.UZUM_MERCHANT_ID && env.UZUM_SECRET_KEY);
-    case 'STRIPE':
-      return Boolean(env.STRIPE_SECRET_KEY);
-    default:
-      return false;
-  }
-}
+export const ENV = 'ENV_TOKEN';

@@ -1,110 +1,115 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  HttpCode,
-  HttpStatus,
-  Param,
-  Post,
-  Req,
-} from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Ip, Post, Req } from '@nestjs/common';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import type { Request } from 'express';
 import {
-  changePasswordSchema,
+  adminLoginSchema,
   loginSchema,
+  otpRequestSchema,
+  otpVerifySchema,
   refreshSchema,
-  registerSchema,
-  type ChangePasswordInput,
+  setPasswordSchema,
+  type AdminLoginInput,
   type LoginInput,
+  type OtpRequestInput,
+  type OtpVerifyInput,
   type RefreshInput,
-  type RegisterInput,
-} from '@ecwt/contracts';
-import { AuthService } from './auth.service';
-import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
-import { CurrentUser, Public } from '../../common/decorators';
-import type { AppRequest } from '../../common/types';
+  type SetPasswordInput,
+} from '@ecwt/validation';
 
+import { AuthService } from './auth.service';
+import { Public } from '../../common/decorators/public.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { zodBody } from '../../common/pipes/zod-validation.pipe';
+
+@ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
-  /** Ro'yxatdan o'tish — soatiga 5 marta (bot va spam himoyasi) */
-  @Public()
-  @Throttle({ default: { limit: 5, ttl: 3_600_000 } })
-  @Post('register')
-  register(
-    @Body(new ZodValidationPipe(registerSchema)) dto: RegisterInput,
-    @Req() req: AppRequest,
-  ) {
-    return this.auth.register(dto, sessionContext(req));
-  }
-
-  /** Kirish — daqiqasiga 10 marta */
-  @Public()
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
-  @HttpCode(HttpStatus.OK)
-  @Post('login')
-  login(@Body(new ZodValidationPipe(loginSchema)) dto: LoginInput, @Req() req: AppRequest) {
-    return this.auth.login(dto, sessionContext(req));
-  }
-
   @Public()
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
-  @HttpCode(HttpStatus.OK)
+  @Post('otp/request')
+  @ApiOperation({ summary: 'Telefon raqamiga tasdiqlash kodini yuborish' })
+  requestOtp(
+    @Body(zodBody(otpRequestSchema)) body: OtpRequestInput,
+    @Ip() ip: string,
+    @Req() req: Request,
+  ) {
+    return this.auth.requestOtp(body.phone, { ip, userAgent: req.headers['user-agent'] });
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  @Post('otp/verify')
+  @ApiOperation({ summary: 'Kodni tasdiqlash va tizimga kirish' })
+  verifyOtp(
+    @Body(zodBody(otpVerifySchema)) body: OtpVerifyInput,
+    @Ip() ip: string,
+    @Req() req: Request,
+  ) {
+    return this.auth.verifyOtp(body.phone, body.code, { ip, userAgent: req.headers['user-agent'] });
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
+  @Post('admin/login')
+  @ApiOperation({ summary: 'Admin panel uchun parol bilan kirish' })
+  adminLogin(
+    @Body(zodBody(adminLoginSchema)) body: AdminLoginInput,
+    @Ip() ip: string,
+    @Req() req: Request,
+  ) {
+    return this.auth.adminLogin(body.phone, body.password, { ip, userAgent: req.headers['user-agent'] });
+  }
+
+  /**
+   * Telefon + parol bilan kirish (hunarmandlar uchun).
+   *
+   * Limit OTP bilan bir xil darajada qat'iy: parol taxmin qilinadigan
+   * narsa, shuning uchun urinishlar soni cheklanadi.
+   */
+  @Public()
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  @Post('login')
+  @ApiOperation({ summary: 'Telefon va parol bilan kirish' })
+  login(
+    @Body(zodBody(loginSchema)) body: LoginInput,
+    @Ip() ip: string,
+    @Req() req: Request,
+  ) {
+    return this.auth.login(body.phone, body.password, { ip, userAgent: req.headers['user-agent'] });
+  }
+
+  /** Parol o'rnatish yoki almashtirish (kirgan foydalanuvchi uchun) */
+  @Post('password')
+  @HttpCode(204)
+  @ApiOperation({ summary: 'Parol o‘rnatish yoki almashtirish' })
+  async setPassword(
+    @CurrentUser('sub') userId: string,
+    @Body(zodBody(setPasswordSchema)) body: SetPasswordInput,
+  ): Promise<void> {
+    await this.auth.setPassword(userId, body.currentPassword, body.newPassword);
+  }
+
+  /** Parol o'rnatilganmi — ilova sozlamalar ekranini shunga qarab chizadi */
+  @Get('password')
+  @ApiOperation({ summary: 'Parol o‘rnatilganmi' })
+  async hasPassword(@CurrentUser('sub') userId: string): Promise<{ hasPassword: boolean }> {
+    return { hasPassword: await this.auth.hasPassword(userId) };
+  }
+
+  @Public()
   @Post('refresh')
-  refresh(@Body(new ZodValidationPipe(refreshSchema)) dto: RefreshInput, @Req() req: AppRequest) {
-    return this.auth.refresh(dto.refreshToken, sessionContext(req));
+  @ApiOperation({ summary: 'Access tokenni yangilash (refresh rotation)' })
+  refresh(@Body(zodBody(refreshSchema)) body: RefreshInput, @Ip() ip: string, @Req() req: Request) {
+    return this.auth.refresh(body.refreshToken, { ip, userAgent: req.headers['user-agent'] });
   }
 
-  @HttpCode(HttpStatus.NO_CONTENT)
   @Post('logout')
-  async logout(@CurrentUser('sid') sessionId: string): Promise<void> {
-    await this.auth.logout(sessionId);
+  @ApiOperation({ summary: 'Sessiyani yopish' })
+  async logout(@Body(zodBody(refreshSchema)) body: RefreshInput): Promise<{ ok: true }> {
+    await this.auth.logout(body.refreshToken);
+    return { ok: true };
   }
-
-  /** Barcha qurilmalardan chiqish */
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @Post('logout-all')
-  async logoutAll(@CurrentUser('sub') userId: string): Promise<void> {
-    await this.auth.logoutAll(userId);
-  }
-
-  @Get('me')
-  me(@CurrentUser('sub') userId: string) {
-    return this.auth.me(userId);
-  }
-
-  @Get('sessions')
-  sessions(@CurrentUser('sub') userId: string, @CurrentUser('sid') sessionId: string) {
-    return this.auth.listSessions(userId, sessionId);
-  }
-
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @Post('change-password')
-  async changePassword(
-    @Body(new ZodValidationPipe(changePasswordSchema)) dto: ChangePasswordInput,
-    @CurrentUser('sub') userId: string,
-    @CurrentUser('sid') sessionId: string,
-  ): Promise<void> {
-    await this.auth.changePassword(userId, dto, sessionId);
-  }
-
-  /** Bitta sessiyani yopish (masalan, yo'qolgan telefon) */
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @Delete('sessions/:id')
-  async revokeSession(
-    @CurrentUser('sub') userId: string,
-    @Param('id') sessionId: string,
-  ): Promise<void> {
-    await this.auth.revokeSession(userId, sessionId);
-  }
-}
-
-function sessionContext(req: AppRequest) {
-  return {
-    ip: req.ip,
-    userAgent: req.headers['user-agent'],
-    deviceId: typeof req.headers['x-device-id'] === 'string' ? req.headers['x-device-id'] : undefined,
-  };
 }

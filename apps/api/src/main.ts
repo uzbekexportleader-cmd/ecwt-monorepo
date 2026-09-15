@@ -1,60 +1,64 @@
+// Sentry hamma narsadan oldin — instrumentatsiya modullar yuklanishidan
+// avval yoqilishi kerak
+import './instrument';
+
 import 'reflect-metadata';
+import 'dotenv/config';
+
 import { Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
+
 import { AppModule } from './app.module';
-import { splitOrigins, type Env } from './config/env';
+import { corsOrigins, loadEnv } from './config/env';
 
 async function bootstrap(): Promise<void> {
+  const env = loadEnv();
   const logger = new Logger('Bootstrap');
 
-  const app = await NestFactory.create(AppModule, {
-    // Webhook imzosini tekshirish uchun xom tana kerak
-    rawBody: true,
-    bufferLogs: true,
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    logger: env.NODE_ENV === 'production' ? ['error', 'warn', 'log'] : ['error', 'warn', 'log', 'debug'],
   });
 
-  const config = app.get(ConfigService<Env, true>);
-
-  app.setGlobalPrefix('api');
-
-  // Xavfsizlik sarlavhalari. API JSON qaytaradi, HTML emas —
-  // shuning uchun CSP kerak emas.
-  app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: false }));
-
-  const origins = splitOrigins(config.get<string>('CORS_ORIGINS') ?? '');
+  app.use(helmet());
   app.enableCors({
-    origin: origins,
+    origin: env.NODE_ENV === 'production' ? corsOrigins(env) : true,
     credentials: true,
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-      'Idempotency-Key',
-      'X-Device-Id',
-      'X-Request-Id',
-    ],
-    exposedHeaders: ['X-Request-Id'],
   });
+  app.setGlobalPrefix('api');
+  // Validatsiya Zod sxemalari orqali (@ecwt/validation) — class-validator ishlatilmaydi
 
-  // Global ValidationPipe qo'yilmagan: butun validatsiya zod sxemalari orqali
-  // ZodValidationPipe'da bo'ladi. Zod noma'lum maydonlarni o'zi tashlab
-  // yuboradi, ya'ni class-validator qo'shishdan foyda yo'q.
+  // MUHIM: yuklangan fayllar (pasport, selfie, shartnoma) statik papka sifatida
+  // ochilmaydi — har biri autentifikatsiya va egalik tekshiruvidan o'tadi.
+  // Qarang: documents.controller.ts `GET /documents/:id/file`.
 
-  app.enableShutdownHooks();
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('ECWT API')
+    .setDescription(
+      'ECWT — hunarmandlar uchun subsidiya va marketplace platformasi. ' +
+        'Demo ma’lumotlar real huquqiy hujjat sifatida qabul qilinmasligi kerak.',
+    )
+    .setVersion('0.1.0')
+    .addBearerAuth()
+    .build();
+  const document = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup('api/docs', app, document);
 
-  const port = config.get<number>('PORT') ?? 4000;
-  await app.listen(port, '0.0.0.0');
+  await app.listen(env.PORT, '0.0.0.0');
 
-  logger.log(`ECWT API ishga tushdi: http://localhost:${port}/api`);
-  logger.log(`Ruxsat etilgan manbalar (CORS): ${origins.join(', ')}`);
+  logger.log(`ECWT API: http://localhost:${env.PORT}/api`);
+  logger.log(`Swagger:  http://localhost:${env.PORT}/api/docs`);
+  logger.log(
+    `Provayderlar → SMS: ${env.SMS_PROVIDER}, OneID: ${env.IDENTITY_PROVIDER}, ` +
+      `E-IMZO: ${env.SIGNATURE_PROVIDER}, Reyestr: ${env.REGISTRY_PROVIDER}, ` +
+      `Marketplace: ${env.MARKETPLACE_PROVIDER}, AI: ${env.AI_PROVIDER}, ` +
+      `Telegram: ${env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_CHAT_ID ? 'ulangan' : 'mock'}`,
+  );
+  if (env.EXPOSE_DEV_OTP && env.NODE_ENV !== 'production') {
+    logger.warn('EXPOSE_DEV_OTP yoqilgan — OTP kodi API javobida qaytadi (faqat development uchun)');
+  }
 }
 
-bootstrap().catch((error: unknown) => {
-  // Ishga tushishdagi xato (masalan .env to'liq emas) aniq ko'rinishi kerak.
-  // Emoji ishlatilmaydi — Windows konsolida buzilib chiqadi.
-  const message = error instanceof Error ? error.message : String(error);
-  // eslint-disable-next-line no-console
-  console.error(`\n[XATO] Server ishga tushmadi:\n${message}\n`);
-  process.exit(1);
-});
+void bootstrap();

@@ -1,94 +1,129 @@
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  HttpCode,
-  HttpStatus,
-  Param,
-  Patch,
-  Post,
-  Query,
-  Req,
-} from '@nestjs/common';
-import {
-  createProductSchema,
-  productListQuerySchema,
-  reviewProductSchema,
-  updateProductSchema,
-  type CreateProductInput,
-  type JwtPayload,
-  type ProductListQuery,
-  type ReviewProductInput,
-  type UpdateProductInput,
-} from '@ecwt/contracts';
-import { ProductsService } from './products.service';
-import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
-import { CurrentUser, Roles } from '../../common/decorators';
-import { requireSupplierId } from '../../common/require-supplier';
-import type { AppRequest } from '../../common/types';
+  listingPlacedSchema,
+  productReviewSchema,
+  productStockSchema,
+  publishProductSchema,
+  upsertProductSchema,
+  type ListingPlacedInput,
+  type ProductReviewInput,
+  type ProductStockInput,
+  type PublishProductInput,
+  type UpsertProductInput,
+} from '@ecwt/validation';
+import type { ProductDto } from '@ecwt/types';
 
+import { ProductsService } from './products.service';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { zodBody } from '../../common/pipes/zod-validation.pipe';
+
+@ApiTags('products')
+@UseGuards(RolesGuard)
 @Controller('products')
 export class ProductsController {
-  constructor(private readonly products: ProductsService) {}
+  constructor(private readonly service: ProductsService) {}
 
-  /**
-   * Ro'yxat. Hamkor uchun avtomatik ravishda faqat o'z mahsulotlari,
-   * admin uchun barchasi (yoki ?supplierId=... bilan bittasiniki).
-   */
   @Get()
-  list(
-    @Query(new ZodValidationPipe(productListQuerySchema)) query: ProductListQuery,
-    @CurrentUser() user: JwtPayload,
-  ) {
-    const scope = user.role === 'SUPPLIER' ? requireSupplierId(user) : undefined;
-    return this.products.list(query, scope);
+  @ApiOperation({ summary: 'Mening mahsulotlarim' })
+  list(@CurrentUser('sub') userId: string): Promise<ProductDto[]> {
+    return this.service.list(userId);
   }
 
   @Get(':id')
-  getOne(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
-    const scope = user.role === 'SUPPLIER' ? requireSupplierId(user) : undefined;
-    return this.products.getById(id, scope);
+  get(@CurrentUser('sub') userId: string, @Param('id') id: string): Promise<ProductDto> {
+    return this.service.get(userId, id);
   }
 
   @Post()
+  @ApiOperation({ summary: 'Mahsulot qo‘shish' })
   create(
-    @Body(new ZodValidationPipe(createProductSchema)) dto: CreateProductInput,
-    @CurrentUser() user: JwtPayload,
-  ) {
-    return this.products.create(requireSupplierId(user), dto);
+    @CurrentUser('sub') userId: string,
+    @Body(zodBody(upsertProductSchema)) body: UpsertProductInput,
+  ): Promise<ProductDto> {
+    return this.service.create(userId, body);
   }
 
   @Patch(':id')
   update(
+    @CurrentUser('sub') userId: string,
     @Param('id') id: string,
-    @Body(new ZodValidationPipe(updateProductSchema)) dto: UpdateProductInput,
-    @CurrentUser() user: JwtPayload,
-  ) {
-    return this.products.update(id, requireSupplierId(user), dto);
+    @Body(zodBody(upsertProductSchema.partial())) body: Partial<UpsertProductInput>,
+  ): Promise<ProductDto> {
+    return this.service.update(userId, id, body);
   }
 
-  /** Tekshiruvga yuborish */
-  @Post(':id/submit')
-  submit(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
-    return this.products.submitForReview(id, requireSupplierId(user));
-  }
-
-  @HttpCode(HttpStatus.NO_CONTENT)
   @Delete(':id')
-  async remove(@Param('id') id: string, @CurrentUser() user: JwtPayload): Promise<void> {
-    await this.products.remove(id, requireSupplierId(user));
+  @HttpCode(204)
+  remove(@CurrentUser('sub') userId: string, @Param('id') id: string): Promise<void> {
+    return this.service.remove(userId, id);
   }
 
-  /** Admin: tasdiqlash yoki rad etish */
-  @Roles('ADMIN', 'STAFF')
+  @Post(':id/publish')
+  @ApiOperation({ summary: 'Mahsulotni marketplace‘larga chiqarish' })
+  publish(
+    @CurrentUser('sub') userId: string,
+    @Param('id') id: string,
+    @Body(zodBody(publishProductSchema)) body: PublishProductInput,
+  ): Promise<ProductDto> {
+    return this.service.publish(userId, id, body.marketplaceIds);
+  }
+
+  /* ------------------------- tekshiruv oqimi -------------------------- */
+
+  @Post(':id/submit')
+  @ApiOperation({ summary: 'Mahsulotni tekshiruvga yuborish' })
+  submit(@CurrentUser('sub') userId: string, @Param('id') id: string): Promise<ProductDto> {
+    return this.service.submitForReview(userId, id);
+  }
+
+  @Patch(':id/stock')
+  @ApiOperation({ summary: 'Qoldiqni o‘zgartirish' })
+  stock(
+    @CurrentUser('sub') userId: string,
+    @Param('id') id: string,
+    @Body(zodBody(productStockSchema)) body: ProductStockInput,
+  ): Promise<ProductDto> {
+    return this.service.setStock(userId, id, body.stock);
+  }
+
+  /* ---------------------------- operator ------------------------------ */
+
+  @Get('review/queue')
+  @Roles('REVIEWER', 'ADMIN', 'SUPER_ADMIN')
+  @ApiOperation({ summary: 'Tekshiruv navbati (operator)' })
+  queue(): Promise<ProductDto[]> {
+    return this.service.reviewQueue();
+  }
+
   @Post(':id/review')
+  @Roles('REVIEWER', 'ADMIN', 'SUPER_ADMIN')
+  @ApiOperation({ summary: 'Mahsulot bo‘yicha qaror (operator)' })
   review(
     @Param('id') id: string,
-    @Body(new ZodValidationPipe(reviewProductSchema)) dto: ReviewProductInput,
-    @CurrentUser('sub') userId: string,
-    @Req() req: AppRequest,
+    @Body(zodBody(productReviewSchema)) body: ProductReviewInput,
+    @CurrentUser('sub') actorId: string,
+  ): Promise<ProductDto> {
+    return this.service.review(id, body.decision, body.note ?? null, actorId);
+  }
+
+  @Get('placement/queue')
+  @Roles('REVIEWER', 'ADMIN', 'SUPER_ADMIN')
+  @ApiOperation({ summary: 'Qo‘lda joylashtirish navbati (operator)' })
+  placementQueue() {
+    return this.service.placementQueue();
+  }
+
+  @Post('placement/:listingId/placed')
+  @Roles('REVIEWER', 'ADMIN', 'SUPER_ADMIN')
+  @ApiOperation({ summary: 'Joylashtirildi deb belgilash (operator)' })
+  markPlaced(
+    @Param('listingId') listingId: string,
+    @Body(zodBody(listingPlacedSchema)) body: ListingPlacedInput,
+    @CurrentUser('sub') actorId: string,
   ) {
-    return this.products.review(id, dto, { userId, ip: req.ip, requestId: req.requestId });
+    return this.service.markPlaced(listingId, body.listingUrl, body.externalId ?? null, actorId);
   }
 }

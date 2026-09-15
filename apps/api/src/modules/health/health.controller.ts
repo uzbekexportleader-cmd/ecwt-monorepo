@@ -1,32 +1,42 @@
-import { Controller, Get } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import { Public } from '../../common/decorators';
-import { AppError } from '../../common/errors';
+import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
-@Controller()
+import { Public } from '../../common/decorators/public.decorator';
+import { PrismaService } from '../../prisma/prisma.service';
+
+/**
+ * Server holatini tekshirish.
+ *
+ * Nega kerak: joylashtirilgandan keyin server "tirikmi yoki o'lganmi" degan
+ * savolga avtomatik javob beradigan manzil bo'lmasa, ishdan chiqqanini
+ * hunarmandlar shikoyat qilgandan keyingina bilamiz. Deploy platformalari
+ * (Render, Railway, Fly va h.k.) ham ilova ishga tushganini aynan shunday
+ * manzil orqali tekshiradi.
+ *
+ * MUHIM: bazaga haqiqiy so'rov yuboriladi. Faqat "server javob berdi" deb
+ * `ok` qaytarish yetarli emas — baza uzilgan bo'lsa ilova tashqaridan sog'lom
+ * ko'rinib turaveradi, aslida esa hech bir foydalanuvchi kira olmaydi.
+ */
+@ApiTags('health')
+@Controller('health')
 export class HealthController {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Liveness — jarayon tirikmi. Hosting platformasi shuni tekshiradi. */
   @Public()
-  @Get('health')
-  health() {
-    return { status: 'ok', timestamp: new Date().toISOString() };
-  }
-
-  /**
-   * Readiness — so'rovlarni qabul qilishga tayyormi.
-   * Bazaga ulanib bo'lmasa 502 qaytaradi va yangi trafik yuborilmaydi.
-   */
-  @Public()
-  @Get('ready')
-  async ready() {
+  @Get()
+  @ApiOperation({ summary: 'Server va baza holati' })
+  async check(): Promise<{ ok: true; database: 'up'; uptimeSec: number }> {
     try {
       await this.prisma.$queryRaw`SELECT 1`;
     } catch {
-      throw AppError.dependencyFailure('Ma’lumotlar bazasiga ulanib bo‘lmadi');
+      /*
+       * 503 — "vaqtincha ishlamayapti". Aynan shu kod kuzatuv tizimlariga
+       * va deploy platformalariga tushunarli signal beradi; sababning
+       * tafsiloti tashqariga chiqarilmaydi.
+       */
+      throw new ServiceUnavailableException('Ma’lumotlar bazasi javob bermayapti');
     }
 
-    return { status: 'ready', database: 'up', timestamp: new Date().toISOString() };
+    return { ok: true, database: 'up', uptimeSec: Math.floor(process.uptime()) };
   }
 }

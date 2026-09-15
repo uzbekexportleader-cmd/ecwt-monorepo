@@ -1,0 +1,523 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Text } from '../../src/components/AppText';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { VideoBackdrop } from '../../src/components/VideoBackdrop';
+import { StepNav } from '../../src/components/StepNav';
+import * as ImagePicker from 'expo-image-picker';
+
+import {
+  useCraftCategories,
+  useProfile,
+  useUpdateProfile,
+  useUploadDocument,
+} from '../../src/api/queries';
+import { Button, LoadingView } from '../../src/components/ui';
+import { SelectField, TextField } from '../../src/components/form';
+import { REGION_OPTIONS, districtOptions } from '../../src/constants/regions';
+import { useAuthStore } from '../../src/store/auth';
+import { toastError } from '../../src/store/toast';
+import { api, EcwtApiError } from '../../src/api/client';
+import { colors, layout, radius, spacing, typography } from '../../src/theme';
+
+interface Draft {
+  firstName: string;
+  lastName: string;
+  middleName: string;
+  pinfl: string;
+  region: string;
+  district: string;
+  craftCategoryId: string | null;
+  yearsOfExperience: string;
+  hasWorkshop: boolean | null;
+  workshopAddress: string;
+  membership: 'ACTIVE' | 'NONE' | null;
+  businessType: 'YATT' | 'MCHJ' | 'NONE' | null;
+  stir: string;
+  photos: string[];
+}
+
+const EMPTY: Draft = {
+  firstName: '',
+  lastName: '',
+  middleName: '',
+  pinfl: '',
+  region: '',
+  district: '',
+  craftCategoryId: null,
+  yearsOfExperience: '',
+  hasWorkshop: null,
+  workshopAddress: '',
+  membership: null,
+  businessType: null,
+  stir: '',
+  photos: [],
+};
+
+type Errors = Partial<Record<keyof Draft, string>>;
+
+/**
+ * Profil ma'lumotlari — bitta sahifada.
+ * Foydalanuvchi hammasini bir joyda ko'radi va bir marta saqlaydi.
+ */
+export default function ProfileSetup() {
+  const router = useRouter();
+  const profile = useProfile();
+  const crafts = useCraftCategories();
+  const update = useUpdateProfile();
+  const uploadDocument = useUploadDocument();
+  const { completeOnboarding, setUser } = useAuthStore();
+
+  const [draft, setDraft] = useState<Draft>(EMPTY);
+  const [errors, setErrors] = useState<Errors>({});
+  const [busy, setBusy] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+
+  const set = <K extends keyof Draft>(key: K, value: Draft[K]) => {
+    setDraft((d) => ({ ...d, [key]: value }));
+    setErrors((e) => ({ ...e, [key]: undefined }));
+  };
+
+  /* ---------------- serverdagi ma'lumotni oldindan qo'yish ---------------- */
+
+  useEffect(() => {
+    if (!profile.data || hydrated) return;
+    const p = profile.data;
+    setDraft((d) => ({
+      ...d,
+      firstName: p.firstName ?? '',
+      lastName: p.lastName ?? '',
+      middleName: p.middleName ?? '',
+      pinfl: p.pinfl && !p.pinfl.includes('•') ? p.pinfl : '',
+      region: p.region ?? '',
+      district: p.district ?? '',
+      craftCategoryId: p.craftCategoryId,
+      yearsOfExperience: p.yearsOfExperience !== null ? String(p.yearsOfExperience) : '',
+      hasWorkshop: p.hasWorkshop ? true : d.hasWorkshop,
+      workshopAddress: p.workshopAddress ?? '',
+      membership: p.membershipStatus === 'ACTIVE' ? 'ACTIVE' : d.membership,
+      businessType:
+        p.businessType === 'YATT' || p.businessType === 'MCHJ' ? p.businessType : d.businessType,
+      stir: p.stir ?? '',
+    }));
+    setHydrated(true);
+  }, [profile.data, hydrated]);
+
+  const craftOptions = useMemo(
+    () =>
+      (crafts.data ?? []).map((c) => ({
+        value: c.id,
+        label: `${c.icon ?? ''} ${c.nameUz}`.trim(),
+      })),
+    [crafts.data],
+  );
+
+  /* ------------------------------ tekshiruv ------------------------------ */
+
+  function validate(): Errors {
+    const next: Errors = {};
+    if (draft.firstName.trim().length < 2) next.firstName = 'Ismingizni kiriting';
+    if (draft.lastName.trim().length < 2) next.lastName = 'Familiyangizni kiriting';
+    if (draft.middleName.trim().length < 2) next.middleName = 'Otangizning ismini kiriting';
+    if (draft.pinfl && !/^\d{14}$/.test(draft.pinfl)) next.pinfl = 'JShShIR 14 ta raqamdan iborat';
+    if (!draft.region) next.region = 'Viloyatni tanlang';
+    if (!draft.district) next.district = 'Tumanni tanlang';
+    if (!draft.craftCategoryId) next.craftCategoryId = 'Hunar yo‘nalishini tanlang';
+    if (
+      (draft.businessType === 'YATT' || draft.businessType === 'MCHJ') &&
+      !/^\d{9}$/.test(draft.stir)
+    ) {
+      next.stir = 'STIR 9 ta raqamdan iborat';
+    }
+    return next;
+  }
+
+  /* -------------------------------- saqlash ------------------------------- */
+
+  const save = async () => {
+    const problems = validate();
+    setErrors(problems);
+    if (Object.keys(problems).length) {
+      toastError('Belgilangan maydonlarni to‘ldiring');
+      return;
+    }
+
+    setBusy(true);
+    try {
+      await update.mutateAsync({
+        firstName: draft.firstName.trim(),
+        lastName: draft.lastName.trim(),
+        middleName: draft.middleName.trim(),
+        ...(draft.pinfl ? { pinfl: draft.pinfl } : {}),
+        region: draft.region,
+        district: draft.district,
+        craftCategoryId: draft.craftCategoryId,
+        yearsOfExperience: draft.yearsOfExperience
+          ? Number(draft.yearsOfExperience.replace(/\D/g, ''))
+          : null,
+        hasWorkshop: draft.hasWorkshop === true,
+        workshopAddress: draft.workshopAddress || null,
+        membershipStatus: draft.membership === 'ACTIVE' ? 'ACTIVE' : 'NONE',
+        businessType: draft.businessType ?? 'NONE',
+        ...(draft.businessType === 'YATT' || draft.businessType === 'MCHJ'
+          ? { stir: draft.stir }
+          : {}),
+      });
+
+      await completeOnboarding();
+      await api.me
+        .get()
+        .then(setUser)
+        .catch(() => undefined);
+      router.replace('/(tabs)');
+    } catch (e) {
+      toastError(e instanceof EcwtApiError ? e.message : 'Saqlab bo‘lmadi. Qayta urinib ko‘ring.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /* -------------------------------- rasmlar ------------------------------- */
+
+  const addPhotos = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      toastError('Rasm tanlash uchun galereyaga ruxsat bering.');
+      return;
+    }
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.7,
+      allowsMultipleSelection: true,
+      selectionLimit: 5,
+    });
+    if (res.canceled) return;
+
+    const picked = res.assets.map((a) => ({
+      uri: a.uri,
+      name: a.fileName ?? `mahsulot-${Date.now()}.jpg`,
+      mimeType: a.mimeType ?? 'image/jpeg',
+    }));
+    setDraft((d) => ({ ...d, photos: [...d.photos, ...picked.map((p) => p.uri)].slice(0, 10) }));
+
+    try {
+      for (const item of picked) {
+        const form = new FormData();
+        form.append('type', 'PRODUCT_PHOTO');
+        form.append('file', {
+          uri: item.uri,
+          name: item.name,
+          type: item.mimeType,
+        } as unknown as Blob);
+        await uploadDocument.mutateAsync(form);
+      }
+    } catch (e) {
+      toastError(e instanceof EcwtApiError ? e.message : 'Rasmni yuklab bo‘lmadi');
+    }
+  };
+
+  if (profile.isLoading || crafts.isLoading) {
+    return (
+      <SafeAreaView style={layout.screen}>
+      <VideoBackdrop strong />
+      <StepNav
+        onBack={() => (router.canGoBack() ? router.back() : undefined)}
+        onNext={busy ? undefined : save}
+      />
+        <LoadingView label="Ma’lumotlar yuklanmoqda..." />
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={layout.screen}>
+      <VideoBackdrop strong />
+      <StepNav
+        onBack={() => (router.canGoBack() ? router.back() : undefined)}
+        onNext={busy ? undefined : save}
+      />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1 }}
+      >
+        <ScrollView
+          contentContainerStyle={styles.body}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <Text style={styles.title}>Profilingizni to‘ldiring</Text>
+          <Text style={[typography.body, { marginTop: spacing.sm }]}>
+            Shu ma’lumotlar asosida sizga mos davlat yordamlari topiladi va arizalarga avtomatik
+            qo‘yiladi.
+          </Text>
+
+          <Section title="Shaxsiy ma’lumotlar" />
+          <View style={styles.group}>
+            <TextField
+              label="Ism"
+              value={draft.firstName}
+              onChangeText={(v) => set('firstName', v)}
+              autoCapitalize="words"
+              placeholder="Masalan: Asror"
+              error={errors.firstName}
+            />
+            <TextField
+              label="Familiya"
+              value={draft.lastName}
+              onChangeText={(v) => set('lastName', v)}
+              autoCapitalize="words"
+              placeholder="Masalan: Rahimov"
+              error={errors.lastName}
+            />
+            <TextField
+              label="Otasining ismi"
+              value={draft.middleName}
+              onChangeText={(v) => set('middleName', v)}
+              autoCapitalize="words"
+              placeholder="Masalan: Baxtiyorovich"
+              error={errors.middleName}
+            />
+            <TextField
+              label="JShShIR"
+              value={draft.pinfl}
+              onChangeText={(v) => set('pinfl', v.replace(/\D/g, ''))}
+              keyboardType="number-pad"
+              maxLength={14}
+              placeholder="14 ta raqam"
+              hint="Ixtiyoriy — keyinroq ham kiritsangiz bo‘ladi"
+              error={errors.pinfl}
+            />
+          </View>
+
+          <Section title="Manzil" />
+          <View style={styles.group}>
+            <SelectField
+              label="Viloyat"
+              value={draft.region}
+              options={REGION_OPTIONS}
+              onChange={(v) => {
+                set('region', v);
+                set('district', '');
+              }}
+              error={errors.region}
+            />
+            <SelectField
+              label="Tuman"
+              value={draft.district}
+              options={districtOptions(draft.region)}
+              onChange={(v) => set('district', v)}
+              hint={!draft.region ? 'Avval viloyatni tanlang' : undefined}
+              error={errors.district}
+            />
+          </View>
+
+          <Section title="Hunar" />
+          <View style={styles.group}>
+            <SelectField
+              label="Hunar yo‘nalishi"
+              value={draft.craftCategoryId}
+              options={craftOptions}
+              onChange={(v) => set('craftCategoryId', v)}
+              error={errors.craftCategoryId}
+            />
+            <TextField
+              label="Tajriba (yil)"
+              value={draft.yearsOfExperience}
+              onChangeText={(v) => set('yearsOfExperience', v.replace(/\D/g, ''))}
+              keyboardType="number-pad"
+              maxLength={2}
+              placeholder="Masalan: 12"
+            />
+
+            <View style={{ gap: spacing.sm }}>
+              <Text style={typography.label}>Ustaxonangiz bormi?</Text>
+              <View style={[layout.row, { gap: spacing.md }]}>
+                <Choice
+                  label="Ha"
+                  selected={draft.hasWorkshop === true}
+                  onPress={() => set('hasWorkshop', true)}
+                />
+                <Choice
+                  label="Yo‘q"
+                  selected={draft.hasWorkshop === false}
+                  onPress={() => {
+                    set('hasWorkshop', false);
+                    set('workshopAddress', '');
+                  }}
+                />
+              </View>
+            </View>
+
+            {draft.hasWorkshop === true ? (
+              <TextField
+                label="Ustaxona manzili"
+                value={draft.workshopAddress}
+                onChangeText={(v) => set('workshopAddress', v)}
+              />
+            ) : null}
+          </View>
+
+          <Section title="Maqomingiz" />
+          <View style={styles.group}>
+            <View style={{ gap: spacing.sm }}>
+              <Text style={typography.label}>“Hunarmand” uyushmasi a’zosimisiz?</Text>
+              <View style={[layout.row, { gap: spacing.md }]}>
+                <Choice
+                  label="Ha"
+                  selected={draft.membership === 'ACTIVE'}
+                  onPress={() => set('membership', 'ACTIVE')}
+                />
+                <Choice
+                  label="Yo‘q"
+                  selected={draft.membership === 'NONE'}
+                  onPress={() => set('membership', 'NONE')}
+                />
+              </View>
+            </View>
+
+            <View style={{ gap: spacing.sm }}>
+              <Text style={typography.label}>Tadbirkor sifatida ro‘yxatdan o‘tganmisiz?</Text>
+              <View style={[layout.row, { gap: spacing.md, flexWrap: 'wrap' }]}>
+                <Choice
+                  label="YaTT"
+                  selected={draft.businessType === 'YATT'}
+                  onPress={() => set('businessType', 'YATT')}
+                />
+                <Choice
+                  label="MChJ"
+                  selected={draft.businessType === 'MCHJ'}
+                  onPress={() => set('businessType', 'MCHJ')}
+                />
+                <Choice
+                  label="Yo‘q"
+                  selected={draft.businessType === 'NONE'}
+                  onPress={() => {
+                    set('businessType', 'NONE');
+                    set('stir', '');
+                  }}
+                />
+              </View>
+            </View>
+
+            {draft.businessType === 'YATT' || draft.businessType === 'MCHJ' ? (
+              <TextField
+                label="STIR"
+                value={draft.stir}
+                onChangeText={(v) => set('stir', v.replace(/\D/g, ''))}
+                keyboardType="number-pad"
+                maxLength={9}
+                placeholder="9 ta raqam"
+                error={errors.stir}
+              />
+            ) : null}
+          </View>
+
+          <Section
+            title="Mahsulot rasmlari"
+            hint="Ixtiyoriy — rasm bo‘lsa imkoniyatlar ko‘payadi"
+          />
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: spacing.md }}
+          >
+            <Pressable onPress={addPhotos} accessibilityRole="button" style={styles.addPhoto}>
+              <Ionicons name="camera-outline" size={26} color={colors.primary} />
+              <Text style={typography.caption}>Rasm qo‘shish</Text>
+            </Pressable>
+            {draft.photos.map((uri) => (
+              <Image key={uri} source={{ uri }} style={styles.photo} />
+            ))}
+          </ScrollView>
+        </ScrollView>
+
+        <View style={styles.footer}>
+          <Button title="Saqlash va davom etish" onPress={save} loading={busy} />
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+function Section({ title, hint }: { title: string; hint?: string }) {
+  return (
+    <View style={{ marginTop: spacing['3xl'], marginBottom: spacing.lg }}>
+      <Text style={typography.h3}>{title}</Text>
+      {hint ? <Text style={[typography.caption, { marginTop: 4 }]}>{hint}</Text> : null}
+    </View>
+  );
+}
+
+function Choice({
+  label,
+  selected,
+  onPress,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={[
+        styles.choice,
+        selected && { borderColor: colors.primary, backgroundColor: colors.primarySoft },
+      ]}
+    >
+      <Text style={[typography.bodyStrong, selected && { color: colors.primary }]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  body: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing['4xl'],
+  },
+  title: {
+    fontSize: 30,
+    lineHeight: 38,
+    fontWeight: '700',
+    color: colors.text,
+    letterSpacing: -0.4,
+  },
+  group: { gap: spacing.lg },
+  choice: {
+    minWidth: 96,
+    alignItems: 'center',
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  addPhoto: {
+    width: 104,
+    height: 104,
+    borderRadius: radius.lg,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  photo: { width: 104, height: 104, borderRadius: radius.lg, backgroundColor: colors.surfaceAlt },
+  footer: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xl,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+    backgroundColor: colors.bg,
+  },
+});

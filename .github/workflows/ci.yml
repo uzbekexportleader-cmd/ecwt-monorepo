@@ -1,0 +1,61 @@
+name: CI
+
+# Har push va PR'da kod sifati tekshiriladi.
+# Maqsad: buzilgan kod master'ga tushmasin va buni odam emas, mashina ushlasin.
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+# Yangi push bo'lsa eski ishni bekor qilamiz — navbat va vaqt tejaladi
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Tiplar, lint va testlar
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Paketlarni o'rnatish
+        run: pnpm install --frozen-lockfile
+
+      # Umumiy paketlar (@ecwt/types, validation va h.k.) avval kompilyatsiya
+      # qilinadi — aks holda apps ularning tiplarini topa olmaydi
+      - name: Umumiy paketlarni qurish
+        run: pnpm build:packages
+
+      # Prisma klienti generatsiya qilinmasa API tiplari topilmaydi
+      - name: Prisma klientini generatsiya qilish
+        run: pnpm --filter @ecwt/api exec prisma generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+
+      - name: TypeScript tekshiruvi
+        run: pnpm typecheck
+
+      - name: ESLint
+        run: pnpm lint
+
+      - name: Testlar
+        run: pnpm test
+        env:
+          # Env validatsiyasi productionda xavfsiz qiymatlarni talab qiladi;
+          # testlar uchun aniq "test" rejimi va vaqtinchalik kalitlar
+          NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+          JWT_ACCESS_SECRET: ci-access-secret-not-used-in-production
+          JWT_REFRESH_SECRET: ci-refresh-secret-not-used-in-production

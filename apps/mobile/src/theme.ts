@@ -1,58 +1,50 @@
-/**
- * Mobil ilova dizayn tokenlari.
- * Saytdagi ranglar bilan bir xil — brend butun mahsulotda yagona ko'rinadi.
- */
-export const colors = {
-  brand50: '#eef4fb',
-  brand100: '#d8e6f5',
-  brand200: '#b3cdea',
-  brand300: '#7fabda',
-  brand400: '#4a85c6',
-  brand500: '#2b66ad',
-  brand600: '#1f4f8e',
-  brand700: '#1a3f72',
-  brand800: '#17335c',
-  brand900: '#0f2340',
-  brand950: '#091729',
+import { Platform, StyleSheet } from 'react-native';
+import { colors, radius, spacing, fontSize, fontWeight, shadows } from '@ecwt/ui';
 
-  gold300: '#eabd57',
-  gold400: '#e3a52f',
-  gold500: '#d18a1a',
+export { colors, radius, spacing, fontSize, fontWeight, shadows };
+export { formatSom, formatPhone, maskPhone } from '@ecwt/ui';
 
-  white: '#ffffff',
-  success: '#059669',
-  successBg: '#d1fae5',
-  warning: '#d97706',
-  warningBg: '#fef3c7',
-  danger: '#dc2626',
-  dangerBg: '#fee2e2',
-  info: '#2563eb',
-  infoBg: '#dbeafe',
-  neutralBg: '#e5e7eb',
-  neutralText: '#4b5563',
-} as const;
+/** Katta yoshli foydalanuvchi ham bemalol bosadigan minimal balandlik. */
+export const CONTROL_HEIGHT = 60;
 
-export const spacing = {
-  xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 24,
-  xxl: 32,
-} as const;
+export const typography = StyleSheet.create({
+  display: {
+    fontSize: fontSize['3xl'],
+    fontWeight: fontWeight.bold,
+    color: colors.text,
+    letterSpacing: -0.5,
+  },
+  h1: { fontSize: fontSize['2xl'], fontWeight: fontWeight.bold, color: colors.text },
+  h2: { fontSize: fontSize.xl, fontWeight: fontWeight.semibold, color: colors.text },
+  h3: { fontSize: 19, fontWeight: fontWeight.semibold, color: colors.text },
+  body: { fontSize: 17, fontWeight: fontWeight.regular, color: colors.textSecondary, lineHeight: 26 },
+  bodyStrong: { fontSize: 17, fontWeight: fontWeight.semibold, color: colors.text },
+  small: { fontSize: 15, color: colors.textSecondary, lineHeight: 22 },
+  caption: { fontSize: 13, color: colors.textMuted },
+  label: {
+    fontSize: 15,
+    fontWeight: fontWeight.semibold,
+    color: colors.textSecondary,
+    letterSpacing: 0.3,
+  },
+});
 
-export const radius = {
-  sm: 8,
-  md: 12,
-  lg: 16,
-  full: 999,
-} as const;
+export const layout = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.bg },
+  /**
+   * Fon videosi ustidagi ekranlar uchun. Fon shaffof — video ildizda bir
+   * marta chizilgan va navigatorning ORQASIDA turadi (`VideoBackdropHost`).
+   */
+  screenClear: { flex: 1, backgroundColor: 'transparent' },
+  container: { paddingHorizontal: spacing.xl },
+  row: { flexDirection: 'row', alignItems: 'center' },
+  rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  center: { alignItems: 'center', justifyContent: 'center' },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border },
+  gap8: { gap: spacing.sm },
+  gap12: { gap: spacing.md },
+  gap16: { gap: spacing.lg },
+});
 
-export const fontSize = {
-  xs: 12,
-  sm: 14,
-  md: 16,
-  lg: 18,
-  xl: 22,
-  xxl: 28,
-} as const;
+/** Android'da shadow o'rniga elevation ishlatiladi. */
+export const cardShadow = Platform.OS === 'ios' ? shadows.card : { elevation: 4 };

@@ -1,281 +1,420 @@
-import type { ReactNode } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-  type TextInputProps,
-} from 'react-native';
-import { colors, fontSize, radius, spacing } from '@/theme';
+import React from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, View, type RefreshControlProps, type StyleProp, type ViewStyle } from 'react-native';
+import { Text } from './AppText';
+import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
+import { KeyboardAwareScroll } from './KeyboardAwareScroll';
 
-/* -------------------------------------------------------------------------- */
-/* Tugma                                                                       */
-/* -------------------------------------------------------------------------- */
+import { CONTROL_HEIGHT, cardShadow, colors, layout, radius, spacing, typography } from '../theme';
+
+/* -------------------------------- Screen -------------------------------- */
+
+/** AI yordamchi tugmasi (56px) + atrofidagi bo'shliq */
+const AI_BUTTON_CLEARANCE = 72;
+
+export function Screen({
+  children,
+  scroll = true,
+  edges = ['top'],
+  /**
+   * Fon shaffof bo'lsin — ortidagi video ko'rinadi.
+   *
+   * Ildizdagi `VideoBackdropHost` navigatorning ORQASIDA turadi; ekran
+   * o'zining fonini chizsa, videoni yopib qo'yadi.
+   */
+  clear = false,
+  style,
+  contentStyle,
+  refreshControl,
+}: {
+  children: React.ReactNode;
+  scroll?: boolean;
+  edges?: Edge[];
+  clear?: boolean;
+  style?: StyleProp<ViewStyle>;
+  contentStyle?: StyleProp<ViewStyle>;
+  refreshControl?: React.ReactElement<RefreshControlProps>;
+}) {
+  const inner = scroll ? (
+    /*
+     * Klaviatura pastdagi maydonni yopib qo'ymasligi uchun oddiy ScrollView
+     * emas, KeyboardAwareScroll ishlatiladi: u ro'yxat tagiga klaviatura
+     * balandligicha joy qo'shadi va fokusdagi maydonni tepaga surib chiqaradi.
+     *
+     * `TextField` fokusga kelganda o'zini shu komponentga bildiradi —
+     * ya'ni bu yerdagi bitta o'zgarish `Screen` ishlatadigan BARCHA
+     * ekranlarga (profil, mahsulot qo'shish, ariza) tegishli.
+     */
+    <KeyboardAwareScroll
+      style={{ flex: 1 }}
+      /*
+       * Pastda qo'shimcha joy: o'ng burchakdagi AI yordamchi tugmasi
+       * ro'yxatning oxirgi tugmasini yopib qo'ymasin. Tugma navigatordan
+       * tashqarida turadi, shuning uchun uni faqat shu bo'sh joy bilan
+       * chetlab o'tish mumkin.
+       */
+      contentContainerStyle={[
+        { padding: spacing.xl, paddingBottom: spacing.xl + AI_BUTTON_CLEARANCE },
+        contentStyle,
+      ]}
+      extraBottom={spacing['5xl']}
+      refreshControl={refreshControl}
+    >
+      {children}
+    </KeyboardAwareScroll>
+  ) : (
+    <View style={[{ flex: 1, padding: spacing.xl }, contentStyle]}>{children}</View>
+  );
+
+  return (
+    <SafeAreaView edges={edges} style={[clear ? layout.screenClear : layout.screen, style]}>
+      {inner}
+    </SafeAreaView>
+  );
+}
+
+/* -------------------------------- Button -------------------------------- */
+
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'gold';
 
 export function Button({
   title,
   onPress,
   variant = 'primary',
-  loading = false,
-  disabled = false,
+  disabled,
+  loading,
+  icon,
+  style,
+  fullWidth = true,
+  testID,
 }: {
   title: string;
-  onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'outline';
-  loading?: boolean;
+  onPress?: () => void;
+  variant?: ButtonVariant;
   disabled?: boolean;
+  loading?: boolean;
+  icon?: keyof typeof Ionicons.glyphMap;
+  style?: StyleProp<ViewStyle>;
+  fullWidth?: boolean;
+  /** E2E testlar uchun barqaror identifikator */
+  testID?: string;
 }) {
   const isDisabled = disabled || loading;
+  const palette: Record<ButtonVariant, { bg: string; fg: string; border?: string }> = {
+    primary: { bg: colors.primary, fg: colors.textInverse },
+    gold: { bg: colors.accent, fg: colors.textInverse },
+    secondary: { bg: colors.surfaceAlt, fg: colors.text, border: colors.border },
+    ghost: { bg: 'transparent', fg: colors.primary },
+    danger: { bg: colors.dangerSoft, fg: colors.danger, border: colors.danger },
+  };
+  const p = palette[variant];
 
   return (
     <Pressable
+      testID={testID}
       onPress={onPress}
       disabled={isDisabled}
       accessibilityRole="button"
-      accessibilityState={{ disabled: isDisabled, busy: loading }}
+      accessibilityLabel={title}
       style={({ pressed }) => [
         styles.button,
-        variant === 'primary' && styles.buttonPrimary,
-        variant === 'secondary' && styles.buttonSecondary,
-        variant === 'outline' && styles.buttonOutline,
-        pressed && !isDisabled && styles.buttonPressed,
-        isDisabled && styles.buttonDisabled,
+        {
+          backgroundColor: p.bg,
+          borderColor: p.border ?? 'transparent',
+          borderWidth: p.border ? 1 : 0,
+          opacity: isDisabled ? 0.45 : pressed ? 0.85 : 1,
+          alignSelf: fullWidth ? 'stretch' : 'flex-start',
+          paddingHorizontal: fullWidth ? spacing.xl : spacing['2xl'],
+        },
+        style,
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'outline' ? colors.brand700 : colors.white} />
+        <ActivityIndicator color={p.fg} />
       ) : (
-        <Text
-          style={[
-            styles.buttonText,
-            variant === 'secondary' && styles.buttonTextDark,
-            variant === 'outline' && styles.buttonTextOutline,
-          ]}
-        >
-          {title}
-        </Text>
+        <View style={[layout.row, { gap: spacing.sm }]}>
+          {icon ? <Ionicons name={icon} size={22} color={p.fg} /> : null}
+          <Text style={[styles.buttonText, { color: p.fg }]}>{title}</Text>
+        </View>
       )}
     </Pressable>
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/* Maydon                                                                      */
-/* -------------------------------------------------------------------------- */
+/* --------------------------------- Card --------------------------------- */
 
-export function Field({
-  label,
-  error,
-  ...props
-}: TextInputProps & { label: string; error?: string }) {
+export function Card({
+  children,
+  onPress,
+  style,
+  padded = true,
+}: {
+  children: React.ReactNode;
+  onPress?: () => void;
+  style?: StyleProp<ViewStyle>;
+  padded?: boolean;
+}) {
+  const content = (
+    <View style={[styles.card, padded && { padding: spacing.lg }, style]}>{children}</View>
+  );
+  if (!onPress) return content;
   return (
-    <View style={styles.field}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-
-      <TextInput
-        style={[styles.input, error ? styles.inputError : null]}
-        placeholderTextColor={colors.brand300}
-        accessibilityLabel={label}
-        {...props}
-      />
-
-      {error ? (
-        <Text style={styles.fieldError} accessibilityRole="alert">
-          {error}
-        </Text>
-      ) : null}
-    </View>
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+    >
+      {content}
+    </Pressable>
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/* Karta va nishon                                                             */
-/* -------------------------------------------------------------------------- */
+/* --------------------------------- Chip --------------------------------- */
 
-export function Card({ children, style }: { children: ReactNode; style?: object }) {
-  return <View style={[styles.card, style]}>{children}</View>;
-}
-
-type BadgeTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
-
-const BADGE_COLORS: Record<BadgeTone, { bg: string; text: string }> = {
-  neutral: { bg: colors.neutralBg, text: colors.neutralText },
-  info: { bg: colors.infoBg, text: colors.info },
-  success: { bg: colors.successBg, text: colors.success },
-  warning: { bg: colors.warningBg, text: colors.warning },
-  danger: { bg: colors.dangerBg, text: colors.danger },
-};
-
-export function Badge({ label, tone = 'neutral' }: { label: string; tone?: BadgeTone }) {
-  const palette = BADGE_COLORS[tone];
-
-  return (
-    <View style={[styles.badge, { backgroundColor: palette.bg }]}>
-      <Text style={[styles.badgeText, { color: palette.text }]}>{label}</Text>
-    </View>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/* Statistika plitkasi                                                         */
-/* -------------------------------------------------------------------------- */
-
-export function StatTile({
+export function Chip({
   label,
-  value,
-  hint,
-  accent = false,
+  tone = 'neutral',
+  icon,
 }: {
   label: string;
-  value: string;
-  hint?: string;
-  accent?: boolean;
+  tone?: 'neutral' | 'success' | 'warning' | 'danger' | 'info' | 'gold';
+  icon?: keyof typeof Ionicons.glyphMap;
+}) {
+  const tones = {
+    neutral: { bg: colors.surfaceAlt, fg: colors.textSecondary },
+    success: { bg: colors.successSoft, fg: colors.success },
+    warning: { bg: colors.warningSoft, fg: colors.warning },
+    danger: { bg: colors.dangerSoft, fg: colors.danger },
+    info: { bg: colors.infoSoft, fg: colors.info },
+    gold: { bg: colors.accentSoft, fg: colors.accent },
+  } as const;
+  const t = tones[tone];
+  return (
+    <View style={[styles.chip, { backgroundColor: t.bg }]}>
+      {icon ? <Ionicons name={icon} size={13} color={t.fg} /> : null}
+      <Text style={[styles.chipText, { color: t.fg }]}>{label}</Text>
+    </View>
+  );
+}
+
+/* ------------------------------ ProgressBar ------------------------------ */
+
+export function ProgressBar({ percent, height = 10 }: { percent: number; height?: number }) {
+  const clamped = Math.max(0, Math.min(100, percent));
+  const tone = clamped >= 80 ? colors.success : clamped >= 50 ? colors.primary : colors.accent;
+  return (
+    <View style={[styles.progressTrack, { height, borderRadius: height }]}>
+      <View
+        style={{
+          width: `${clamped}%`,
+          height: '100%',
+          backgroundColor: tone,
+          borderRadius: height,
+        }}
+      />
+    </View>
+  );
+}
+
+/* ----------------------------- SectionHeader ----------------------------- */
+
+export function SectionHeader({
+  title,
+  actionLabel,
+  onAction,
+}: {
+  title: string;
+  actionLabel?: string;
+  onAction?: () => void;
 }) {
   return (
-    <View style={[styles.statTile, accent && styles.statTileAccent]}>
-      <Text style={[styles.statLabel, accent && styles.statLabelAccent]}>{label}</Text>
-      <Text style={[styles.statValue, accent && styles.statValueAccent]}>{value}</Text>
-      {hint ? (
-        <Text style={[styles.statHint, accent && styles.statHintAccent]}>{hint}</Text>
+    <View style={[layout.rowBetween, { marginBottom: spacing.md, marginTop: spacing.xl }]}>
+      <Text style={typography.h3}>{title}</Text>
+      {actionLabel && onAction ? (
+        <Pressable onPress={onAction} hitSlop={10} accessibilityRole="button">
+          <Text style={styles.link}>{actionLabel}</Text>
+        </Pressable>
       ) : null}
     </View>
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/* Holat ko'rsatkichlari                                                       */
-/* -------------------------------------------------------------------------- */
+/* ------------------------------- states ---------------------------------- */
 
-export function Loading({ label }: { label: string }) {
+export function LoadingView({ label }: { label?: string }) {
   return (
-    <View style={styles.centered}>
-      <ActivityIndicator size="large" color={colors.brand600} />
-      <Text style={styles.centeredText}>{label}</Text>
+    <View style={[layout.center, { paddingVertical: spacing['4xl'], gap: spacing.md }]}>
+      <ActivityIndicator color={colors.primary} size="large" />
+      {label ? <Text style={typography.small}>{label}</Text> : null}
     </View>
   );
 }
 
-export function EmptyState({ message }: { message: string }) {
+export function EmptyState({
+  icon = 'file-tray-outline',
+  title,
+  subtitle,
+  actionLabel,
+  onAction,
+}: {
+  icon?: keyof typeof Ionicons.glyphMap;
+  title: string;
+  subtitle?: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}) {
   return (
-    <View style={styles.empty}>
-      <Text style={styles.emptyText}>{message}</Text>
+    <View style={[layout.center, { paddingVertical: spacing['4xl'], gap: spacing.md }]}>
+      <View style={styles.emptyIcon}>
+        <Ionicons name={icon} size={28} color={colors.textMuted} />
+      </View>
+      <Text style={[typography.h3, { textAlign: 'center' }]}>{title}</Text>
+      {subtitle ? (
+        <Text style={[typography.small, { textAlign: 'center', maxWidth: 280 }]}>{subtitle}</Text>
+      ) : null}
+      {actionLabel && onAction ? (
+        <Button title={actionLabel} onPress={onAction} fullWidth={false} variant="secondary" />
+      ) : null}
     </View>
   );
 }
 
-export function ErrorBanner({ message }: { message: string }) {
+export function ErrorView({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
-    <View style={styles.errorBanner} accessibilityRole="alert">
-      <Text style={styles.errorBannerText}>{message}</Text>
+    <View style={[layout.center, { paddingVertical: spacing['3xl'], gap: spacing.md }]}>
+      <Ionicons name="alert-circle-outline" size={32} color={colors.danger} />
+      <Text style={[typography.body, { textAlign: 'center' }]}>{message}</Text>
+      {onRetry ? <Button title="Qayta urinish" onPress={onRetry} fullWidth={false} variant="secondary" /> : null}
     </View>
   );
 }
 
-/* -------------------------------------------------------------------------- */
+/* ------------------------------ InfoBanner ------------------------------- */
+
+export function InfoBanner({
+  text,
+  tone = 'info',
+  icon = 'information-circle-outline',
+}: {
+  text: string;
+  tone?: 'info' | 'warning' | 'danger' | 'success';
+  icon?: keyof typeof Ionicons.glyphMap;
+}) {
+  const tones = {
+    info: { bg: colors.infoSoft, fg: colors.info },
+    warning: { bg: colors.warningSoft, fg: colors.warning },
+    danger: { bg: colors.dangerSoft, fg: colors.danger },
+    success: { bg: colors.successSoft, fg: colors.success },
+  } as const;
+  const t = tones[tone];
+  return (
+    <View style={[styles.banner, { backgroundColor: t.bg }]}>
+      <Ionicons name={icon} size={18} color={t.fg} style={{ marginTop: 1 }} />
+      <Text style={[typography.small, { color: t.fg, flex: 1 }]}>{text}</Text>
+    </View>
+  );
+}
+
+/* -------------------------------- ListRow -------------------------------- */
+
+export function ListRow({
+  icon,
+  title,
+  subtitle,
+  right,
+  onPress,
+  tone,
+}: {
+  icon?: keyof typeof Ionicons.glyphMap;
+  title: string;
+  subtitle?: string;
+  right?: React.ReactNode;
+  onPress?: () => void;
+  tone?: 'default' | 'danger';
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={title}
+      style={({ pressed }) => [styles.listRow, { opacity: pressed && onPress ? 0.7 : 1 }]}
+    >
+      {icon ? (
+        <View style={styles.listIcon}>
+          <Ionicons
+            name={icon}
+            size={20}
+            color={tone === 'danger' ? colors.danger : colors.primary}
+          />
+        </View>
+      ) : null}
+      <View style={{ flex: 1 }}>
+        <Text style={[typography.bodyStrong, tone === 'danger' && { color: colors.danger }]}>
+          {title}
+        </Text>
+        {subtitle ? <Text style={typography.caption}>{subtitle}</Text> : null}
+      </View>
+      {right ?? (onPress ? <Ionicons name="chevron-forward" size={18} color={colors.textMuted} /> : null)}
+    </Pressable>
+  );
+}
 
 const styles = StyleSheet.create({
   button: {
-    height: 50,
-    borderRadius: radius.md,
+    height: CONTROL_HEIGHT,
+    borderRadius: radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing.lg,
   },
-  buttonPrimary: { backgroundColor: colors.brand700 },
-  buttonSecondary: { backgroundColor: colors.gold400 },
-  buttonOutline: {
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.brand200,
-  },
-  buttonPressed: { opacity: 0.85 },
-  buttonDisabled: { opacity: 0.5 },
-  buttonText: {
-    color: colors.white,
-    fontSize: fontSize.md,
-    fontWeight: '600',
-  },
-  buttonTextDark: { color: colors.brand950 },
-  buttonTextOutline: { color: colors.brand700 },
-
-  field: { gap: spacing.xs },
-  fieldLabel: {
-    fontSize: fontSize.sm,
-    fontWeight: '600',
-    color: colors.brand900,
-  },
-  input: {
-    height: 48,
-    borderWidth: 1,
-    borderColor: colors.brand200,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    fontSize: fontSize.md,
-    color: colors.brand950,
-    backgroundColor: colors.white,
-  },
-  inputError: { borderColor: colors.danger },
-  fieldError: {
-    fontSize: fontSize.xs,
-    color: colors.danger,
-    fontWeight: '500',
-  },
-
+  buttonText: { fontSize: 17, fontWeight: '700' },
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderRadius: radius.lg,
-    padding: spacing.lg,
     borderWidth: 1,
-    borderColor: colors.brand100,
+    borderColor: colors.border,
+    ...(cardShadow as object),
   },
-
-  badge: {
-    alignSelf: 'flex-start',
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.full,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+    alignSelf: 'flex-start',
   },
-  badgeText: { fontSize: fontSize.xs, fontWeight: '600' },
-
-  statTile: {
-    flex: 1,
-    minWidth: 150,
-    backgroundColor: colors.white,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.brand100,
-    gap: spacing.xs,
-  },
-  statTileAccent: { backgroundColor: colors.brand800, borderColor: colors.brand700 },
-  statLabel: { fontSize: fontSize.xs, color: colors.brand500, fontWeight: '500' },
-  statLabelAccent: { color: colors.brand200 },
-  statValue: { fontSize: fontSize.xl, fontWeight: '700', color: colors.brand950 },
-  statValueAccent: { color: colors.white },
-  statHint: { fontSize: fontSize.xs, color: colors.brand400 },
-  statHintAccent: { color: colors.brand300 },
-
-  centered: {
-    flex: 1,
+  chipText: { fontSize: 13, fontWeight: '600' },
+  progressTrack: { backgroundColor: colors.surfaceAlt, overflow: 'hidden', width: '100%' },
+  link: { color: colors.primary, fontSize: 14, fontWeight: '600' },
+  emptyIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.surfaceAlt,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.md,
-    padding: spacing.xl,
   },
-  centeredText: { fontSize: fontSize.sm, color: colors.brand500 },
-
-  empty: {
-    padding: spacing.xxl,
-    alignItems: 'center',
-  },
-  emptyText: { fontSize: fontSize.sm, color: colors.brand400, textAlign: 'center' },
-
-  errorBanner: {
-    backgroundColor: colors.dangerBg,
-    borderRadius: radius.md,
+  banner: {
+    flexDirection: 'row',
+    gap: spacing.sm,
     padding: spacing.md,
+    borderRadius: radius.md,
+    alignItems: 'flex-start',
   },
-  errorBannerText: { color: colors.danger, fontSize: fontSize.sm, fontWeight: '500' },
+  listRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.xl,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  listIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceAlt,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

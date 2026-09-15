@@ -1,111 +1,126 @@
-import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import React from 'react';
+import { RefreshControl, StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
-import type { Paginated, Product } from '@ecwt/contracts';
-import { useApi } from '@/api/use-api';
-import { useLocale } from '@/i18n/LocaleContext';
-import { Badge, EmptyState, ErrorBanner, Loading } from '@/components/ui';
-import { productStatus } from '@/lib/status-labels';
-import { formatUzs } from '@/lib/format';
-import { colors, fontSize, radius, spacing } from '@/theme';
+import { Text } from '../../src/components/AppText';
+import { useRouter } from 'expo-router';
+
+import { useProducts, useServicePayment } from '../../src/api/queries';
+import {
+  Button,
+  Card,
+  Chip,
+  EmptyState,
+  ErrorView,
+  InfoBanner,
+  LoadingView,
+  Screen,
+} from '../../src/components/ui';
+import { LockedNotice } from '../../src/components/LockedNotice';
+import { colors, formatSom, layout, radius, spacing, typography } from '../../src/theme';
+import { useT } from '../../src/i18n';
 
 export default function ProductsScreen() {
-  const { t, locale } = useLocale();
-  const { data, loading, error, refreshing, refresh } = useApi<Paginated<Product>>(
-    '/products?limit=50',
-  );
-
-  if (loading && !data) return <Loading label={t.common.loading} />;
-
-  const products = data?.items ?? [];
+  const t = useT();
+  const router = useRouter();
+  const query = useProducts();
+  const payment = useServicePayment();
+  /*
+   * Qulf: xizmat to'lovi tasdiqlanmaguncha mahsulot bo'limi yopiq.
+   * Haqiqiy cheklov serverda; bu yerda faqat ko'rsatiladi.
+   */
+  const locked = payment.data ? !payment.data.unlocked : false;
+  const items = query.data ?? [];
 
   return (
-    <View style={styles.container}>
-      {error ? (
-        <View style={styles.bannerWrap}>
-          <ErrorBanner message={error} />
-        </View>
+    <Screen
+      refreshControl={
+        <RefreshControl
+          refreshing={query.isFetching && !query.isLoading}
+          onRefresh={() => void query.refetch()}
+          tintColor={colors.primary}
+        />
+      }
+    >
+      <View style={[layout.rowBetween, { marginBottom: spacing.lg }]}>
+        <Text style={typography.h1}>{t('product.title')}</Text>
+      </View>
+
+      {locked ? <LockedNotice /> : null}
+
+      <InfoBanner text={t('product.mockNotice')} tone="warning" icon="information-circle-outline" />
+
+      <View style={{ height: spacing.lg }} />
+      {/* To'lov tasdiqlanmaguncha mahsulot qo'shilmaydi */}
+      {locked ? null : (
+        <Button title={t('product.add')} icon="add" onPress={() => router.push('/products/new')} />
+      )}
+
+      {query.isLoading ? <LoadingView /> : null}
+      {query.isError ? (
+        <ErrorView message="Mahsulotlarni yuklab bo‘lmadi" onRetry={() => void query.refetch()} />
       ) : null}
 
-      <FlatList
-        data={products}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
-        ListEmptyComponent={<EmptyState message={t.common.empty} />}
-        ListFooterComponent={
-          products.length > 0 ? <Text style={styles.hint}>{t.products.addHint}</Text> : null
-        }
-        renderItem={({ item }) => {
-          const status = productStatus(item.status, locale);
-          const image = item.images.find((img) => img.isPrimary) ?? item.images[0];
+      {!query.isLoading && items.length === 0 ? (
+        <EmptyState
+          icon="cube-outline"
+          title={t('product.empty')}
+          subtitle="Mahsulotingizni qo‘shing va xalqaro platformalarga chiqarishga tayyorlang."
+        />
+      ) : null}
 
-          return (
-            <View style={styles.row}>
-              {image ? (
-                <Image source={{ uri: image.url }} style={styles.image} contentFit="cover" />
+      <View style={{ marginTop: spacing.lg }}>
+        {items.map((p) => (
+          <Card key={p.id} onPress={() => router.push(`/products/${p.id}`)} style={{ marginBottom: spacing.md }}>
+            <View style={[layout.row, { gap: spacing.md }]}>
+              {p.images[0] ? (
+                <Image
+                  source={{ uri: p.images[0].url }}
+                  style={styles.thumb}
+                  contentFit="cover"
+                  transition={180}
+                  cachePolicy="memory-disk"
+                />
               ) : (
-                <View style={[styles.image, styles.imagePlaceholder]} />
+                <View style={[styles.thumb, layout.center]}>
+                  <Text style={{ fontSize: 22 }}>📦</Text>
+                </View>
               )}
-
-              <View style={styles.rowBody}>
-                <Text style={styles.name} numberOfLines={2}>
-                  {locale === 'en' ? item.nameEn : item.nameUz}
+              <View style={{ flex: 1, gap: 4 }}>
+                <Text style={typography.bodyStrong} numberOfLines={1}>
+                  {p.title}
                 </Text>
-
-                <Text style={styles.sku}>
-                  {t.products.sku}: {item.sku}
+                <Text style={[typography.caption, { color: colors.accent }]}>
+                  {formatSom(p.price)}
                 </Text>
-
-                <View style={styles.metaRow}>
-                  <Text style={styles.price}>{formatUzs(item.basePriceUzs, locale)}</Text>
-                  <Text style={styles.stock}>
-                    {t.products.stock}: {item.stock}
-                  </Text>
+                <View style={[layout.row, { gap: spacing.xs, flexWrap: 'wrap' }]}>
+                  <Chip
+                    label={
+                      p.status === 'PUBLISHED'
+                        ? 'Chiqarilgan'
+                        : p.status === 'READY'
+                          ? 'Tayyor'
+                          : 'Qoralama'
+                    }
+                    tone={p.status === 'PUBLISHED' ? 'success' : 'neutral'}
+                  />
+                  {p.listings.length ? (
+                    <Chip label={`${p.listings.length} ta platforma`} tone="info" />
+                  ) : null}
                 </View>
-
-                <View style={styles.badgeRow}>
-                  <Badge label={status.label} tone={status.tone} />
-                </View>
-
-                {item.status === 'REJECTED' && item.rejectionReason ? (
-                  <Text style={styles.reason}>{item.rejectionReason}</Text>
-                ) : null}
               </View>
             </View>
-          );
-        }}
-      />
-    </View>
+          </Card>
+        ))}
+      </View>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.brand50 },
-  bannerWrap: { padding: spacing.lg, paddingBottom: 0 },
-  list: { padding: spacing.lg, gap: spacing.md },
-  row: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    backgroundColor: colors.white,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.brand100,
-  },
-  image: { width: 72, height: 72, borderRadius: radius.md, backgroundColor: colors.brand100 },
-  imagePlaceholder: { backgroundColor: colors.brand100 },
-  rowBody: { flex: 1, gap: 2 },
-  name: { fontSize: fontSize.md, fontWeight: '600', color: colors.brand950 },
-  sku: { fontSize: fontSize.xs, color: colors.brand400 },
-  metaRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.xs },
-  price: { fontSize: fontSize.sm, fontWeight: '600', color: colors.brand800 },
-  stock: { fontSize: fontSize.sm, color: colors.brand500 },
-  badgeRow: { marginTop: spacing.sm },
-  reason: { fontSize: fontSize.xs, color: colors.danger, marginTop: spacing.xs },
-  hint: {
-    fontSize: fontSize.xs,
-    color: colors.brand400,
-    textAlign: 'center',
-    marginTop: spacing.lg,
+  thumb: {
+    width: 64,
+    height: 64,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceAlt,
   },
 });

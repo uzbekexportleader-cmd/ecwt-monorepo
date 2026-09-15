@@ -6,216 +6,126 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
-import { ThrottlerException } from '@nestjs/throttler';
-import { Prisma } from '@prisma/client';
-import type { Response } from 'express';
-import type { ApiErrorBody, ApiErrorCode } from '@ecwt/contracts';
-import { AppError } from '../errors';
-import type { AppRequest } from '../types';
+import type { Request, Response } from 'express';
+
+import { Sentry, sentryEnabled } from '../../instrument';
+
+/** Maxfiy maydonlar hech qachon log'ga tushmaydi. */
+const REDACTED_KEYS = [
+  'password',
+  'passwordHash',
+  'code',
+  'codeHash',
+  'refreshToken',
+  'accessToken',
+  'pinfl',
+  'bankAccount',
+  'bankCard',
+  'authorization',
+];
 
 /**
- * Barcha xatolarni bitta ko'rinishga keltiradi:
- *   { error: { code, message, details?, requestId } }
- *
- * Ichki tafsilotlar (stack trace, SQL xatolari) hech qachon klientga chiqmaydi —
- * ular faqat log'ga yoziladi.
+ * Framework va kutubxonalar inglizcha xato matnlarini qaytaradi.
+ * Foydalanuvchi ularni hech qachon ko'rmasligi kerak — shu yerda
+ * o'zbekchaga aylantiriladi.
  */
+const MESSAGE_MAP: { match: RegExp; message: string }[] = [
+  {
+    match: /throttler|too many requests/i,
+    message: 'Juda tez-tez urinyapsiz. Bir oz kutib, qayta urinib ko‘ring.',
+  },
+  { match: /^unauthorized$/i, message: 'Avtorizatsiya talab qilinadi. Qaytadan kiring.' },
+  { match: /^forbidden(\s+resource)?$/i, message: 'Bu amal uchun ruxsatingiz yo‘q.' },
+  { match: /^not found$|^cannot (get|post|put|patch|delete)/i, message: 'So‘ralgan ma’lumot topilmadi.' },
+  { match: /payload too large|file too large|entity too large/i, message: 'Fayl hajmi juda katta. 10 MB gacha fayl yuklang.' },
+  { match: /unexpected field|multipart|unsupported media/i, message: 'Fayl formati noto‘g‘ri. PDF, JPG yoki PNG yuklang.' },
+  { match: /request timeout|timed? ?out/i, message: 'Server javob bermadi. Qaytadan urinib ko‘ring.' },
+  { match: /internal server error/i, message: 'Ichki xatolik yuz berdi. Birozdan so‘ng urinib ko‘ring.' },
+  { match: /bad request/i, message: 'So‘rovda xatolik bor. Ma’lumotlarni tekshirib qayta yuboring.' },
+  { match: /validation failed/i, message: 'Kiritilgan ma’lumotlar to‘g‘ri emas.' },
+];
+
+/** Matn o'zbekchami? (bizning xabarlarimiz o'zgarmasligi kerak) */
+function translate(message: string): string {
+  for (const rule of MESSAGE_MAP) {
+    if (rule.match.test(message)) return rule.message;
+  }
+  return message;
+}
+
+function redact(input: unknown): unknown {
+  if (!input || typeof input !== 'object') return input;
+  if (Array.isArray(input)) return input.map(redact);
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(input as Record<string, unknown>)) {
+    out[k] = REDACTED_KEYS.includes(k) ? '***' : redact(v);
+  }
+  return out;
+}
+
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
-  private readonly logger = new Logger('Exception');
+  private readonly logger = new Logger('Http');
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest<AppRequest>();
-    const requestId = request.requestId;
+    const request = ctx.getRequest<Request>();
 
-    const { status, body, logLevel } = this.normalize(exception, requestId);
+    const status =
+      exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
 
-    if (logLevel === 'error') {
+    let payload: Record<string, unknown>;
+    if (exception instanceof HttpException) {
+      const res = exception.getResponse();
+      payload = typeof res === 'string' ? { message: res } : { ...(res as Record<string, unknown>) };
+    } else {
+      payload = { message: 'Ichki xatolik yuz berdi', code: 'INTERNAL_ERROR' };
       this.logger.error(
-        `[${requestId ?? '-'}] ${request.method} ${request.url} -> ${status} ${body.error.code}`,
+        `${request.method} ${request.url}`,
         exception instanceof Error ? exception.stack : String(exception),
       );
-    } else {
-      this.logger.warn(
-        `[${requestId ?? '-'}] ${request.method} ${request.url} -> ${status} ${body.error.code}: ${body.error.message}`,
+    }
+
+    // Foydalanuvchiga ko'rinadigan matnni o'zbekchaga keltiramiz
+    if (typeof payload.message === 'string') {
+      payload.message = translate(payload.message);
+    } else if (Array.isArray(payload.message)) {
+      payload.message = (payload.message as unknown[]).map((m) =>
+        typeof m === 'string' ? translate(m) : m,
       );
+    } else if (payload.message === undefined) {
+      payload.message = translate(String((payload as { error?: string }).error ?? 'Xatolik'));
+    }
+    // Nest'ning inglizcha "error" maydoni mobil ilovada ishlatilmaydi, lekin
+    // tasodifan ko'rinib qolmasligi uchun olib tashlaymiz.
+    delete (payload as { error?: unknown }).error;
+
+    if (status >= 500) {
+      this.logger.error(`${request.method} ${request.url} → ${status}`, JSON.stringify(redact(request.body)));
+
+      /*
+       * Sentry'ga faqat server xatolari yuboriladi (5xx).
+       *
+       * 4xx — bu foydalanuvchi xatosi (noto'g'ri parol, to'ldirilmagan
+       * maydon): ular kunda minglab bo'ladi va Sentry'ni ko'mib tashlaydi.
+       * Bizga kerak bo'lgani — bizning kodimiz singan joylar.
+       *
+       * So'rov tanasi qo'shilmaydi: unda pasport va bank ma'lumotlari
+       * bo'lishi mumkin.
+       */
+      if (sentryEnabled) {
+        Sentry.captureException(exception, {
+          tags: { method: request.method, path: request.route?.path ?? request.url },
+        });
+      }
     }
 
-    response.status(status).json(body);
+    response.status(status).json({
+      statusCode: status,
+      path: request.url,
+      timestamp: new Date().toISOString(),
+      ...payload,
+    });
   }
-
-  private normalize(
-    exception: unknown,
-    requestId: string | undefined,
-  ): { status: number; body: ApiErrorBody; logLevel: 'warn' | 'error' } {
-    // 1. Bizning xatolarimiz
-    if (exception instanceof AppError) {
-      return {
-        status: exception.getStatus(),
-        body: {
-          error: {
-            code: exception.code,
-            message: exception.message,
-            ...(exception.details ? { details: exception.details } : {}),
-            ...(requestId ? { requestId } : {}),
-          },
-        },
-        logLevel: exception.getStatus() >= 500 ? 'error' : 'warn',
-      };
-    }
-
-    // 2. Rate limit
-    if (exception instanceof ThrottlerException) {
-      return {
-        status: HttpStatus.TOO_MANY_REQUESTS,
-        body: {
-          error: {
-            code: 'rate_limited',
-            message: 'Juda ko‘p so‘rov yubordingiz. Biroz kutib, qayta urinib ko‘ring.',
-            ...(requestId ? { requestId } : {}),
-          },
-        },
-        logLevel: 'warn',
-      };
-    }
-
-    // 3. Prisma xatolari
-    if (exception instanceof Prisma.PrismaClientKnownRequestError) {
-      const mapped = mapPrismaError(exception);
-      return {
-        status: mapped.status,
-        body: {
-          error: {
-            code: mapped.code,
-            message: mapped.message,
-            ...(requestId ? { requestId } : {}),
-          },
-        },
-        logLevel: mapped.status >= 500 ? 'error' : 'warn',
-      };
-    }
-
-    if (exception instanceof Prisma.PrismaClientValidationError) {
-      return {
-        status: HttpStatus.BAD_REQUEST,
-        body: {
-          error: {
-            code: 'validation_error',
-            message: 'So‘rov ma’lumotlari noto‘g‘ri',
-            ...(requestId ? { requestId } : {}),
-          },
-        },
-        logLevel: 'error', // bu odatda kod xatosi — ko'rish kerak
-      };
-    }
-
-    // 4. NestJS'ning o'z HttpException'lari
-    if (exception instanceof HttpException) {
-      const status = exception.getStatus();
-      return {
-        status,
-        body: {
-          error: {
-            code: codeFromStatus(status),
-            message: safeHttpMessage(exception),
-            ...(requestId ? { requestId } : {}),
-          },
-        },
-        logLevel: status >= 500 ? 'error' : 'warn',
-      };
-    }
-
-    // 5. Kutilmagan hamma narsa
-    return {
-      status: HttpStatus.INTERNAL_SERVER_ERROR,
-      body: {
-        error: {
-          code: 'internal_error',
-          message: 'Serverda kutilmagan xato yuz berdi',
-          ...(requestId ? { requestId } : {}),
-        },
-      },
-      logLevel: 'error',
-    };
-  }
-}
-
-function mapPrismaError(e: Prisma.PrismaClientKnownRequestError): {
-  status: number;
-  code: ApiErrorCode;
-  message: string;
-} {
-  switch (e.code) {
-    case 'P2002': {
-      // Unique constraint — qaysi maydon ekanini ayta olamiz, qiymatni emas
-      const target = Array.isArray(e.meta?.['target']) ? (e.meta['target'] as string[]).join(', ') : null;
-      return {
-        status: HttpStatus.CONFLICT,
-        code: 'conflict',
-        message: target
-          ? `Bunday ma’lumot allaqachon mavjud (${target})`
-          : 'Bunday ma’lumot allaqachon mavjud',
-      };
-    }
-    case 'P2025':
-      return { status: HttpStatus.NOT_FOUND, code: 'not_found', message: 'Ma’lumot topilmadi' };
-    case 'P2003':
-      return {
-        status: HttpStatus.CONFLICT,
-        code: 'conflict',
-        message: 'Bog‘liq ma’lumot mavjudligi sababli amal bajarilmadi',
-      };
-    case 'P1001':
-    case 'P1002':
-      return {
-        status: HttpStatus.BAD_GATEWAY,
-        code: 'dependency_failure',
-        message: 'Ma’lumotlar bazasiga ulanib bo‘lmadi',
-      };
-    default:
-      return {
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        code: 'internal_error',
-        message: 'Ma’lumotlar bazasida xato',
-      };
-  }
-}
-
-function codeFromStatus(status: number): ApiErrorCode {
-  switch (status) {
-    case 400:
-      return 'validation_error';
-    case 401:
-      return 'unauthorized';
-    case 403:
-      return 'forbidden';
-    case 404:
-      return 'not_found';
-    case 409:
-      return 'conflict';
-    case 429:
-      return 'rate_limited';
-    case 502:
-    case 503:
-    case 504:
-      return 'dependency_failure';
-    default:
-      return status >= 500 ? 'internal_error' : 'validation_error';
-  }
-}
-
-/** 5xx xabarlarini oshkor qilmaymiz — ichida ichki tafsilot bo'lishi mumkin */
-function safeHttpMessage(exception: HttpException): string {
-  if (exception.getStatus() >= 500) return 'Serverda kutilmagan xato yuz berdi';
-
-  const res = exception.getResponse();
-  if (typeof res === 'string') return res;
-  if (typeof res === 'object' && res !== null) {
-    const message = (res as { message?: unknown }).message;
-    if (typeof message === 'string') return message;
-    if (Array.isArray(message) && typeof message[0] === 'string') return message[0];
-  }
-  return exception.message || 'So‘rovni bajarib bo‘lmadi';
 }

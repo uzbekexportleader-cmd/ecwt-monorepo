@@ -1,663 +1,1042 @@
-// ECWT — E-commerce World Trade
-// B2B platforma: O'zbek ishlab chiqaruvchilari -> AQSH marketplace'lari
-//
-// MUHIM: bu yerdagi enum'lar packages/contracts/src/enums.ts bilan bir xil bo'lishi shart.
+// ECWT — Prisma schema
+// Datasource URL prisma.config.ts faylida (Prisma 7 talabi).
 
 generator client {
-  provider = "prisma-client-js"
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+  runtime      = "nodejs"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
-// ---------------------------------------------------------------------------
-// Enum'lar
-// ---------------------------------------------------------------------------
+/**
+ * ------------------------------- enum'lar -------------------------------
+ */
 
-enum UserRole {
-  SUPPLIER
+enum Role {
+  USER
+  REVIEWER
   ADMIN
-  STAFF
+  SUPER_ADMIN
 }
 
-enum UserStatus {
+enum Locale {
+  uz
+  ru
+  en
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+/// Foydalanuvchi kim: keyingi savollar shunga qarab o'zgaradi
+enum ActivityType {
+  HUNARMAND
+  AGRO_HOLDING
+  TADBIRKOR
+  TEXTILE
+  ISHLAB_CHIQARUVCHI
+}
+
+/// Xizmat haqi qanday qoplanadi
+enum SalesMode {
+  /** Fulfilment by merchant — O'zbekistondan jo'natadi */
+  FBM
+  /** Fulfilment by Amazon — AQSH omboriga oldindan yuboradi */
+  FBA
+}
+
+enum PaymentMethod {
+  SUBSIDY
+  SELF
+}
+
+/// Ro'yxatdan o'tish qaysi bosqichda to'xtagani — ilova shu yerdan davom etadi
+enum OnboardingStage {
+  PERSONAL
+  ADDRESS
+  ACTIVITY_TYPE
+  ACTIVITY_DETAILS
+  SERVICES
+  BANK
+  PAYMENT
+  CONTRACT
+  DONE
+}
+
+enum BusinessType {
+  NONE
+  YATT
+  MCHJ
+  FAMILY_ENTERPRISE
+}
+
+enum MembershipStatus {
+  NONE
   PENDING
   ACTIVE
-  SUSPENDED
+  EXPIRED
 }
 
-enum SupplierStatus {
-  DRAFT
-  PENDING_REVIEW
+enum VerificationStatus {
+  NOT_STARTED
+  PENDING
   VERIFIED
-  REJECTED
-  SUSPENDED
-}
-
-enum UzRegion {
-  TOSHKENT_SHAHRI
-  TOSHKENT
-  ANDIJON
-  BUXORO
-  FARGONA
-  JIZZAX
-  XORAZM
-  NAMANGAN
-  NAVOIY
-  QASHQADARYO
-  QORAQALPOGISTON
-  SAMARQAND
-  SIRDARYO
-  SURXONDARYO
-}
-
-enum ProductStatus {
-  DRAFT
-  PENDING_REVIEW
-  APPROVED
-  REJECTED
-  ARCHIVED
-}
-
-enum Marketplace {
-  AMAZON_US
-  ETSY
-  EBAY
-  WALMART
-  SHOPIFY
-  TIKTOK_SHOP
-}
-
-enum ListingStatus {
-  DRAFT
-  SUBMITTED
-  IN_REVIEW
-  LIVE
-  REJECTED
-  PAUSED
-  ARCHIVED
-}
-
-enum OrderStatus {
-  PENDING
-  PAID
-  SHIPPED
-  DELIVERED
-  CANCELLED
-  REFUNDED
-}
-
-enum PayoutStatus {
-  PENDING
-  PROCESSING
-  PAID
   FAILED
-  CANCELLED
-}
-
-enum PaymentProvider {
-  PAYME
-  CLICK
-  UZUM
-  STRIPE
-  PAYPAL
-}
-
-enum PaymentStatus {
-  PENDING
-  AUTHORIZED
-  SUCCEEDED
-  FAILED
-  REFUNDED
-  PARTIALLY_REFUNDED
-  CANCELLED
-}
-
-enum PaymentPurpose {
-  SUBSCRIPTION
-  LISTING_PACKAGE
-  ADVERTISING
-  LOGISTICS
-  OTHER
-}
-
-enum Currency {
-  UZS
-  USD
 }
 
 enum DocumentType {
-  CERTIFICATE
+  PASSPORT
+  MEMBERSHIP_CERTIFICATE
+  BUSINESS_REGISTRATION
+  BANK_DETAILS
   CONTRACT
   INVOICE
-  EXPORT_DECLARATION
-  PASSPORT
+  RECEIPT
+  PRODUCT_PHOTO
+  SELFIE
+  SIGNED_CONTRACT
+  WORKSHOP_PHOTO
+  CERTIFICATE
   OTHER
 }
 
-enum LeadStatus {
-  NEW
-  CONTACTED
-  QUALIFIED
-  WON
-  LOST
+enum SubsidyStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+  ARCHIVED
 }
 
-enum OtpPurpose {
-  PHONE_VERIFY
-  EMAIL_VERIFY
-  PASSWORD_RESET
-  LOGIN
+enum AmountType {
+  FIXED
+  RANGE
+  PERCENT_OF_EXPENSE
+  BHM_MULTIPLE
 }
 
-// ---------------------------------------------------------------------------
-// Foydalanuvchi va sessiya
-// ---------------------------------------------------------------------------
+enum RequirementType {
+  AGE_RANGE
+  BUSINESS_TYPE
+  MEMBERSHIP
+  REGION
+  CRAFT_CATEGORY
+  HAS_APPRENTICE
+  HAS_BANK_ACCOUNT
+  EXPERIENCE_YEARS
+  PROFILE_COMPLETION
+  DOCUMENT_UPLOADED
+  HAS_WORKSHOP
+  IDENTITY_VERIFIED
+  MARKETPLACE_EXPENSE
+}
+
+enum ApplicationStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  NEEDS_CORRECTION
+  SCORING
+  LOCAL_REVIEW
+  APPROVED
+  PAYMENT_PROCESSING
+  PAID
+  REJECTED
+  CANCELLED
+}
+
+enum NotificationType {
+  APPLICATION_SUBMITTED
+  APPLICATION_STATUS
+  CORRECTION_REQUIRED
+  APPROVED
+  REJECTED
+  PAYMENT
+  PROFILE
+  MARKETPLACE
+  SYSTEM
+}
+
+enum ProductStatus {
+  /** Hunarmand to'ldirayapti */
+  DRAFT
+  /** Tekshiruvga yuborilgan, ECWT operatori ko'rmoqda */
+  IN_REVIEW
+  /** Operator tuzatish so'radi */
+  CHANGES_REQUESTED
+  /** Tekshiruvdan o'tdi — savdo kanallariga chiqarishga tayyor */
+  READY
+  /** Kamida bitta kanalda chiqarilgan */
+  PUBLISHED
+  ARCHIVED
+}
+
+/**
+ * Mahsulot savdo kanaliga qanday chiqariladi.
+ *
+ * MANUAL — ECWT jamoasi qo'lda joylashtiradi.
+ * AUTO   — integratsiya orqali avtomatik.
+ *
+ * Foydalanuvchi uchun farqi yo'q: u bir xil holatlarni ko'radi.
+ */
+enum PlacementMode {
+  MANUAL
+  AUTO
+}
+
+enum ListingStatus {
+  NOT_LISTED
+  PENDING
+  LISTED
+  FAILED
+}
+
+/**
+ * -------------------------------- modellar ------------------------------
+ */
 
 model User {
-  id              String     @id @default(cuid())
-  email           String     @unique
-  phone           String?    @unique
-  passwordHash    String
-  fullName        String
-  role            UserRole   @default(SUPPLIER)
-  status          UserStatus @default(PENDING)
-  locale          String     @default("uz")
-  emailVerifiedAt DateTime?
-  phoneVerifiedAt DateTime?
-  lastLoginAt     DateTime?
-  // Ketma-ket noto'g'ri kirishlar — brute-force himoyasi
-  failedLoginCount Int       @default(0)
-  lockedUntil     DateTime?
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  id           String    @id @default(uuid())
+  phone        String    @unique
+  role         Role      @default(USER)
+  locale       Locale    @default(uz)
+  fullName     String?
+  passwordHash String?
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  supplier      Supplier?
+  profile       ArtisanProfile?
   sessions      Session[]
-  otpCodes      OtpCode[]
+  documents     Document[]
+  applications  SubsidyApplication[]
   notifications Notification[]
-  auditLogs     AuditLog[]     @relation("AuditActor")
+  products      Product[]
+  auditLogs     AuditLog[]
+  aiMessages    AiMessage[]
+  deviceTokens  DeviceToken[]
+  events        AnalyticsEvent[]
+  sellerApplication SellerApplication?
+  externalSubsidies ExternalSubsidyApplication[]
+  servicePayment    ServicePayment?
+  contracts         UserContract[]
 
-  @@index([role, status])
-  @@map("users")
+  @@index([role])
 }
 
 model Session {
-  id String @id @default(cuid())
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Refresh token XOM holda saqlanmaydi — faqat xeshi
-  refreshTokenHash String    @unique
+  id               String    @id @default(uuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokenHash String
   userAgent        String?
   ip               String?
-  deviceId         String?
   expiresAt        DateTime
   revokedAt        DateTime?
   createdAt        DateTime  @default(now())
-  lastUsedAt       DateTime  @default(now())
 
-  @@index([userId, revokedAt])
-  @@index([expiresAt])
-  @@map("sessions")
+  @@index([userId])
+  @@index([refreshTokenHash])
 }
 
-model OtpCode {
-  id String @id @default(cuid())
+model OtpRequest {
+  id         String    @id @default(uuid())
+  phone      String
+  codeHash   String
+  attempts   Int       @default(0)
+  consumedAt DateTime?
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
 
-  userId String?
-  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Telefon yoki email
-  destination String
-  codeHash    String
-  purpose     OtpPurpose
-  attempts    Int        @default(0)
-  expiresAt   DateTime
-  consumedAt  DateTime?
-  createdAt   DateTime   @default(now())
-
-  @@index([destination, purpose, consumedAt])
-  @@index([expiresAt])
-  @@map("otp_codes")
+  @@index([phone, createdAt])
 }
 
-// ---------------------------------------------------------------------------
-// Hamkor (yetkazib beruvchi) kompaniya
-// ---------------------------------------------------------------------------
-
-model Supplier {
-  id String @id @default(cuid())
-
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  companyName String
-  legalName   String?
-  stir        String?   @unique // INN — 9 raqam
-  region      UzRegion?
-  district    String?
-  address     String?
-  website     String?
-
-  descriptionUz String? @db.Text
-  descriptionRu String? @db.Text
-  descriptionEn String? @db.Text
-
-  logoUrl      String?
-  contactPhone String?
-  contactEmail String?
-
-  // Oylik ishlab chiqarish quvvati (dona)
-  monthlyCapacity Int?
-
-  // Bank rekvizitlari — faqat egasi va admin ko'radi
-  bankName    String?
-  bankAccount String?
-  mfo         String?
-
-  status          SupplierStatus @default(DRAFT)
-  submittedAt     DateTime?
-  verifiedAt      DateTime?
-  rejectionReason String?
-
-  // To'lanmagan qoldiq (USD). Buyurtma DELIVERED bo'lganda oshadi,
-  // payout PAID bo'lganda kamayadi. Faqat tranzaksiya ichida o'zgaradi.
-  balanceUsd Decimal @default(0) @db.Decimal(14, 2)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  products  Product[]
-  listings  Listing[]
-  orders    MarketplaceOrder[]
-  payouts   Payout[]
-  payments  Payment[]
-  documents Document[]
-
-  @@index([status])
-  @@index([region])
-  @@map("suppliers")
-}
-
-// ---------------------------------------------------------------------------
-// Mahsulot katalogi
-// ---------------------------------------------------------------------------
-
-model Category {
-  id     String  @id @default(cuid())
-  slug   String  @unique
-  nameUz String
-  nameRu String?
-  nameEn String
-
+model CraftCategory {
+  id       String          @id @default(uuid())
+  slug     String          @unique
+  nameUz   String
+  nameRu   String?
+  nameEn   String?
+  icon     String?
   parentId String?
-  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
-  children Category[] @relation("CategoryTree")
+  parent   CraftCategory?  @relation("CraftTree", fields: [parentId], references: [id])
+  children CraftCategory[] @relation("CraftTree")
+  isActive Boolean         @default(true)
+  order    Int             @default(0)
 
-  sortOrder Int      @default(0)
-  createdAt DateTime @default(now())
-
+  profiles ArtisanProfile[] @relation("ProfileCraft")
   products Product[]
 
   @@index([parentId])
-  @@map("categories")
 }
 
-model Product {
-  id String @id @default(cuid())
+model ArtisanProfile {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  supplierId String
-  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  firstName      String?
+  lastName       String?
+  middleName     String?
+  birthDate      DateTime?
+  gender         Gender?
+  pinfl          String?
+  /// Pasport seriyasi (masalan AA) va raqami alohida saqlanadi
+  passportSeries String?
+  passportNumber String?
 
-  categoryId String?
-  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  region       String?
+  district     String?
+  mahalla      String?
+  street       String?
+  houseNumber  String?
+  address      String?
+  /// GPS orqali aniqlangan joylashuv — faqat foydalanuvchi ruxsat bersa saqlanadi
+  latitude     Float?
+  longitude    Float?
+  /// Aloqa uchun raqam — kirish raqamidan farq qilishi mumkin
+  contactPhone String?
 
-  sku String
+  activityType       ActivityType?
+  businessType       BusinessType   @default(NONE)
+  stir               String?
+  craftCategoryId    String?
+  craftCategory      CraftCategory? @relation("ProfileCraft", fields: [craftCategoryId], references: [id])
+  craftSubcategoryId String?
+  yearsOfExperience  Int?
+  workshopAddress    String?
+  hasWorkshop        Boolean        @default(false)
+  description        String?
 
-  nameUz String
-  nameRu String?
-  nameEn String // AQSH bozori uchun majburiy
+  /// Yuridik shaxs nomi — subsidiya arizasida talab qilinadi
+  organizationName String?
 
-  descriptionUz String? @db.Text
-  descriptionRu String? @db.Text
-  descriptionEn String? @db.Text
+  membershipStatus MembershipStatus @default(NONE)
+  membershipNumber String?
 
-  brand  String?
-  hsCode String? // Tashqi iqtisodiy faoliyat tovar nomenklaturasi
+  // Bank ma'lumotlari: karta raqami hech qachon to'liq saqlanmaydi
+  bankAccount    String?
+  bankMfo        String?
+  bankName       String?
+  bankSwift      String?
+  bankCardMasked String?
+  bankHolderName String?
 
-  status          ProductStatus @default(DRAFT)
-  rejectionReason String?
+  identityVerification   VerificationStatus @default(NOT_STARTED)
+  faceVerification       VerificationStatus @default(NOT_STARTED)
+  businessVerification   VerificationStatus @default(NOT_STARTED)
+  membershipVerification VerificationStatus @default(NOT_STARTED)
+  bankVerification       VerificationStatus @default(NOT_STARTED)
+  verificationNotes      Json?
 
-  basePriceUzs      Decimal  @db.Decimal(14, 2)
-  suggestedPriceUsd Decimal? @db.Decimal(12, 2)
+  profilePhotoUrl String?
+  hasApprentice   Boolean @default(false)
+  apprenticeCount Int     @default(0)
+  hasDisability   Boolean @default(false)
 
-  moq   Int @default(1) // minimal partiya
-  stock Int @default(0)
+  /// Tanlangan marketplace kodlari (amazon, ebay, ...)
+  selectedMarketplaces String[] @default([])
+  /// Qo'shimcha xizmatlar: Shopify + shaxsiy mahsulot / dropshipping /
+  /// shaxsiy dunyoviy sayt (Xitoy mahsulotlarini ko'chirib o'tkazish)
+  wantsBrandSite       Boolean  @default(false)
+  wantsDropshipping    Boolean  @default(false)
+  wantsChinaImport     Boolean  @default(false)
 
-  weightGrams Int?
-  lengthMm    Int?
-  widthMm     Int?
-  heightMm    Int?
+  /**
+   * Savdo usuli (17-qadam) — BIR MARTA tanlanadi:
+   * FBM — O'zbekistondan turib sotadi, FBA — AQSH omboriga jo'natadi.
+   */
+  salesMode        SalesMode?
 
-  countryOfOrigin String @default("UZ")
+  /**
+   * Hisob-kitobni (19-qadam) ko'rib, davom etganini tasdiqlagan payt.
+   *
+   * Qadam RAQAMI saqlanmaydi — faqat shu fakt. Yo'ldagi o'rin har safar
+   * mavjud ma'lumotdan hisoblanadi, shuning uchun "qadamda turibman,
+   * lekin ish bajarilgan" holati yuzaga kelmaydi.
+   */
+  earningsSeenAt   DateTime?
+
+  paymentMethod    PaymentMethod?
+  onboardingStage  OnboardingStage @default(PERSONAL)
+  /// Imzolangan shartnoma yuklangan payt
+  contractSignedAt DateTime?
+
+  completionPercent Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([region])
+  @@index([craftCategoryId])
+}
+
+model Document {
+  id         String       @id @default(uuid())
+  userId     String
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       DocumentType
+  fileName   String
+  storageKey String
+  mimeType   String
+  sizeBytes  Int
+  verified   Boolean      @default(false)
+  createdAt  DateTime     @default(now())
+
+  applicationLinks ApplicationDocument[]
+  servicePayments  ServicePayment[]
+  signedContracts  UserContract[]
+
+  @@index([userId, type])
+}
+
+model Subsidy {
+  id               String  @id @default(uuid())
+  slug             String  @unique
+  title            String
+  shortDescription String
+  fullDescription  String
+  category         String
+  organization     String
+  legalBasisUrl    String?
+  applicationUrl   String?
+
+  amountType          AmountType @default(FIXED)
+  minAmount           Int?
+  maxAmount           Int?
+  amountFactor        Float?
+  amountPerApprentice Boolean    @default(false)
+
+  processingDays Int           @default(10)
+  activeFrom     DateTime?
+  activeUntil    DateTime?
+  status         SubsidyStatus @default(DRAFT)
+  /// Demo ma'lumot ekanini UI'da ko'rsatish uchun
+  isDemo         Boolean       @default(true)
+
+  requirements      SubsidyRequirement[]
+  requiredDocuments SubsidyDocumentRequirement[]
+  applications      SubsidyApplication[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  images    ProductImage[]
-  listings  Listing[]
-  documents Document[]
-
-  // Bitta hamkorda SKU takrorlanmasligi kerak
-  @@unique([supplierId, sku])
-  @@index([supplierId, status])
-  @@index([status, createdAt])
-  @@index([categoryId])
-  @@map("products")
+  @@index([status])
 }
 
-model ProductImage {
-  id String @id @default(cuid())
+model SubsidyRequirement {
+  id                String          @id @default(uuid())
+  subsidyId         String
+  subsidy           Subsidy         @relation(fields: [subsidyId], references: [id], onDelete: Cascade)
+  type              RequirementType
+  condition         Json
+  humanReadableText String
+  fixRoute          String?
+  fixLabel          String?
+  order             Int             @default(0)
 
-  productId String
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  url       String
-  sortOrder Int     @default(0)
-  isPrimary Boolean @default(false)
-
-  createdAt DateTime @default(now())
-
-  @@index([productId, sortOrder])
-  @@map("product_images")
+  @@index([subsidyId])
 }
 
-// ---------------------------------------------------------------------------
-// Marketplace e'lonlari
-// ---------------------------------------------------------------------------
+model SubsidyDocumentRequirement {
+  id           String       @id @default(uuid())
+  subsidyId    String
+  subsidy      Subsidy      @relation(fields: [subsidyId], references: [id], onDelete: Cascade)
+  documentType DocumentType
+  title        String
+  hint         String?
+  isOptional   Boolean      @default(false)
 
-model Listing {
-  id String @id @default(cuid())
+  @@index([subsidyId])
+}
 
-  productId String
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+model SubsidyApplication {
+  id        String            @id @default(uuid())
+  number    String            @unique
+  userId    String
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subsidyId String
+  subsidy   Subsidy           @relation(fields: [subsidyId], references: [id])
+  status    ApplicationStatus @default(DRAFT)
 
-  // Tez so'rovlar uchun denormalizatsiya (hamkor o'z listing'larini ko'radi)
-  supplierId String
-  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  requestedAmount Int?
+  approvedAmount  Int?
+  formData        Json    @default("{}")
+  /// Imzolash paytidagi profil nusxasi — keyin o'zgarmaydi (audit uchun)
+  profileSnapshot Json?
+  signatureRef    String?
 
-  marketplace Marketplace
-  status      ListingStatus @default(DRAFT)
-
-  priceUsd          Decimal @db.Decimal(12, 2)
-  commissionPercent Decimal @default(15) @db.Decimal(5, 2)
-
-  externalId  String? // marketplace'dagi ASIN / listing id
-  externalUrl String?
-
-  notes           String? @db.Text
   rejectionReason String?
+  correctionNote  String?
 
   submittedAt DateTime?
-  liveAt      DateTime?
+  decidedAt   DateTime?
+  paidAt      DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  orders MarketplaceOrder[]
+  documents ApplicationDocument[]
+  history   ApplicationStatusHistory[]
 
-  // Bitta mahsulot bitta marketplace'da bir marta
-  @@unique([productId, marketplace])
-  @@index([supplierId, status])
-  @@index([marketplace, status])
-  @@map("listings")
+  @@index([userId, status])
+  @@index([subsidyId])
+  @@index([status])
 }
 
-// ---------------------------------------------------------------------------
-// Marketplace buyurtmalari (AQSH'dan keladi)
-// ---------------------------------------------------------------------------
+model ApplicationDocument {
+  id            String             @id @default(uuid())
+  applicationId String
+  application   SubsidyApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  documentId    String
+  document      Document           @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentType  DocumentType
+  createdAt     DateTime           @default(now())
 
-model MarketplaceOrder {
-  id String @id @default(cuid())
-
-  listingId String
-  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Restrict)
-
-  supplierId String
-  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Restrict)
-
-  marketplace     Marketplace
-  externalOrderId String
-
-  quantity Int
-
-  grossUsd          Decimal @db.Decimal(12, 2)
-  marketplaceFeeUsd Decimal @default(0) @db.Decimal(12, 2)
-  shippingUsd       Decimal @default(0) @db.Decimal(12, 2)
-  ecwtFeeUsd        Decimal @default(0) @db.Decimal(12, 2)
-  netToSupplierUsd  Decimal @default(0) @db.Decimal(12, 2)
-
-  status         OrderStatus @default(PENDING)
-  buyerCountry   String      @default("US")
-  trackingNumber String?
-
-  payoutId String?
-  payout   Payout? @relation(fields: [payoutId], references: [id], onDelete: SetNull)
-
-  placedAt    DateTime
-  shippedAt   DateTime?
-  deliveredAt DateTime?
-  cancelledAt DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  // Bitta marketplace'dan bir xil buyurtma ikki marta kirmasligi uchun
-  @@unique([marketplace, externalOrderId])
-  @@index([supplierId, status])
-  @@index([supplierId, placedAt])
-  @@index([listingId])
-  @@index([payoutId])
-  @@map("marketplace_orders")
+  @@unique([applicationId, documentId])
+  @@index([applicationId])
 }
 
-// ---------------------------------------------------------------------------
-// Hamkorga to'lovlar
-// ---------------------------------------------------------------------------
+model ApplicationStatusHistory {
+  id            String             @id @default(uuid())
+  applicationId String
+  application   SubsidyApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  fromStatus    ApplicationStatus?
+  toStatus      ApplicationStatus
+  comment       String?
+  reasonCode    String?
+  actorId       String?
+  actorName     String             @default("Tizim")
+  createdAt     DateTime           @default(now())
 
-model Payout {
-  id String @id @default(cuid())
-
-  supplierId String
-  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Restrict)
-
-  reference String? // bank to'lov topshirig'i raqami
-
-  amountUsd    Decimal  @db.Decimal(14, 2)
-  amountUzs    Decimal? @db.Decimal(18, 2)
-  exchangeRate Decimal? @db.Decimal(12, 4)
-
-  status      PayoutStatus @default(PENDING)
-  ordersCount Int          @default(0)
-
-  periodStart DateTime?
-  periodEnd   DateTime?
-
-  note          String?
-  failureReason String?
-
-  paidAt    DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-
-  orders MarketplaceOrder[]
-
-  @@index([supplierId, status])
-  @@index([status, createdAt])
-  @@map("payouts")
-}
-
-// ---------------------------------------------------------------------------
-// Hamkordan ECWT'ga to'lovlar (xizmat haqi)
-// ---------------------------------------------------------------------------
-
-model Payment {
-  id String @id @default(cuid())
-
-  supplierId String
-  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Restrict)
-
-  provider          PaymentProvider
-  providerPaymentId String?
-
-  purpose PaymentPurpose @default(OTHER)
-
-  amount   Decimal  @db.Decimal(14, 2)
-  currency Currency
-
-  status PaymentStatus @default(PENDING)
-
-  description   String?
-  failureReason String?
-
-  // Takroriy so'rov bitta to'lov yaratishi uchun
-  idempotencyKey String @unique
-
-  metadata Json?
-
-  paidAt    DateTime?
-  expiresAt DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-
-  @@unique([provider, providerPaymentId])
-  @@index([supplierId, status])
-  @@index([status, createdAt])
-  @@map("payments")
-}
-
-/// Kelgan webhook'lar. Bitta hodisa ikki marta qayta ishlanmasligi uchun.
-model WebhookEvent {
-  id String @id @default(cuid())
-
-  provider        PaymentProvider
-  externalEventId String
-
-  signatureValid Boolean
-  payload        Json
-  processedAt    DateTime?
-  error          String?
-  createdAt      DateTime  @default(now())
-
-  @@unique([provider, externalEventId])
-  @@index([processedAt])
-  @@map("webhook_events")
-}
-
-// ---------------------------------------------------------------------------
-// Hujjatlar, bildirishnomalar, audit
-// ---------------------------------------------------------------------------
-
-model Document {
-  id String @id @default(cuid())
-
-  supplierId String
-  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
-
-  productId String?
-  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
-
-  type      DocumentType
-  fileUrl   String
-  fileName  String
-  mimeType  String
-  sizeBytes Int
-
-  expiresAt  DateTime? // sertifikat muddati
-  uploadedAt DateTime  @default(now())
-
-  @@index([supplierId, type])
-  @@map("documents")
+  @@index([applicationId])
 }
 
 model Notification {
-  id String @id @default(cuid())
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType @default(SYSTEM)
+  title     String
+  body      String
+  route     String?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
 
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // Tarjima kaliti — matn klientda 3 tilga o'giriladi
-  type       String
-  titleKey   String
-  bodyKey    String
-  params     Json?
-  entityType String?
-  entityId   String?
-
-  readAt    DateTime?
-  createdAt DateTime  @default(now())
-
-  @@index([userId, readAt])
-  @@map("notifications")
+  @@index([userId, isRead])
 }
 
-model AuditLog {
-  id String @id @default(cuid())
-
-  actorUserId String?
-  actor       User?   @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
-
-  action     String // masalan: "supplier.verified"
-  entityType String
-  entityId   String
-  metadata   Json?
-  ip         String?
-  requestId  String?
-
-  createdAt DateTime @default(now())
-
-  @@index([entityType, entityId])
-  @@index([actorUserId, createdAt])
-  @@map("audit_logs")
-}
-
-// ---------------------------------------------------------------------------
-// Saytdagi arizalar
-// ---------------------------------------------------------------------------
-
-model Lead {
-  id String @id @default(cuid())
-
-  name            String
-  phone           String
-  email           String?
-  companyName     String?
-  productCategory String?
-  message         String?  @db.Text
-
-  locale String  @default("uz")
-  source String?
-  ip     String?
-
-  status LeadStatus @default(NEW)
-  note   String?    @db.Text
+/**
+ * Push bildirishnoma uchun qurilma tokeni.
+ *
+ * Bitta foydalanuvchida bir nechta qurilma bo'lishi mumkin. Token qurilmaga
+ * tegishli — shuning uchun `token` global unikal: foydalanuvchi almashsa
+ * (bitta telefonda boshqa hisob) yozuv yangi egasiga o'tadi.
+ */
+model DeviceToken {
+  id       String   @id @default(uuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /** Expo push token: ExponentPushToken[xxxxxxx] */
+  token    String   @unique
+  platform String?
+  /** Yaroqsiz deb belgilangan (Expo `DeviceNotRegistered` qaytarganda) */
+  isActive Boolean  @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([status, createdAt])
-  @@map("leads")
+  @@index([userId, isActive])
 }
 
-/// Kurs tarixi — payout hisob-kitobi uchun (USD -> UZS)
-model ExchangeRate {
-  id        String   @id @default(cuid())
-  date      DateTime @unique @db.Date
-  usdToUzs  Decimal  @db.Decimal(12, 4)
-  source    String   @default("CBU")
+/**
+ * Mahsulot voronkasi (funnel) hodisalari.
+ *
+ * Uchinchi tomon SDK'siz: anketaning qaysi qadamida foydalanuvchi to'xtab
+ * qolgani shu jadvaldan ko'rinadi. Shaxsiy ma'lumot saqlanmaydi — faqat
+ * hodisa nomi va ixtiyoriy kontekst.
+ */
+model AnalyticsEvent {
+  id     String  @id @default(uuid())
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  /** Masalan: `onboarding.step.completed` */
+  name   String
+  /** Qo'shimcha kontekst: { step: "personal", durationMs: 4210 } */
+  props  Json?
+  /** Ilova versiyasi — regressiyani versiyaga bog'lash uchun */
+  appVersion String?
+  platform   String?
+
   createdAt DateTime @default(now())
 
-  @@map("exchange_rates")
+  @@index([name, createdAt])
+  @@index([userId, createdAt])
+}
+
+model Product {
+  id             String         @id @default(uuid())
+  userId         String
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title          String
+  description    String?
+  categoryId     String?
+  category       CraftCategory? @relation(fields: [categoryId], references: [id])
+  price          Int?
+  currency       String         @default("UZS")
+  weightGram     Int?
+  lengthMm       Int?
+  widthMm        Int?
+  heightMm       Int?
+  material       String?
+  productionDays Int?
+  stock          Int            @default(0)
+  status         ProductStatus  @default(DRAFT)
+  /// Operator izohi: nima tuzatilishi kerak yoki nega rad etilgan
+  reviewNote     String?
+  /// Tekshiruvga oxirgi yuborilgan payt
+  submittedAt    DateTime?
+  /// Operator qaror qabul qilgan payt
+  reviewedAt     DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  images   ProductImage[]
+  reviews  ProductReviewEvent[]
+  listings MarketplaceListing[]
+
+  @@index([userId, status])
+}
+
+model ProductImage {
+  id        String  @id @default(uuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  order     Int     @default(0)
+
+  @@index([productId])
+}
+
+model Marketplace {
+  id        String  @id @default(uuid())
+  code      String  @unique
+  name      String
+  logoEmoji String?
+  isActive  Boolean @default(true)
+  /// Real integratsiya ulanmagan bo'lsa true
+  isMock    Boolean @default(true)
+
+  listings MarketplaceListing[]
+}
+
+model MarketplaceListing {
+  id            String        @id @default(uuid())
+  productId     String
+  product       Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  marketplaceId String
+  marketplace   Marketplace   @relation(fields: [marketplaceId], references: [id], onDelete: Cascade)
+  status        ListingStatus @default(NOT_LISTED)
+  externalId    String?
+  errorMessage  String?
+  isMock        Boolean       @default(true)
+  /// Joylashtirish usuli: qo'lda (ECWT jamoasi) yoki avtomatik
+  placement     PlacementMode @default(MANUAL)
+  /// Platformadagi e'lon havolasi — faqat haqiqatan joylangandan keyin
+  listingUrl    String?
+  /// Qo'lda joylashtirishni bajargan xodim
+  placedById    String?
+  placedAt      DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@unique([productId, marketplaceId])
+  @@index([productId])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  actorId   String?
+  actor     User?    @relation(fields: [actorId], references: [id])
+  actorName String   @default("Tizim")
+  action    String
+  entity    String
+  entityId  String?
+  metadata  Json?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
+
+model AiMessage {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+/* ===================== Sotuvchi (hunarmand) arizasi ===================== */
+
+/**
+ * Sotuvchi arizasining holati.
+ *
+ * MUHIM: bu profil tekshiruvlaridan (`VerificationStatus`) ALOHIDA narsa.
+ * Profil tekshiruvi — alohida hujjatlar (pasport, bank) tasdig'i.
+ * Bu esa "ECWT bu odamni sotuvchi sifatida qabul qildimi" degan yakuniy qaror.
+ */
+enum SellerApplicationStatus {
+  /** Ariza topshirildi, ECWT ko'rib chiqmoqda */
+  UNDER_REVIEW
+  /** Qo'shimcha ma'lumot yoki hujjat kerak — sabab `reviewerNote` da */
+  MORE_INFO_NEEDED
+  /** Tasdiqlandi — sotuvga chiqarish va pul olish ochiladi */
+  APPROVED
+  /** Rad etildi — sabab `reviewerNote` da */
+  REJECTED
+}
+
+/**
+ * Hunarmandning ECWT'da sotuvchi bo'lish arizasi.
+ *
+ * NEGA ALOHIDA MODEL: ilgari "ariza raqami" mobil ilovada foydalanuvchi
+ * ID'sidan TO'QIB chiqarilardi va hech qayerda saqlanmasdi — ya'ni ariza
+ * aslida mavjud emas edi. Endi u haqiqiy yozuv: raqami bor, holati
+ * o'zgaradi, tarixi saqlanadi va operator qaror qabul qiladi.
+ *
+ * Bitta hunarmandda bitta ariza bo'ladi (`userId` unikal): qayta yuborish
+ * yangi ariza yaratmaydi, mavjudini `UNDER_REVIEW` ga qaytaradi.
+ */
+model SellerApplication {
+  id     String @id @default(uuid())
+  /** ECWT-2026-000123 ko'rinishida, foydalanuvchiga ko'rsatiladi */
+  number String @unique
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  status       SellerApplicationStatus @default(UNDER_REVIEW)
+  /** Rad etish sababi yoki qanday ma'lumot yetishmayotgani */
+  reviewerNote String?
+
+  submittedAt DateTime  @default(now())
+  /** Yakuniy qaror (tasdiq yoki rad) qabul qilingan payt */
+  decidedAt   DateTime?
+
+  events SellerApplicationEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, submittedAt])
+}
+
+/** Ariza holati har o'zgarganda yoziladi — kim, qachon, nima uchun */
+model SellerApplicationEvent {
+  id            String            @id @default(uuid())
+  applicationId String
+  application   SellerApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  status SellerApplicationStatus
+  note   String?
+  /** Operator ID'si; tizim o'zi yaratgan bo'lsa bo'sh */
+  actorId String?
+
+  createdAt DateTime @default(now())
+
+  @@index([applicationId, createdAt])
+}
+
+/**
+ * online-mahalla.uz ga topshirilgan subsidiya arizasi.
+ *
+ * ECWT bu arizani FOYDALANUVCHI O'RNIGA topshirmaydi: davlat tizimiga
+ * kirish va oferta bilan rozilik — shaxsning o'z harakati. Ilova faqat
+ * ma'lumotni tayyorlaydi, yo'l ko'rsatadi va topshirilgan arizani
+ * kuzatish uchun raqamini saqlaydi.
+ *
+ * Shu sababli holat ham FAQAT ikki manbadan o'zgaradi: foydalanuvchining
+ * o'zi kiritgan raqami/holati yoki tekshirilgan operator. Tashqi saytdan
+ * holat o'qiydigan rasmiy integratsiya yo'q — uydirma holat ko'rsatilmaydi.
+ */
+model ExternalSubsidyApplication {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /** Hozircha yagona platforma: ONLINE_MAHALLA */
+  platform String @default("ONLINE_MAHALLA")
+  /** Platformadagi subsidiya turi (ro'yxatdan tanlangan matn) */
+  subsidyType String
+
+  status ExternalSubsidyStatus @default(PREPARED)
+
+  /** Foydalanuvchi platformadan olgan ariza raqami */
+  externalNumber String?
+  /** Foydalanuvchi yoki operator qoldirgan izoh */
+  note String?
+
+  /*
+   * 12-qadam: hunarmand mahallaga borib, Hokim yordamchisi bilan
+   * uchrashadi va uning raqamini kiritadi — ECWT ham bog'lanadi.
+   * Bu uchinchi shaxs ma'lumoti: faqat operatorlarga ko'rinadi.
+   */
+  hokimAssistantName  String?
+  hokimAssistantPhone String?
+  mahallaVisitedAt    DateTime?
+  mahallaNote         String?
+
+  preparedAt  DateTime  @default(now())
+  submittedAt DateTime?
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId, preparedAt])
+}
+
+enum ExternalSubsidyStatus {
+  /** Paket tayyorlandi, foydalanuvchi hali topshirmadi */
+  PREPARED
+  /** Foydalanuvchi topshirdi va ariza raqamini kiritdi */
+  SUBMITTED
+  /** Platformada tasdiqlangani foydalanuvchi/operator tomonidan qayd etildi */
+  APPROVED
+  /** Platformada rad etilgani qayd etildi */
+  REJECTED
+  /** Foydalanuvchi voz kechdi */
+  CANCELLED
+}
+
+
+/** Mahsulot holati har o'zgarganda yoziladi — kim, qachon, nima uchun */
+model ProductReviewEvent {
+  id        String  @id @default(uuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  status ProductStatus
+  note   String?
+  /** Operator ID'si; hunarmandning o'zi yuborgan bo'lsa bo'sh */
+  actorId String?
+
+  createdAt DateTime @default(now())
+
+  @@index([productId, createdAt])
+}
+
+/**
+ * Kompaniya va asoschi haqidagi ma'lumot.
+ *
+ * Yagona yozuv (`id = "default"`): ilovadagi "Biz haqimizda" ekrani shu
+ * yerdan o'qiydi. Ma'lumot kodga yozib qo'yilmaydi — telefon raqami yoki
+ * manzil o'zgarganda ilovani qayta chiqarish kerak bo'lmasin.
+ *
+ * Joylashuv koordinatalarini asoschining o'zi ilovadan, GPS orqali
+ * belgilaydi: qo'lda yozilgan manzil xaritada noto'g'ri nuqtaga tushadi.
+ */
+model CompanyInfo {
+  id String @id @default("default")
+
+  /** Ko'rsatiladigan nom */
+  name String
+  /** Ustavdagi to'liq nom */
+  legalName String?
+  stir      String?
+
+  founderName  String?
+  founderTitle String?
+  /** Qisqacha ma'lumot */
+  founderBio   String?
+  /** Asoschining raqami (ixtiyoriy, ko'rsatiladi) */
+  founderPhone String?
+
+  /** Hunarmand xizmat to'lovini o'tkazadigan rekvizitlar */
+  payeeName       String?
+  payeeAccount    String?
+  payeeMfo        String?
+  payeeBank       String?
+  payeeNote       String?
+
+  /** 24/7 texnik yordam raqami */
+  supportPhone    String?
+  supportTelegram String?
+  supportEmail    String?
+
+  /** GPS orqali belgilangan joylashuv */
+  latitude    Float?
+  longitude   Float?
+  addressLine String?
+  /** Joylashuvni oxirgi marta kim va qachon belgilagan */
+  locationSetById String?
+  locationSetAt   DateTime?
+
+  updatedAt DateTime @updatedAt
+}
+
+/**
+ * ECWT xizmat to'lovi.
+ *
+ * Hunarmand subsidiyani BANK HISOBIGA oladi, so'ng kelishilgan summani
+ * ECWT hisobiga o'tkazadi. To'lov tasdiqlangandan keyin ilovaning savdo
+ * bo'limlari ochiladi.
+ *
+ * MUHIM QOIDA: holat "to'landi" ga FAQAT tekshirilgan hujjat asosida,
+ * operator tomonidan o'tadi. Ilova o'zi ham, foydalanuvchi ham bu holatni
+ * qo'ya olmaydi — aks holda ko'rsatilgan "to'landi" hech narsani
+ * anglatmaydi.
+ */
+model ServicePayment {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  status ServicePaymentStatus @default(AWAITING_SUBSIDY)
+
+  /** Hunarmand o'tkazgan summa (so'm) — o'zi kiritadi */
+  declaredAmount Int?
+  /** To'lov topshirig'i/chek hujjati */
+  receiptDocumentId String?
+  receiptDocument   Document? @relation(fields: [receiptDocumentId], references: [id])
+  /** Hunarmand izohi (masalan o'tkazma sanasi) */
+  note String?
+
+  /** Operator qarori */
+  reviewerNote String?
+  confirmedById String?
+  confirmedAt   DateTime?
+
+  submittedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  events ServicePaymentEvent[]
+}
+
+enum ServicePaymentStatus {
+  /** Subsidiya hali kelmagan — kutilmoqda */
+  AWAITING_SUBSIDY
+  /** Subsidiya keldi, o'tkazma kutilmoqda */
+  AWAITING_TRANSFER
+  /** Hunarmand hujjat yubordi, operator tekshirmoqda */
+  PROOF_SUBMITTED
+  /** Operator tasdiqladi — bo'limlar ochiq */
+  CONFIRMED
+  /** Hujjat qabul qilinmadi */
+  REJECTED
+}
+
+/** To'lov holati har o'zgarganda yoziladi */
+model ServicePaymentEvent {
+  id        String         @id @default(uuid())
+  paymentId String
+  payment   ServicePayment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  status  ServicePaymentStatus
+  note    String?
+  actorId String?
+
+  createdAt DateTime @default(now())
+
+  @@index([paymentId, createdAt])
+}
+
+/**
+ * Shartnoma shabloni.
+ *
+ * Matn KODDA emas, bazada saqlanadi va versiyalanadi: shartnoma
+ * o'zgarganda yangi versiya qo'shiladi, eskisi tarix uchun qoladi —
+ * allaqachon imzolangan shartnomalar o'sha paytdagi matnga bog'liq
+ * bo'lib qolishi shart.
+ *
+ * Matn ichida `{{fullName}}` ko'rinishidagi o'rin egallar bo'ladi;
+ * ular hunarmand ma'lumotidan to'ldiriladi.
+ */
+model ContractTemplate {
+  id      String @id @default(uuid())
+  /** 1, 2, 3 ... — yangi tahrir har safar yangi raqam */
+  version Int    @unique
+  title   String
+  /** O'rin egallar bilan to'liq matn */
+  body    String
+
+  /** Faqat bitta versiya faol bo'ladi */
+  isActive Boolean @default(false)
+
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  contracts UserContract[]
+}
+
+/**
+ * Hunarmandning shartnomasi.
+ *
+ * `filledBody` — YARATILGAN PAYTDAGI to'ldirilgan matn nusxasi. Shablon
+ * keyin o'zgarsa ham, imzolangan shartnoma matni o'zgarmasligi kerak.
+ */
+model UserContract {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  templateId String
+  template   ContractTemplate @relation(fields: [templateId], references: [id])
+  /** Nusxa: shablon o'zgarsa ham shu matn qoladi */
+  filledBody String
+  /** Raqami: ECWT-SH-2026-000001 */
+  number String @unique
+
+  status ContractStatus @default(DRAFT)
+
+  /** Tashqi e-imzo tizimidagi hujjat identifikatori */
+  externalProvider String?
+  externalId       String?
+  /** Hujjatni ochish havolasi (tizim bergan) */
+  externalUrl String?
+
+  /** Imzolangan fayl (yuklangan bo'lsa) */
+  signedDocumentId String?
+  signedDocument   Document? @relation(fields: [signedDocumentId], references: [id])
+
+  /** Hunarmand ilovada tasdiqlagan payt */
+  acceptedAt DateTime?
+  /** Tasdiqlash paytidagi IP — keyin kim, qachon tasdiqlagani aniq bo'lsin */
+  acceptedIp String?
+  /**
+   * Tasdiqlangan matnning barmoq izi (SHA-256).
+   *
+   * Keyin matn o'zgarganini aniqlash uchun: hunarmand AYNAN shu matnni
+   * tasdiqlagan.
+   */
+  acceptedHash String?
+
+  sentAt   DateTime?
+  signedAt DateTime?
+  note     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, createdAt])
+}
+
+enum ContractStatus {
+  /** Tayyorlandi, hali tasdiqlanmagan */
+  DRAFT
+  /** Hunarmand ilovada o'qib, shartlarni qabul qildi */
+  ACCEPTED
+  /** E-imzo tizimiga yuborildi, imzo kutilmoqda */
+  SENT_FOR_SIGNING
+  /** Imzolandi */
+  SIGNED
+  /** Rad etildi yoki bekor qilindi */
+  DECLINED
 }

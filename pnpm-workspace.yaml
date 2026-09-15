@@ -1,35 +1,22 @@
 packages:
-  - "apps/*"
-  - "packages/*"
+  - 'apps/*'
+  - 'packages/*'
 
-# Expo (React Native) monorepo ichida symlink bilan ishlamaydi: Metro
-# `node_modules/.pnpm/...` ichidagi bog'lanishlarni ko'ra olmaydi va
-# "Unable to resolve module" xatosi bilan to'xtaydi.
-#
-# Bu sozlama `.npmrc` da ham yozilgan edi, lekin pnpm 10-versiyadan
-# boshlab O'ZIGA TEGISHLI sozlamalarni faqat shu fayldan o'qiydi —
-# `.npmrc` dagisi jimgina e'tiborsiz qolgan. Natijada ilova umuman
-# yig'ilmagan.
-nodeLinker: hoisted
-
-# Expo SDK 54 aynan React 19.1.0 ni talab qiladi. `node-linker=hoisted`
-# bo'lgani uchun butun monorepo'da bitta React nusxasi bo'ladi —
-# shuning uchun react va react-dom hamma joyda bir xil versiyaga qulflanadi.
-# Aks holda Next.js "Incompatible React versions" xatosi bilan qulaydi.
-overrides:
-  react: 19.1.0
-  react-dom: 19.1.0
-  "@types/react": ~19.1.0
-
-# pnpm xavfsizlik uchun paketlarning postinstall skriptlarini o'chirib qo'yadi.
-# Quyidagilarga ruxsat kerak — ularsiz loyiha ishlamaydi:
-#   prisma/@prisma/*  — ma'lumotlar bazasi klientini generatsiya qiladi
-#   esbuild, sharp    — platformaga mos ikkilik faylni yuklaydi
+# pnpm 11: postinstall skriptlariga aniq ruxsat (Prisma engine, esbuild va h.k.)
 allowBuilds:
-  "@prisma/client": true
-  "@prisma/engines": true
-  prisma: true
+  '@parcel/watcher': true
+  '@prisma/client': true
+  '@prisma/engines': true
+  '@scarf/scarf': false
+  # Sentry CLI binarysi: build paytida source map yuklash uchun kerak —
+  # busiz Sentry'da stack trace minifikatsiya qilingan holda ko'rinadi
+  '@sentry/cli': true
+  '@swc/core': true
   esbuild: true
+  prisma: true
   sharp: true
-  "@tailwindcss/oxide": true
   unrs-resolver: true
+
+minimumReleaseAgeExclude:
+  - expo-file-system@57.0.7
+  - expo-location@57.0.17

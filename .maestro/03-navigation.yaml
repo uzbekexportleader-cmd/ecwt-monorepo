@@ -1,0 +1,47 @@
+# Asosiy bo'limlar ochiladimi va qulab tushmaydimi
+#
+# "Ekran ochilmay qoldi" — eng ko'p uchraydigan regressiya. Bu test uni
+# har relizda ushlaydi.
+appId: uz.ecwt.mobile
+---
+- runFlow: 02-onboarding.yaml
+
+# --- Tab'lar ---
+- tapOn: 'Mahsulotlar'
+- assertVisible: 'Mahsulotlarim'
+
+- tapOn: 'Arizalar'
+- assertVisible: 'Arizalarim'
+
+- tapOn: 'Profil'
+- assertVisible: 'Mening profilim'
+
+# --- Profil ichidagi ekranlar ---
+- tapOn: 'Anketa'
+- assertVisible: 'Tasdiqlash holati'
+- back
+
+- tapOn: 'ECWT yordamchisi'
+- assertVisible: 'Nima bilan yordam bera olaman?'
+- back
+
+- tapOn: 'Bildirishnomalar'
+- assertVisible:
+    text: 'Bildirishnoma|Bildirishnomalar'
+- back
+
+- tapOn: 'Xavfsizlik'
+- assertVisible: 'Kirish himoyasi'
+- back
+
+- tapOn: 'Sozlamalar'
+- assertVisible: 'Ilova haqida'
+# Server bilan aloqa borligini tekshiramiz — API o'chiq bo'lsa test yiqiladi
+- assertVisible: 'Aloqa bor'
+- back
+
+# --- Mahsulot qo'shish ekrani ---
+- tapOn: 'Mahsulotlar'
+- tapOn: 'Mahsulot qo‘shish'
+- assertVisible: 'Mahsulot nomi'
+- back

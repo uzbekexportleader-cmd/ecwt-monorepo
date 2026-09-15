@@ -1,26 +1,25 @@
-import { Injectable, Logger } from '@nestjs/common';
-import type {
-  AuthResponse,
-  AuthUser,
-  ChangePasswordInput,
-  LoginInput,
-  RegisterInput,
-} from '@ecwt/contracts';
-import type { Prisma, User } from '@prisma/client';
-import { randomUUID } from 'node:crypto';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { createHash, randomInt } from 'node:crypto';
+import * as bcrypt from 'bcryptjs';
+import { OTP_LENGTH, OTP_MAX_ATTEMPTS, OTP_TTL_SECONDS } from '@ecwt/config';
+import type { AuthResponse, AuthTokens, OtpRequestResponse, SessionUser } from '@ecwt/types';
+
 import { PrismaService } from '../../prisma/prisma.service';
-import { AppError } from '../../common/errors';
-import { PasswordService } from './password.service';
-import { TokenService } from './token.service';
+import { ENV, limits, type Env } from '../../config/env';
+import { SMS_PROVIDER, type SmsProvider } from '../sms/sms.provider';
+import { AuditService } from '../../common/audit/audit.service';
 
-/** Ketma-ket shuncha xato kirishdan keyin akkaunt vaqtincha bloklanadi */
-const MAX_FAILED_LOGINS = 5;
-const LOCK_DURATION_MS = 15 * 60 * 1000;
-
-interface SessionContext {
+interface RequestMeta {
   ip?: string;
   userAgent?: string;
-  deviceId?: string;
 }
 
 @Injectable()
@@ -29,307 +28,353 @@ export class AuthService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly passwords: PasswordService,
-    private readonly tokens: TokenService,
+    private readonly jwt: JwtService,
+    private readonly audit: AuditService,
+    @Inject(ENV) private readonly env: Env,
+    @Inject(SMS_PROVIDER) private readonly sms: SmsProvider,
   ) {}
 
-  async register(input: RegisterInput, ctx: SessionContext): Promise<AuthResponse> {
-    // Email va telefon bandligini oldindan tekshiramiz — foydalanuvchiga
-    // aniq xabar berish uchun. Yakuniy kafolat baribir DB'dagi unique indeks.
-    const existing = await this.prisma.user.findFirst({
-      where: { OR: [{ email: input.email }, { phone: input.phone }] },
-      select: { email: true, phone: true },
-    });
+  /* ------------------------------- OTP -------------------------------- */
 
-    if (existing) {
-      throw AppError.conflict(
-        existing.email === input.email
-          ? 'Bu email allaqachon ro‘yxatdan o‘tgan'
-          : 'Bu telefon raqami allaqachon ro‘yxatdan o‘tgan',
+  async requestOtp(phone: string, meta: RequestMeta): Promise<OtpRequestResponse> {
+    const { otpResendCooldownSec, otpHourlyLimit } = limits(this.env);
+    const cooldownStart = new Date(Date.now() - otpResendCooldownSec * 1000);
+    const recent = await this.prisma.otpRequest.findFirst({
+      where: { phone, createdAt: { gt: cooldownStart } },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (recent) {
+      const waitSec = Math.ceil(
+        (recent.createdAt.getTime() + otpResendCooldownSec * 1000 - Date.now()) / 1000,
+      );
+      throw new BadRequestException(`Yangi kod so‘rash uchun ${waitSec} soniya kuting`);
+    }
+
+    // Spam himoyasi (productionda qat'iy, developmentda yumshoq)
+    const hourAgo = new Date(Date.now() - 3600_000);
+    const hourlyCount = await this.prisma.otpRequest.count({
+      where: { phone, createdAt: { gt: hourAgo } },
+    });
+    if (hourlyCount >= otpHourlyLimit) {
+      throw new BadRequestException(
+        'Bu raqamga juda ko‘p kod yuborildi. Biroz kutib, qayta urinib ko‘ring.',
       );
     }
 
-    const passwordHash = await this.passwords.hash(input.password);
+    const code = String(randomInt(0, 10 ** OTP_LENGTH)).padStart(OTP_LENGTH, '0');
+    const codeHash = await bcrypt.hash(code, 10);
+    const expiresAt = new Date(Date.now() + OTP_TTL_SECONDS * 1000);
 
-    // Foydalanuvchi va hamkor profili birga yaratiladi — biri yaratilib
-    // ikkinchisi yaratilmay qolishi mumkin emas.
-    const user = await this.prisma.user.create({
-      data: {
-        email: input.email,
-        phone: input.phone,
-        passwordHash,
-        fullName: input.fullName,
-        role: 'SUPPLIER',
-        status: 'ACTIVE',
-        locale: input.locale ?? 'uz',
-        supplier: {
-          create: {
-            companyName: input.companyName,
-            contactPhone: input.phone,
-            contactEmail: input.email,
-            status: 'DRAFT',
-          },
-        },
-      },
-      include: { supplier: { select: { id: true } } },
+    const request = await this.prisma.otpRequest.create({ data: { phone, codeHash, expiresAt } });
+
+    try {
+      /*
+       * Matn Eskiz.uz moderatsiya talabiga mos aniq shablonda:
+       * "Kodni hech kimga bermang! <resurs> ga kirish uchun tasdiqlash kodi: <kod>"
+       * Bu naqshdan chetga chiqqan matn ("ECWT tasdiqlash kodi: ...") avval
+       * moderatsiyadan o'tmasdan rad etilgan edi.
+       */
+      await this.sms.send(
+        phone,
+        `Kodni hech kimga bermang! ECWT ilovasiga kirish uchun tasdiqlash kodi: ${code}`,
+      );
+    } catch (error) {
+      /*
+       * SMS ketmasa yozuvni O'CHIRAMIZ.
+       *
+       * Aks holda foydalanuvchi hech qanday xabar olmagan holda "60 soniya
+       * kuting" chekloviga tushib qolardi va sababini tushunmasdi: Eskiz
+       * balansi tugagan yoki xizmat javob bermagan bo'lishi mumkin, lekin
+       * bu uning aybi emas. Yozuv o'chirilsa — darhol qayta urina oladi.
+       *
+       * O'chirishning o'zi ham xato bersa, asosiy sababni yashirmaymiz.
+       */
+      await this.prisma.otpRequest.delete({ where: { id: request.id } }).catch(() => undefined);
+      throw error;
+    }
+
+    await this.audit.record({
+      action: 'auth.otp.request',
+      entity: 'OtpRequest',
+      metadata: { phone: maskPhone(phone), provider: this.sms.name },
+      ip: meta.ip,
     });
 
-    this.logger.log(`Yangi hamkor ro‘yxatdan o‘tdi: ${user.id}`);
-
-    return this.createSessionResponse(user, user.supplier?.id ?? null, ctx);
+    const exposeDevCode = this.env.EXPOSE_DEV_OTP && this.env.NODE_ENV !== 'production';
+    return {
+      phone: maskPhone(phone),
+      expiresInSec: OTP_TTL_SECONDS,
+      ...(exposeDevCode ? { devCode: code } : {}),
+    };
   }
 
-  async login(input: LoginInput, ctx: SessionContext): Promise<AuthResponse> {
-    const user = await this.prisma.user.findUnique({
-      where: { email: input.email },
-      include: { supplier: { select: { id: true } } },
+  async verifyOtp(phone: string, code: string, meta: RequestMeta): Promise<AuthResponse> {
+    const otp = await this.prisma.otpRequest.findFirst({
+      where: { phone, consumedAt: null, expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: 'desc' },
     });
-
-    // Foydalanuvchi topilmasa ham parolni "tekshirgandek" vaqt sarflaymiz,
-    // aks holda javob tezligidan email bor-yo'qligini bilib olish mumkin.
-    if (!user) {
-      await this.passwords.verifyDummy(input.password);
-      throw AppError.unauthorized('Email yoki parol noto‘g‘ri');
+    if (!otp) {
+      throw new BadRequestException('Kod topilmadi yoki muddati tugagan. Yangi kod so‘rang.');
+    }
+    if (otp.attempts >= OTP_MAX_ATTEMPTS) {
+      throw new BadRequestException('Urinishlar tugadi. Yangi kod so‘rang.');
     }
 
-    if (user.lockedUntil && user.lockedUntil > new Date()) {
-      const minutes = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 60000);
-      throw AppError.forbidden(
-        `Ko‘p marta noto‘g‘ri urinish. ${minutes} daqiqadan keyin qayta urinib ko‘ring.`,
+    const matches = await bcrypt.compare(code, otp.codeHash);
+    if (!matches) {
+      await this.prisma.otpRequest.update({
+        where: { id: otp.id },
+        data: { attempts: { increment: 1 } },
+      });
+      const left = OTP_MAX_ATTEMPTS - otp.attempts - 1;
+      throw new BadRequestException(
+        left > 0 ? `Kod noto‘g‘ri. Yana ${left} ta urinish qoldi.` : 'Kod noto‘g‘ri. Yangi kod so‘rang.',
       );
     }
 
-    const valid = await this.passwords.verify(user.passwordHash, input.password);
+    await this.prisma.otpRequest.update({
+      where: { id: otp.id },
+      data: { consumedAt: new Date() },
+    });
 
-    if (!valid) {
-      await this.registerFailedLogin(user);
-      throw AppError.unauthorized('Email yoki parol noto‘g‘ri');
+    const user = await this.prisma.user.upsert({
+      where: { phone },
+      create: { phone },
+      update: { lastLoginAt: new Date() },
+      include: { profile: { select: { id: true } } },
+    });
+
+    if (!user.isActive) {
+      throw new ForbiddenException('Akkaunt bloklangan. Qo‘llab-quvvatlash xizmatiga murojaat qiling.');
     }
 
-    if (user.status === 'SUSPENDED') {
-      throw AppError.forbidden('Akkauntingiz to‘xtatilgan. Qo‘llab-quvvatlash xizmatiga murojaat qiling.');
+    // Birinchi kirishda bo'sh profil yaratamiz — keyingi ekranlar shu profilni to'ldiradi
+    if (!user.profile) {
+      await this.prisma.artisanProfile.create({ data: { userId: user.id } });
+    }
+
+    const tokens = await this.issueTokens(user.id, user.phone, user.role, meta);
+    await this.audit.record({
+      actorId: user.id,
+      actorName: user.fullName ?? maskPhone(user.phone),
+      action: 'auth.login.otp',
+      entity: 'User',
+      entityId: user.id,
+      ip: meta.ip,
+    });
+
+    return { ...tokens, user: await this.toSessionUser(user.id) };
+  }
+
+  /* ----------------------------- admin login --------------------------- */
+
+  async adminLogin(phone: string, password: string, meta: RequestMeta): Promise<AuthResponse> {
+    const user = await this.prisma.user.findUnique({ where: { phone } });
+    if (!user?.passwordHash) {
+      throw new UnauthorizedException('Telefon raqami yoki parol noto‘g‘ri');
+    }
+    if (user.role === 'USER') {
+      throw new ForbiddenException('Bu bo‘limga kirish huquqingiz yo‘q');
+    }
+    const ok = await bcrypt.compare(password, user.passwordHash);
+    if (!ok) {
+      throw new UnauthorizedException('Telefon raqami yoki parol noto‘g‘ri');
+    }
+    if (!user.isActive) throw new ForbiddenException('Akkaunt bloklangan');
+
+    await this.prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+    const tokens = await this.issueTokens(user.id, user.phone, user.role, meta);
+    await this.audit.record({
+      actorId: user.id,
+      actorName: user.fullName ?? maskPhone(user.phone),
+      action: 'auth.login.admin',
+      entity: 'User',
+      entityId: user.id,
+      ip: meta.ip,
+    });
+    return { ...tokens, user: await this.toSessionUser(user.id) };
+  }
+
+  /* --------------------- parol bilan kirish (USER) --------------------- */
+
+  /**
+   * Telefon + parol bilan kirish.
+   *
+   * `adminLogin` dan farqi: bu yerda oddiy foydalanuvchi ham kira oladi.
+   * Admin/xodimlar baribir o'z endpointidan kirishi kerak — rollarni bir
+   * joyda aralashtirmaymiz.
+   *
+   * XAVFSIZLIK: raqam topilmasa ham, parol xato bo'lsa ham BIR XIL xabar
+   * qaytadi. Aks holda ilova "bu raqam ro'yxatdan o'tganmi yo'qmi" degan
+   * savolga javob beruvchi asbobga aylanadi.
+   */
+  async login(phone: string, password: string, meta: RequestMeta): Promise<AuthResponse> {
+    const invalid = new UnauthorizedException('Telefon raqami yoki parol noto‘g‘ri');
+
+    const user = await this.prisma.user.findUnique({ where: { phone } });
+    if (!user?.passwordHash) throw invalid;
+
+    const ok = await bcrypt.compare(password, user.passwordHash);
+    if (!ok) throw invalid;
+
+    if (!user.isActive) throw new ForbiddenException('Akkaunt bloklangan');
+
+    await this.prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+    const tokens = await this.issueTokens(user.id, user.phone, user.role, meta);
+    await this.audit.record({
+      actorId: user.id,
+      actorName: user.fullName ?? maskPhone(user.phone),
+      action: 'auth.login.password',
+      entity: 'User',
+      entityId: user.id,
+      ip: meta.ip,
+    });
+    return { ...tokens, user: await this.toSessionUser(user.id) };
+  }
+
+  /**
+   * Parol o'rnatish yoki almashtirish.
+   *
+   * Parol allaqachon bo'lsa — joriy parol so'raladi. Busiz telefonni qo'lga
+   * kiritgan odam parolni jimgina almashtirib, haqiqiy egasini hisobidan
+   * chiqarib yuborishi mumkin edi.
+   *
+   * Parol o'rnatilgach BOSHQA sessiyalar bekor qilinmaydi: foydalanuvchi
+   * o'zining boshqa qurilmalaridan chiqib qolmasligi kerak.
+   */
+  async setPassword(userId: string, currentPassword: string | undefined, newPassword: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('Foydalanuvchi topilmadi');
+
+    if (user.passwordHash) {
+      if (!currentPassword) {
+        throw new BadRequestException('Joriy parolni kiriting');
+      }
+      const ok = await bcrypt.compare(currentPassword, user.passwordHash);
+      if (!ok) throw new UnauthorizedException('Joriy parol noto‘g‘ri');
     }
 
     await this.prisma.user.update({
-      where: { id: user.id },
-      data: { failedLoginCount: 0, lockedUntil: null, lastLoginAt: new Date() },
+      where: { id: userId },
+      data: { passwordHash: await bcrypt.hash(newPassword, 10) },
     });
 
-    return this.createSessionResponse(user, user.supplier?.id ?? null, {
-      ...ctx,
-      deviceId: input.deviceId ?? ctx.deviceId,
-    });
-  }
-
-  /**
-   * Refresh token almashtirish (rotation): eski token darhol bekor qilinadi.
-   * Agar allaqachon bekor qilingan token ishlatilsa — bu o'g'irlangan token
-   * belgisi, shuning uchun foydalanuvchining BARCHA sessiyalari yopiladi.
-   */
-  async refresh(refreshToken: string, ctx: SessionContext): Promise<AuthResponse> {
-    const hash = TokenService.hashRefreshToken(refreshToken);
-
-    const session = await this.prisma.session.findUnique({
-      where: { refreshTokenHash: hash },
-      include: { user: { include: { supplier: { select: { id: true } } } } },
-    });
-
-    if (!session) throw AppError.unauthorized('Sessiya topilmadi, qaytadan kiring');
-
-    if (session.revokedAt) {
-      this.logger.warn(
-        `Bekor qilingan refresh token ishlatildi (user=${session.userId}). Barcha sessiyalar yopildi.`,
-      );
-      await this.revokeAllSessions(session.userId);
-      throw AppError.unauthorized('Xavfsizlik sababli barcha sessiyalar yopildi, qaytadan kiring');
-    }
-
-    if (session.expiresAt < new Date()) {
-      throw AppError.unauthorized('Sessiya muddati tugagan, qaytadan kiring');
-    }
-
-    if (session.user.status === 'SUSPENDED') {
-      await this.revokeAllSessions(session.userId);
-      throw AppError.forbidden('Akkauntingiz to‘xtatilgan');
-    }
-
-    // Sessiya ID'sini oldindan o'zimiz beramiz — shunda token va yozuv
-    // bitta amalda yaratiladi (avval yozib, keyin yangilash kerak emas).
-    const supplierId = session.user.supplier?.id ?? null;
-    const newSessionId = randomUUID();
-
-    const issued = await this.tokens.issue({
-      userId: session.userId,
-      role: session.user.role,
-      supplierId,
-      sessionId: newSessionId,
-    });
-
-    // Eskisini yopish va yangisini ochish — ajralmas bitta amal.
-    // `revokedAt: null` sharti ikki parallel refresh'dan faqat bittasi
-    // o'tishini kafolatlaydi.
-    await this.prisma.$transaction(async (tx) => {
-      const revoked = await tx.session.updateMany({
-        where: { id: session.id, revokedAt: null },
-        data: { revokedAt: new Date() },
-      });
-
-      if (revoked.count === 0) {
-        // Boshqa so'rov bizdan oldin ulgurdi
-        throw AppError.unauthorized('Sessiya yangilandi, qaytadan urinib ko‘ring');
-      }
-
-      await tx.session.create({
-        data: {
-          id: newSessionId,
-          userId: session.userId,
-          refreshTokenHash: issued.refreshTokenHash,
-          expiresAt: issued.refreshExpiresAt,
-          ip: ctx.ip ?? session.ip,
-          userAgent: ctx.userAgent ?? session.userAgent,
-          deviceId: session.deviceId,
-        },
-      });
-    });
-
-    return { user: toAuthUser(session.user, supplierId), tokens: issued.tokens };
-  }
-
-  async logout(sessionId: string): Promise<void> {
-    // updateMany — sessiya topilmasa ham xato bermaydi (chiqish har doim ishlashi kerak)
-    await this.prisma.session.updateMany({
-      where: { id: sessionId, revokedAt: null },
-      data: { revokedAt: new Date() },
+    await this.audit.record({
+      actorId: userId,
+      actorName: user.fullName ?? maskPhone(user.phone),
+      action: user.passwordHash ? 'auth.password.changed' : 'auth.password.set',
+      entity: 'User',
+      entityId: userId,
     });
   }
 
-  async logoutAll(userId: string): Promise<void> {
-    await this.revokeAllSessions(userId);
-  }
-
-  async me(userId: string): Promise<AuthUser> {
+  /** Foydalanuvchida parol bormi — mobil ilova kirish ekranini shunga qarab chizadi */
+  async hasPassword(userId: string): Promise<boolean> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      include: { supplier: { select: { id: true } } },
+      select: { passwordHash: true },
     });
-
-    if (!user) throw AppError.notFound('Foydalanuvchi topilmadi');
-
-    return toAuthUser(user, user.supplier?.id ?? null);
+    return Boolean(user?.passwordHash);
   }
 
-  async changePassword(userId: string, input: ChangePasswordInput, keepSessionId: string): Promise<void> {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw AppError.notFound('Foydalanuvchi topilmadi');
+  /* ------------------------------ refresh ------------------------------ */
 
-    const valid = await this.passwords.verify(user.passwordHash, input.currentPassword);
-    if (!valid) throw AppError.validation('Joriy parol noto‘g‘ri', { currentPassword: ['Parol noto‘g‘ri'] });
-
-    const passwordHash = await this.passwords.hash(input.newPassword);
-
-    // Parol o'zgargach boshqa barcha qurilmalardagi sessiyalar yopiladi
-    await this.prisma.$transaction([
-      this.prisma.user.update({ where: { id: userId }, data: { passwordHash } }),
-      this.prisma.session.updateMany({
-        where: { userId, revokedAt: null, id: { not: keepSessionId } },
-        data: { revokedAt: new Date() },
-      }),
-    ]);
-
-    this.logger.log(`Parol o‘zgartirildi: user=${userId}`);
-  }
-
-  /**
-   * Bitta sessiyani yopish. `userId` sharti muhim — foydalanuvchi faqat
-   * O'ZINING sessiyasini yopa oladi, boshqasinikini emas.
-   */
-  async revokeSession(userId: string, sessionId: string): Promise<void> {
-    const result = await this.prisma.session.updateMany({
-      where: { id: sessionId, userId, revokedAt: null },
-      data: { revokedAt: new Date() },
-    });
-
-    if (result.count === 0) throw AppError.notFound('Sessiya topilmadi');
-  }
-
-  async listSessions(userId: string, currentSessionId: string) {
-    const sessions = await this.prisma.session.findMany({
-      where: { userId, revokedAt: null, expiresAt: { gt: new Date() } },
-      orderBy: { lastUsedAt: 'desc' },
-      select: {
-        id: true,
-        ip: true,
-        userAgent: true,
-        deviceId: true,
-        createdAt: true,
-        lastUsedAt: true,
-      },
-    });
-
-    return sessions.map((s) => ({ ...s, isCurrent: s.id === currentSessionId }));
-  }
-
-  // -------------------------------------------------------------------------
-
-  private async createSessionResponse(
-    user: User,
-    supplierId: string | null,
-    ctx: SessionContext,
-  ): Promise<AuthResponse> {
-    const sessionId = randomUUID();
-
-    const issued = await this.tokens.issue({
-      userId: user.id,
-      role: user.role,
-      supplierId,
-      sessionId,
-    });
-
-    await this.prisma.session.create({
-      data: {
-        id: sessionId,
-        userId: user.id,
-        refreshTokenHash: issued.refreshTokenHash,
-        expiresAt: issued.refreshExpiresAt,
-        ip: ctx.ip,
-        userAgent: ctx.userAgent?.slice(0, 400),
-        deviceId: ctx.deviceId,
-      },
-    });
-
-    return { user: toAuthUser(user, supplierId), tokens: issued.tokens };
-  }
-
-  private async registerFailedLogin(user: User): Promise<void> {
-    const nextCount = user.failedLoginCount + 1;
-    const data: Prisma.UserUpdateInput = { failedLoginCount: nextCount };
-
-    if (nextCount >= MAX_FAILED_LOGINS) {
-      data.lockedUntil = new Date(Date.now() + LOCK_DURATION_MS);
-      data.failedLoginCount = 0;
-      this.logger.warn(`Akkaunt vaqtincha bloklandi: user=${user.id}`);
+  async refresh(refreshToken: string, meta: RequestMeta): Promise<AuthTokens> {
+    let payload: { sub: string; sid: string };
+    try {
+      payload = await this.jwt.verifyAsync(refreshToken, { secret: this.env.JWT_REFRESH_SECRET });
+    } catch {
+      throw new UnauthorizedException('Sessiya yaroqsiz. Qaytadan kiring.');
     }
 
-    await this.prisma.user.update({ where: { id: user.id }, data });
-  }
+    const hash = sha256(refreshToken);
+    const session = await this.prisma.session.findFirst({
+      where: { id: payload.sid, refreshTokenHash: hash, revokedAt: null, expiresAt: { gt: new Date() } },
+      include: { user: true },
+    });
+    if (!session) {
+      // Ehtimoliy token o'g'irlanishi: shu foydalanuvchining barcha sessiyalarini bekor qilamiz
+      await this.prisma.session.updateMany({
+        where: { userId: payload.sub, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+      throw new UnauthorizedException('Sessiya bekor qilingan. Qaytadan kiring.');
+    }
 
-  private async revokeAllSessions(userId: string): Promise<void> {
-    await this.prisma.session.updateMany({
-      where: { userId, revokedAt: null },
+    await this.prisma.session.update({
+      where: { id: session.id },
       data: { revokedAt: new Date() },
     });
+
+    return this.issueTokens(session.userId, session.user.phone, session.user.role, meta);
+  }
+
+  async logout(refreshToken: string): Promise<void> {
+    const hash = sha256(refreshToken);
+    await this.prisma.session.updateMany({
+      where: { refreshTokenHash: hash, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+  }
+
+  /* ------------------------------ yordamchi ---------------------------- */
+
+  private async issueTokens(
+    userId: string,
+    phone: string,
+    role: string,
+    meta: RequestMeta,
+  ): Promise<AuthTokens> {
+    const expiresAt = new Date(Date.now() + this.env.JWT_REFRESH_TTL_DAYS * 86_400_000);
+    const session = await this.prisma.session.create({
+      data: {
+        userId,
+        refreshTokenHash: 'pending',
+        expiresAt,
+        ip: meta.ip ?? null,
+        userAgent: meta.userAgent ?? null,
+      },
+    });
+
+    const accessToken = await this.jwt.signAsync(
+      { sub: userId, phone, role },
+      { secret: this.env.JWT_ACCESS_SECRET, expiresIn: this.env.JWT_ACCESS_TTL },
+    );
+    const refreshToken = await this.jwt.signAsync(
+      { sub: userId, sid: session.id },
+      { secret: this.env.JWT_REFRESH_SECRET, expiresIn: this.env.JWT_REFRESH_TTL_DAYS * 86_400 },
+    );
+
+    await this.prisma.session.update({
+      where: { id: session.id },
+      data: { refreshTokenHash: sha256(refreshToken) },
+    });
+
+    return { accessToken, refreshToken, expiresIn: this.env.JWT_ACCESS_TTL };
+  }
+
+  async toSessionUser(userId: string): Promise<SessionUser> {
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      include: { profile: { select: { id: true, completionPercent: true } } },
+    });
+    return {
+      id: user.id,
+      phone: user.phone,
+      role: user.role,
+      locale: user.locale,
+      fullName: user.fullName,
+      hasProfile: !!user.profile,
+    };
   }
 }
 
-function toAuthUser(user: User, supplierId: string | null): AuthUser {
-  return {
-    id: user.id,
-    email: user.email,
-    phone: user.phone,
-    fullName: user.fullName,
-    role: user.role,
-    status: user.status,
-    locale: user.locale,
-    supplierId,
-  };
+function sha256(value: string): string {
+  return createHash('sha256').update(value).digest('hex');
+}
+
+function maskPhone(phone: string): string {
+  const d = phone.replace(/\D/g, '');
+  if (d.length !== 12) return '***';
+  return `+${d.slice(0, 3)} ${d.slice(3, 5)} *** ** ${d.slice(10)}`;
 }

@@ -1,50 +1,47 @@
+# Dependencies
 node_modules/
 .pnpm-store/
 
-# Build natijalari
+# Build
 dist/
-build/
 .next/
-out/
-.turbo/
+build/
 *.tsbuildinfo
-
-# Muhit o'zgaruvchilari — HECH QACHON git'ga yuklamang
-.env
-.env.local
-.env.*.local
-!.env.example
 
 # Expo
 .expo/
-.expo-shared/
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
-android/
-ios/
+web-build/
 
-# Loglar
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Lokal dev bazasi (PGlite).
+# Papka nomi .pgdata2 — ichida sinov shaxsiy maʼlumotlari bor,
+# hech qachon omborga tushmasligi kerak.
+.pgdata*/
+
+# Yuklangan fayllar (lokal storage driver)
+apps/api/uploads/*
+!apps/api/uploads/.gitkeep
+
+# Prisma generated client
+apps/api/src/generated/
+
+# Logs / OS
 *.log
 npm-debug.log*
-yarn-debug.log*
-pnpm-debug.log*
-
-# OS / muharrir
 .DS_Store
 Thumbs.db
+
+# IDE
+.idea/
 .vscode/*
 !.vscode/extensions.json
-.idea/
 
-# Test
-coverage/
+# Expo web eksporti (build natijasi)
+dist-web/
 
-# Yuklangan fayllar (lokal)
-uploads/
-
-# .env nusxalari va mahalliy vositalar (sirlar, binary fayllar)
-*.env.backup
-/tools/
+# Yuklab olingan APK (build natijasi)
+.apk/

@@ -1,0 +1,46 @@
+# Kirish oqimi: Xush kelibsiz → telefon → OTP → kirish
+#
+# Bu ilovaning eng muhim yo'li: shu yerda nimadir buzilsa, HECH KIM
+# ilovaga kira olmaydi. Shuning uchun birinchi test — aynan shu.
+#
+# Shart: apps/api/.env da EXPOSE_DEV_OTP=true (kod ekranda ko'rinadi).
+appId: uz.ecwt.mobile
+---
+- launchApp:
+    clearState: true
+
+# Splash videosi ~8 soniya davom etadi
+- extendedWaitUntil:
+    visible: 'Ro‘yxatdan o‘tish'
+    timeout: 25000
+
+- tapOn: 'Ro‘yxatdan o‘tish'
+
+# --- Telefon raqami ---
+- assertVisible: 'Telefon raqamingizni kiriting'
+- tapOn:
+    id: 'phone-input'
+- inputText: '901234567'
+- tapOn:
+    id: 'phone-submit'
+
+# --- OTP ---
+- extendedWaitUntil:
+    visible: 'Tasdiqlash kodi'
+    timeout: 15000
+
+# Sinov rejimidagi banner: "Sinov rejimi: tasdiqlash kodi 123456"
+- copyTextFrom:
+    text: '.*tasdiqlash kodi.*'
+- evalScript: ${output.otp = maestro.copiedText.match(/\d{6}/)[0]}
+
+- tapOn:
+    id: 'otp-input'
+- inputText: ${output.otp}
+
+# --- Kirish muvaffaqiyatli: keyingi ekran ochiladi ---
+# Qurilmaga qarab Face ID yoki biometrika ekrani chiqadi
+- extendedWaitUntil:
+    visible:
+      text: 'Kameraga ruxsat kerak|Biometrik|Shaxsiy ma’lumotlaringiz'
+    timeout: 15000

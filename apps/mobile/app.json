@@ -1,51 +1,112 @@
 {
   "expo": {
-    "name": "ECWT Hamkor",
-    "slug": "ecwt-partner",
-    "version": "1.0.0",
-    "orientation": "portrait",
+    "name": "ECWT",
+    "slug": "ecwt-mobile",
     "scheme": "ecwt",
-    "userInterfaceStyle": "light",
+    "version": "0.3.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#050B1A",
     "newArchEnabled": true,
     "splash": {
+      "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0f2340"
+      "backgroundColor": "#050B1A"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "uz.ecwt.partner"
+      "bundleIdentifier": "uz.ecwt.mobile",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Mahsulot va hujjat rasmlarini yuklash uchun galereyaga ruxsat kerak.",
+        "NSCameraUsageDescription": "Shaxsingizni tasdiqlash uchun yuzingiz suratini olamiz.",
+        "NSFaceIDUsageDescription": "ECWT ilovasiga tez va xavfsiz kirish uchun Face ID dan foydalanadi."
+      }
     },
     "android": {
-      "package": "uz.ecwt.partner",
+      "package": "uz.ecwt.mobile",
       "adaptiveIcon": {
-        "backgroundColor": "#0f2340"
+        "backgroundColor": "#050B1A",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "edgeToEdgeEnabled": true
+      "predictiveBackGestureEnabled": false,
+      "edgeToEdgeEnabled": true,
+      "softwareKeyboardLayoutMode": "resize",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.CAMERA"
+      ],
+      "versionCode": 9
     },
     "web": {
-      "bundler": "metro",
-      "output": "static"
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
     },
     "plugins": [
       "expo-router",
       "expo-secure-store",
+      "expo-localization",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/android-icon-monochrome.png",
+          "color": "#00C2E0",
+          "defaultChannel": "default"
+        }
+      ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "ECWT ilovasi mahsulot rasmlarini yuklash uchun galereyaga ruxsat so‘raydi."
+          "photosPermission": "ECWT mahsulot va hujjat rasmlarini yuklash uchun galereyadan foydalanadi."
         }
       ],
-      "expo-video"
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "ECWT profilingizda ustaxona yoki yashash manzilingizni GPS orqali avtomatik to'ldirish uchun joylashuvingizdan foydalanadi."
+        }
+      ],
+      "expo-splash-screen",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "ECWT ilovasiga tez va xavfsiz kirish uchun Face ID dan foydalanadi."
+        }
+      ],
+      [
+        "react-native-vision-camera",
+        {
+          "cameraPermissionText": "Shaxsingizni tasdiqlash uchun yuzingiz suratini olamiz.",
+          "enableMicrophonePermission": false
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 26,
+            "buildArchs": [
+              "arm64-v8a"
+            ]
+          }
+        }
+      ],
+      "./plugins/withCameraXVersion",
+      "expo-web-browser",
+      "expo-sharing"
     ],
     "experiments": {
-      "typedRoutes": true
+      "typedRoutes": false
     },
+    "owner": "ecwt-uz",
     "extra": {
+      "router": {},
       "eas": {
-        "projectId": ""
+        "projectId": "9e8fb02b-c9a9-406f-9dc9-28d0221a73c5"
       }
     }
   }

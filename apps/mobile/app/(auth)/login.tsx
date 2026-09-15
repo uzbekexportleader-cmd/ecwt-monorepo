@@ -1,148 +1,227 @@
-import { useState } from 'react';
-import { Link } from 'expo-router';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
-import { loginSchema } from '@ecwt/contracts';
-import { useAuth } from '@/auth/AuthContext';
-import { useLocale } from '@/i18n/LocaleContext';
-import { ApiError } from '@/api/client';
-import { Button, ErrorBanner, Field } from '@/components/ui';
-import { colors, fontSize, spacing } from '@/theme';
+import React, { useEffect, useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { phoneSchema } from '@ecwt/validation';
 
+import { Text } from '../../src/components/AppText';
+import { Button } from '../../src/components/ui';
+import { TextField } from '../../src/components/form';
+import { StepNav } from '../../src/components/StepNav';
+import { KeyboardAwareScroll } from '../../src/components/KeyboardAwareScroll';
+import { api, EcwtApiError, tokenStorage } from '../../src/api/client';
+import { useAuthStore } from '../../src/store/auth';
+import { authenticate, getBiometricInfo } from '../../src/services/biometrics';
+import { toastError } from '../../src/store/toast';
+import { useT } from '../../src/i18n';
+import { colors, layout, spacing, typography } from '../../src/theme';
+
+/** Telefon raqamini ko'rinadigan ko'rinishga keltiradi: 90 123 45 67 */
+function formatLocal(digits: string): string {
+  const d = digits.slice(0, 9);
+  const parts = [d.slice(0, 2), d.slice(2, 5), d.slice(5, 7), d.slice(7, 9)].filter(Boolean);
+  return parts.join(' ');
+}
+
+/**
+ * Hisobga kirish: parol yoki biometrika orqali.
+ *
+ * IKKI USUL — IKKI XIL NARSA:
+ *
+ *  1. Telefon + parol — SERVER autentifikatsiyasi. Istalgan qurilmada
+ *     ishlaydi, chunki tekshiruv serverda bo'ladi.
+ *
+ *  2. Face ID / barmoq izi — QURILMADAGI saqlangan sessiyani ochadi.
+ *     Serverga ulanmaydi, shuning uchun faqat shu telefonda avval kirgan
+ *     bo'lsangiz ishlaydi. Saqlangan sessiya bo'lmasa tugma baribir
+ *     ko'rsatiladi (imkoniyat borligi bilinsin), lekin bosilganda sababi
+ *     tushuntiriladi.
+ *
+ * Paroli yo'q foydalanuvchi uchun pastda SMS orqali kirish yo'li turadi.
+ */
 export default function LoginScreen() {
-  const { login } = useAuth();
-  const { t } = useLocale();
+  const t = useT();
+  const router = useRouter();
+  const applyAuth = useAuthStore((s) => s.applyAuth);
+  const unlock = useAuthStore((s) => s.unlock);
 
-  const [email, setEmail] = useState('');
+  const [raw, setRaw] = useState('');
   const [password, setPassword] = useState('');
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [formError, setFormError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>();
 
-  async function handleSubmit(): Promise<void> {
-    setErrors({});
-    setFormError(null);
+  /**
+   * Biometrika holati.
+   *
+   * `available` — qurilmada yuz/barmoq izi sozlanganmi.
+   * `hasSession` — shu telefonda saqlangan hisob bormi.
+   *
+   * Tugma qurilma qo'llab-quvvatlasa HAR DOIM ko'rsatiladi: foydalanuvchi
+   * bunday imkoniyat borligini bilishi kerak. Sessiya bo'lmasa — bosilganda
+   * sababi tushuntiriladi, jimgina yo'q bo'lib ketmaydi.
+   */
+  const [bio, setBio] = useState<{ available: boolean; hasSession: boolean; label: string }>({
+    available: false,
+    hasSession: false,
+    label: '',
+  });
 
-    // Saytdagi bilan AYNAN bir xil sxema — qoidalar farq qilmaydi
-    const parsed = loginSchema.safeParse({ email, password });
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const [info, refreshToken] = await Promise.all([
+        getBiometricInfo(),
+        Promise.resolve(tokenStorage.getRefreshToken()),
+      ]);
+      if (cancelled) return;
+      setBio({
+        available: info.available,
+        hasSession: Boolean(refreshToken),
+        label: info.label,
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
+  const digits = raw.replace(/\D/g, '').slice(0, 9);
+  const canSubmit = digits.length === 9 && password.length > 0 && !loading;
+
+  const submit = async () => {
+    const parsed = phoneSchema.safeParse(`998${digits}`);
     if (!parsed.success) {
-      const fieldErrors: Record<string, string> = {};
-      for (const issue of parsed.error.issues) {
-        const key = issue.path[0];
-        if (typeof key === 'string' && !fieldErrors[key]) fieldErrors[key] = issue.message;
-      }
-      setErrors(fieldErrors);
+      setError(t('auth.phone.invalid'));
+      return;
+    }
+    setLoading(true);
+    setError(undefined);
+    try {
+      const auth = await api.auth.login(parsed.data, password);
+      await applyAuth(auth);
+      router.replace('/(tabs)');
+    } catch (e) {
+      setError(e instanceof EcwtApiError ? e.message : t('common.error'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /** Biometrika — qurilmadagi sessiyani ochadi, serverga so'rov ketmaydi */
+  const loginWithBiometrics = async () => {
+    /*
+     * Biometrika serverda SHAXSNI tasdiqlamaydi — u faqat shu telefonda
+     * saqlangan sessiyani ochadi. Sessiya bo'lmasa ochadigan narsa yo'q,
+     * shuning uchun sababini ochiq aytamiz.
+     */
+    if (!bio.hasSession) {
+      toastError(t('login.noSession'));
       return;
     }
 
-    setSubmitting(true);
-
-    try {
-      await login(parsed.data);
-      // Yo'naltirishni RootNavigator bajaradi
-    } catch (error) {
-      setFormError(error instanceof ApiError ? error.message : t.common.error);
-    } finally {
-      setSubmitting(false);
+    const result = await authenticate(t('login.title'), { fallbackToPasscode: true });
+    if (!result.success) {
+      if (!result.cancelled && result.message) toastError(result.message);
+      return;
     }
-  }
+    unlock();
+    router.replace('/(tabs)');
+  };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.brand}>
-          <View style={styles.logo}>
-            <Text style={styles.logoText}>E</Text>
-          </View>
-          <Text style={styles.brandName}>ECWT</Text>
-        </View>
+    <View style={layout.screenClear}>
+      <StepNav onBack={() => router.replace('/(auth)/welcome')} />
 
-        <Text style={styles.title}>{t.auth.loginTitle}</Text>
-        <Text style={styles.subtitle}>{t.auth.loginSubtitle}</Text>
+      <SafeAreaView style={{ flex: 1 }}>
+        <KeyboardAwareScroll contentContainerStyle={styles.body} extraBottom={spacing['3xl']}>
+          <Text style={[typography.display, { marginTop: spacing.xl }]}>{t('login.title')}</Text>
 
-        <View style={styles.form}>
-          <Field
-            label={t.auth.email}
-            value={email}
-            onChangeText={setEmail}
-            error={errors.email}
-            autoCapitalize="none"
-            autoComplete="email"
-            keyboardType="email-address"
-            placeholder="siz@kompaniya.uz"
+          <View style={{ height: spacing['2xl'] }} />
+
+          <TextField
+            testID="login-phone"
+            label={t('auth.phone.label')}
+            value={formatLocal(digits)}
+            onChangeText={setRaw}
+            placeholder="90 123 45 67"
+            keyboardType="number-pad"
+            prefix="+998"
+            maxLength={12}
           />
 
-          <Field
-            label={t.auth.password}
+          <View style={{ height: spacing.lg }} />
+
+          <TextField
+            testID="login-password"
+            label={t('login.password')}
             value={password}
             onChangeText={setPassword}
-            error={errors.password}
+            placeholder="••••••••"
+            autoCapitalize="none"
             secureTextEntry
-            autoComplete="current-password"
+            error={error}
           />
 
-          {formError ? <ErrorBanner message={formError} /> : null}
+          <View style={{ height: spacing.xl }} />
+          <Button
+            testID="login-submit"
+            title={t('login.submit')}
+            onPress={() => void submit()}
+            disabled={!canSubmit}
+            loading={loading}
+          />
 
-          <Button title={t.auth.login} onPress={handleSubmit} loading={submitting} />
-        </View>
+          {bio.available ? (
+            <>
+              <View style={styles.divider}>
+                <View style={styles.line} />
+                <Text style={typography.caption}>{t('login.or')}</Text>
+                <View style={styles.line} />
+              </View>
 
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>{t.auth.noAccount} </Text>
-          <Link href="/(auth)/register" style={styles.footerLink}>
-            {t.auth.register}
-          </Link>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+              <Button
+                title={t('login.biometric', { label: bio.label })}
+                variant="secondary"
+                icon="finger-print-outline"
+                onPress={() => void loginWithBiometrics()}
+              />
+            </>
+          ) : null}
+
+          <Pressable
+            onPress={() => router.replace('/(auth)/phone')}
+            hitSlop={12}
+            style={{ marginTop: spacing['2xl'], alignSelf: 'center' }}
+            accessibilityRole="link"
+          >
+            <Text style={styles.link}>{t('login.forgot')}</Text>
+          </Pressable>
+
+          <View style={styles.note}>
+            <Ionicons name="information-circle-outline" size={16} color={colors.textMuted} />
+            <Text style={[typography.caption, { flex: 1 }]}>{t('password.why')}</Text>
+          </View>
+        </KeyboardAwareScroll>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.brand50 },
-  content: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: spacing.xl,
-    gap: spacing.sm,
-  },
-  brand: {
+  body: { paddingHorizontal: spacing.xl, paddingTop: spacing.lg },
+  divider: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    marginBottom: spacing.xl,
+    marginVertical: spacing.xl,
   },
-  logo: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: colors.brand800,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoText: { color: colors.white, fontSize: fontSize.lg, fontWeight: '700' },
-  brandName: { fontSize: fontSize.xl, fontWeight: '700', color: colors.brand950 },
-  title: { fontSize: fontSize.xxl, fontWeight: '700', color: colors.brand950 },
-  subtitle: { fontSize: fontSize.sm, color: colors.brand500, marginBottom: spacing.lg },
-  form: { gap: spacing.lg },
-  footer: {
+  line: { flex: 1, height: 1, backgroundColor: colors.border },
+  link: { ...typography.small, color: colors.primary, textAlign: 'center' },
+  note: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: spacing.xl,
+    gap: spacing.sm,
+    alignItems: 'flex-start',
+    marginTop: spacing['2xl'],
   },
-  footerText: { fontSize: fontSize.sm, color: colors.brand500 },
-  footerLink: { fontSize: fontSize.sm, color: colors.brand700, fontWeight: '600' },
 });

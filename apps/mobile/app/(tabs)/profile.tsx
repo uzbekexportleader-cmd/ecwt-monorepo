@@ -1,154 +1,140 @@
-import { Alert, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { LOCALES, LOCALE_LABELS, UZ_REGION_LABELS, type Supplier } from '@ecwt/contracts';
-import { useApi } from '@/api/use-api';
-import { useAuth } from '@/auth/AuthContext';
-import { useLocale } from '@/i18n/LocaleContext';
-import { Badge, Button, Card, ErrorBanner, Loading } from '@/components/ui';
-import { supplierStatus } from '@/lib/status-labels';
-import { formatUsd } from '@/lib/format';
-import { colors, fontSize, radius, spacing } from '@/theme';
+import React from 'react';
+import { Alert, StyleSheet, View } from 'react-native';
+import { Text } from '../../src/components/AppText';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+
+import { useCompletion, useProfile } from '../../src/api/queries';
+import { useAuthStore } from '../../src/store/auth';
+import {
+  Card,
+  Chip,
+  ErrorView,
+  ListRow,
+  LoadingView,
+  ProgressBar,
+  Screen,
+  SectionHeader,
+} from '../../src/components/ui';
+import { colors, formatPhone, layout, radius, spacing, typography } from '../../src/theme';
+import { useT } from '../../src/i18n';
 
 export default function ProfileScreen() {
-  const { user, logout } = useAuth();
-  const { t, locale, setLocale } = useLocale();
+  const t = useT();
+  const router = useRouter();
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
+  const profile = useProfile();
+  const completion = useCompletion();
 
-  const { data, loading, error, refreshing, refresh } = useApi<Supplier>('/suppliers/me');
-
-  if (loading && !data) return <Loading label={t.common.loading} />;
-
-  const status = data ? supplierStatus(data.status, locale) : null;
-
-  function confirmLogout(): void {
-    Alert.alert(t.auth.logout, t.auth.logoutConfirm, [
-      { text: t.common.cancel, style: 'cancel' },
-      { text: t.auth.logout, style: 'destructive', onPress: () => void logout() },
+  const confirmLogout = () => {
+    Alert.alert(t('auth.logout'), t('auth.logoutConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('auth.logout'), style: 'destructive', onPress: () => void logout() },
     ]);
-  }
+  };
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
-    >
-      {error ? <ErrorBanner message={error} /> : null}
+    <Screen>
+      <Text style={[typography.h1, { marginBottom: spacing.lg }]}>{t('profile.title')}</Text>
 
-      <Card style={styles.headerCard}>
-        <Text style={styles.company}>{data?.companyName ?? user?.fullName ?? ''}</Text>
-        <Text style={styles.person}>{user?.fullName}</Text>
-        <Text style={styles.email}>{user?.email}</Text>
+      <Card>
+        <View style={[layout.row, { gap: spacing.lg }]}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>
+              {(profile.data?.firstName?.[0] ?? user?.phone.slice(-2) ?? 'E').toUpperCase()}
+            </Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={typography.h3} numberOfLines={1}>
+              {[profile.data?.lastName, profile.data?.firstName].filter(Boolean).join(' ') ||
+                'Ism kiritilmagan'}
+            </Text>
+            <Text style={typography.caption}>{user ? formatPhone(user.phone) : ''}</Text>
+            {profile.data?.craftCategory ? (
+              <View style={{ marginTop: spacing.sm }}>
+                <Chip label={profile.data.craftCategory.nameUz} tone="info" />
+              </View>
+            ) : null}
+          </View>
+        </View>
 
-        {status ? (
-          <View style={styles.badgeRow}>
-            <Badge label={status.label} tone={status.tone} />
+        {completion.data ? (
+          <View style={{ marginTop: spacing.lg }}>
+            <View style={[layout.rowBetween, { marginBottom: spacing.sm }]}>
+              <Text style={typography.caption}>{t('profile.completion')}</Text>
+              <Text style={[typography.caption, { color: colors.text, fontWeight: '700' }]}>
+                {completion.data.percent}%
+              </Text>
+            </View>
+            <ProgressBar percent={completion.data.percent} height={8} />
           </View>
         ) : null}
       </Card>
 
-      {data ? (
-        <Card>
-          <Row label={t.profile.balance} value={formatUsd(data.balanceUsd)} highlight />
-          <Row label={t.profile.stir} value={data.stir ?? '—'} />
-          <Row
-            label={t.profile.company}
-            value={data.region ? UZ_REGION_LABELS[data.region] : '—'}
-          />
-          <Row label={t.profile.phone} value={data.contactPhone ?? '—'} />
-          <Row label={t.profile.email} value={data.contactEmail ?? '—'} />
-          <Row label={t.profile.bank} value={data.bankName ?? '—'} />
-          <Row label={t.profile.account} value={data.bankAccount ?? '—'} last />
-        </Card>
+      {profile.isLoading ? <LoadingView /> : null}
+      {profile.isError ? (
+        <ErrorView message="Profilni yuklab bo‘lmadi" onRetry={() => void profile.refetch()} />
       ) : null}
 
-      <Text style={styles.hint}>{t.profile.editHint}</Text>
-
-      <Card>
-        <Text style={styles.sectionTitle}>{t.profile.language}</Text>
-
-        <View style={styles.languageRow}>
-          {LOCALES.map((item) => (
-            <Pressable
-              key={item}
-              onPress={() => setLocale(item)}
-              accessibilityRole="button"
-              accessibilityState={{ selected: item === locale }}
-              style={[styles.langChip, item === locale && styles.langChipActive]}
-            >
-              <Text style={[styles.langText, item === locale && styles.langTextActive]}>
-                {LOCALE_LABELS[item]}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+      <SectionHeader title="Profil bo‘limlari" />
+      <Card padded={false} style={{ paddingHorizontal: spacing.lg }}>
+        <ListRow
+          icon="id-card-outline"
+          title="Anketa"
+          subtitle="Rasm, barcha ma’lumotlar va joylashuv bitta ko‘rinishda"
+          onPress={() => router.push('/profile/anketa')}
+        />
       </Card>
 
-      <Button title={t.auth.logout} onPress={confirmLogout} variant="outline" />
-    </ScrollView>
-  );
-}
-
-function Row({
-  label,
-  value,
-  highlight = false,
-  last = false,
-}: {
-  label: string;
-  value: string;
-  highlight?: boolean;
-  last?: boolean;
-}) {
-  return (
-    <View style={[styles.row, last && styles.rowLast]}>
-      <Text style={styles.rowLabel}>{label}</Text>
-      <Text style={[styles.rowValue, highlight && styles.rowValueHighlight]} numberOfLines={1}>
-        {value}
-      </Text>
-    </View>
+      <SectionHeader title="Boshqa" />
+      <Card padded={false} style={{ paddingHorizontal: spacing.lg }}>
+        <ListRow
+          icon="chatbubble-ellipses-outline"
+          title={t('ai.title')}
+          onPress={() => router.push('/assistant')}
+        />
+        <ListRow
+          icon="notifications-outline"
+          title={t('notifications.title')}
+          onPress={() => router.push('/notifications')}
+        />
+        <ListRow
+          icon="finger-print-outline"
+          title="Xavfsizlik"
+          subtitle="Biometrik kirish"
+          onPress={() => router.push('/security')}
+        />
+        <ListRow
+          icon="document-text-outline"
+          title={t('contract.title')}
+          onPress={() => router.push('/contract')}
+        />
+        <ListRow
+          icon="information-circle-outline"
+          title={t('about.title')}
+          subtitle={t('about.support')}
+          onPress={() => router.push('/about')}
+        />
+        <ListRow
+          icon="settings-outline"
+          title={t('settings.title')}
+          onPress={() => router.push('/settings')}
+        />
+        <ListRow icon="log-out-outline" title={t('auth.logout')} tone="danger" onPress={confirmLogout} right={<Ionicons name="chevron-forward" size={18} color={colors.danger} />} />
+      </Card>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.brand50 },
-  content: { padding: spacing.lg, gap: spacing.lg },
-  headerCard: { gap: 2 },
-  company: { fontSize: fontSize.lg, fontWeight: '700', color: colors.brand950 },
-  person: { fontSize: fontSize.sm, color: colors.brand600, marginTop: spacing.xs },
-  email: { fontSize: fontSize.sm, color: colors.brand400 },
-  badgeRow: { marginTop: spacing.md },
-
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  avatar: {
+    width: 64,
+    height: 64,
+    borderRadius: radius.lg,
+    backgroundColor: colors.primarySoft,
     alignItems: 'center',
-    gap: spacing.lg,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.brand100,
+    justifyContent: 'center',
   },
-  rowLast: { borderBottomWidth: 0 },
-  rowLabel: { fontSize: fontSize.sm, color: colors.brand500 },
-  rowValue: { fontSize: fontSize.sm, fontWeight: '500', color: colors.brand950, flexShrink: 1 },
-  rowValueHighlight: { fontSize: fontSize.lg, fontWeight: '700', color: colors.brand800 },
-
-  hint: { fontSize: fontSize.xs, color: colors.brand400, textAlign: 'center' },
-
-  sectionTitle: {
-    fontSize: fontSize.sm,
-    fontWeight: '600',
-    color: colors.brand900,
-    marginBottom: spacing.md,
-  },
-  languageRow: { flexDirection: 'row', gap: spacing.sm },
-  langChip: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.full,
-    backgroundColor: colors.brand50,
-    borderWidth: 1,
-    borderColor: colors.brand100,
-  },
-  langChipActive: { backgroundColor: colors.brand700, borderColor: colors.brand700 },
-  langText: { fontSize: fontSize.sm, color: colors.brand600, fontWeight: '500' },
-  langTextActive: { color: colors.white },
+  avatarText: { color: colors.primary, fontSize: 24, fontWeight: '700' },
 });

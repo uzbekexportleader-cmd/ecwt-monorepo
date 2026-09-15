@@ -1,31 +1,36 @@
 {
   "name": "ecwt",
   "version": "0.1.0",
-  "packageManager": "pnpm@11.21.0",
   "private": true,
-  "description": "ECWT — E-commerce World Trade. O'zbek ishlab chiqaruvchilarini AQSH marketplace'lariga chiqarish platformasi.",
+  "description": "ECWT — O'zbekiston Elektron Tijorat Kompaniyasi. Hunarmandlar uchun subsidiya va marketplace platformasi.",
+  "packageManager": "pnpm@11.24.0",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
-    "dev": "turbo run dev --parallel",
-    "dev:web": "turbo run dev --filter=@ecwt/web",
-    "dev:api": "turbo run dev --filter=@ecwt/api",
-    "dev:mobile": "turbo run dev --filter=@ecwt/mobile",
-    "build": "turbo run build",
-    "lint": "turbo run lint",
-    "typecheck": "turbo run typecheck",
-    "test": "turbo run test",
-    "db:generate": "pnpm --filter @ecwt/api db:generate",
-    "db:migrate": "pnpm --filter @ecwt/api db:migrate",
+    "phone": "node scripts/phone.mjs",
+    "build:packages": "pnpm --filter \"@ecwt/types\" --filter \"@ecwt/config\" --filter \"@ecwt/validation\" --filter \"@ecwt/ui\" --filter \"@ecwt/api-client\" build",
+    "dev": "concurrently -n db,api,admin -c cyan,green,magenta \"pnpm dev:db\" \"pnpm dev:api\" \"pnpm dev:admin\"",
+    "dev:db": "pnpm --filter @ecwt/api dev:db",
+    "dev:api": "pnpm --filter @ecwt/api dev",
+    "dev:mobile": "pnpm --filter @ecwt/mobile start",
+    "dev:admin": "pnpm --filter @ecwt/admin dev",
     "db:push": "pnpm --filter @ecwt/api db:push",
     "db:seed": "pnpm --filter @ecwt/api db:seed",
-    "db:studio": "pnpm --filter @ecwt/api db:studio",
-    "clean": "turbo run clean && rimraf node_modules"
+    "db:reset": "pnpm --filter @ecwt/api db:reset",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "build": "pnpm build:packages && pnpm -r --workspace-concurrency=1 --filter \"./apps/*\" build",
+    "setup": "pnpm install && pnpm build:packages && pnpm db:push && pnpm db:seed"
   },
   "devDependencies": {
-    "rimraf": "^6.0.1",
-    "turbo": "^2.5.0",
-    "typescript": "^5.7.3"
-  },
-  "engines": {
-    "node": ">=20.11.0"
+    "concurrently": "^9.1.2",
+    "typescript": "~5.9.2",
+    "eslint": "^9.36.0",
+    "typescript-eslint": "^8.44.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "@eslint/js": "^9.36.0",
+    "globals": "^15.15.0"
   }
 }

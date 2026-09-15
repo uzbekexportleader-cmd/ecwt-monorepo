@@ -1,348 +1,613 @@
-import { Injectable, Logger } from '@nestjs/common';
-import {
-  type CreateProductInput,
-  type Paginated,
-  type Product as ProductDto,
-  type ProductListQuery,
-  type ReviewProductInput,
-  type UpdateProductInput,
-} from '@ecwt/contracts';
-import type { Prisma } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
-import { AppError } from '../../common/errors';
-import { paginate, toSkipTake } from '../../common/pagination';
-import { AuditService } from '../audit/audit.service';
-import { toProductDto, type ProductWithImages } from './products.mapper';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import type { ProductDto } from '@ecwt/types';
+import type { UpsertProductInput } from '@ecwt/validation';
 
-/**
- * Bu maydonlar o'zgarsa mahsulot qayta tekshiruvga tushadi —
- * chunki ular marketplace e'lonining mazmunini o'zgartiradi.
- *
- * Narx, ombor qoldig'i va o'lchamlar bundan tashqarida: ularni
- * hamkor istalgan vaqtda yangilay olishi kerak.
- */
-const FIELDS_REQUIRING_REREVIEW = [
-  'nameUz',
-  'nameRu',
-  'nameEn',
-  'descriptionUz',
-  'descriptionRu',
-  'descriptionEn',
-  'brand',
-  'hsCode',
-  'categoryId',
-  'countryOfOrigin',
-  'images',
-] as const;
+import { PrismaService } from '../../prisma/prisma.service';
+import { MarketplacesService } from '../marketplaces/marketplaces.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { AuditService } from '../../common/audit/audit.service';
+import { ServicePaymentService } from '../service-payment/service-payment.service';
 
 @Injectable()
 export class ProductsService {
-  private readonly logger = new Logger(ProductsService.name);
-
   constructor(
     private readonly prisma: PrismaService,
+    private readonly marketplaces: MarketplacesService,
+    private readonly notifications: NotificationsService,
     private readonly audit: AuditService,
+    private readonly payments: ServicePaymentService,
   ) {}
 
-  async create(supplierId: string, input: CreateProductInput): Promise<ProductDto> {
-    await this.assertSupplierCanSell(supplierId);
-
-    const duplicate = await this.prisma.product.findUnique({
-      where: { supplierId_sku: { supplierId, sku: input.sku } },
-      select: { id: true },
+  async list(userId: string): Promise<ProductDto[]> {
+    const rows = await this.prisma.product.findMany({
+      where: { userId },
+      orderBy: { updatedAt: 'desc' },
+      include: {
+        images: { orderBy: { order: 'asc' } },
+        listings: { include: { marketplace: true } },
+        reviews: { orderBy: { createdAt: 'asc' } },
+      },
     });
-    if (duplicate) throw AppError.conflict(`"${input.sku}" SKU allaqachon ishlatilgan`);
+    return rows.map((r) => this.toDto(r));
+  }
 
+  async get(userId: string, id: string): Promise<ProductDto> {
+    const product = await this.prisma.product.findFirst({
+      where: { id, userId },
+      include: {
+        images: { orderBy: { order: 'asc' } },
+        listings: { include: { marketplace: true } },
+        reviews: { orderBy: { createdAt: 'asc' } },
+      },
+    });
+    if (!product) throw new NotFoundException('Mahsulot topilmadi');
+    return this.toDto(product);
+  }
+
+  async create(userId: string, input: UpsertProductInput): Promise<ProductDto> {
+    await this.assertUnlocked(userId);
+
+    const { imageUrls, ...data } = input;
     const product = await this.prisma.product.create({
       data: {
-        supplierId,
-        sku: input.sku,
-        nameUz: input.nameUz,
-        nameRu: input.nameRu ?? null,
-        nameEn: input.nameEn,
-        descriptionUz: input.descriptionUz ?? null,
-        descriptionRu: input.descriptionRu ?? null,
-        descriptionEn: input.descriptionEn ?? null,
-        categoryId: input.categoryId ?? null,
-        brand: input.brand ?? null,
-        hsCode: input.hsCode ?? null,
-        basePriceUzs: input.basePriceUzs,
-        suggestedPriceUsd: input.suggestedPriceUsd ?? null,
-        moq: input.moq,
-        stock: input.stock,
-        weightGrams: input.weightGrams ?? null,
-        lengthMm: input.lengthMm ?? null,
-        widthMm: input.widthMm ?? null,
-        heightMm: input.heightMm ?? null,
-        countryOfOrigin: input.countryOfOrigin,
+        ...data,
+        userId,
         status: 'DRAFT',
-        images: { create: normalizeImages(input.images) },
+        images: imageUrls?.length
+          ? { create: imageUrls.map((url, order) => ({ url, order })) }
+          : undefined,
       },
-      include: { images: true },
     });
-
-    return toProductDto(product);
+    await this.audit.record({
+      actorId: userId,
+      action: 'product.create',
+      entity: 'Product',
+      entityId: product.id,
+    });
+    return this.get(userId, product.id);
   }
 
-  async getById(productId: string, scopeSupplierId: string | undefined): Promise<ProductDto> {
-    const product = await this.prisma.product.findUnique({
-      where: { id: productId },
-      include: { images: true },
-    });
+  async update(userId: string, id: string, input: Partial<UpsertProductInput>): Promise<ProductDto> {
+    await this.assertUnlocked(userId);
+    await this.assertOwned(userId, id);
+    const { imageUrls, ...data } = input;
 
-    if (!product) throw AppError.notFound('Mahsulot topilmadi');
+    await this.prisma.product.update({ where: { id }, data: data as never });
 
-    // Hamkor faqat o'z mahsulotini ko'radi
-    if (scopeSupplierId && product.supplierId !== scopeSupplierId) {
-      throw AppError.notFound('Mahsulot topilmadi');
+    if (imageUrls) {
+      await this.prisma.productImage.deleteMany({ where: { productId: id } });
+      if (imageUrls.length) {
+        await this.prisma.productImage.createMany({
+          data: imageUrls.map((url, order) => ({ productId: id, url, order })),
+        });
+      }
     }
-
-    return toProductDto(product);
+    return this.get(userId, id);
   }
 
-  async update(
-    productId: string,
-    supplierId: string,
-    input: UpdateProductInput,
-  ): Promise<ProductDto> {
-    const existing = await this.prisma.product.findUnique({
-      where: { id: productId },
-      select: { id: true, supplierId: true, status: true },
-    });
+  async remove(userId: string, id: string): Promise<void> {
+    await this.assertOwned(userId, id);
+    await this.prisma.product.delete({ where: { id } });
+    await this.audit.record({ actorId: userId, action: 'product.delete', entity: 'Product', entityId: id });
+  }
 
-    if (!existing || existing.supplierId !== supplierId) {
-      throw AppError.notFound('Mahsulot topilmadi');
-    }
-
-    if (existing.status === 'ARCHIVED') {
-      throw AppError.conflict('Arxivlangan mahsulotni tahrirlab bo‘lmaydi');
-    }
-
-    const touchesReviewedContent = FIELDS_REQUIRING_REREVIEW.some(
-      (field) => input[field] !== undefined,
+  /**
+   * Savdo bo'limlari ochiqmi.
+   *
+   * ECWT xizmat to'lovi tasdiqlanmaguncha mahsulot tekshiruvga ham
+   * ketmaydi, sotuvga ham chiqmaydi. Qoida SERVERDA turadi: ilovadagi
+   * qulf faqat ko'rinish, uni chetlab o'tish mumkin.
+   */
+  private async assertUnlocked(userId: string): Promise<void> {
+    if (await this.payments.isUnlocked(userId)) return;
+    throw new BadRequestException(
+      'Bu bo‘lim ECWT xizmat to‘lovi tasdiqlangandan keyin ochiladi',
     );
+  }
 
-    // Tasdiqlangan mahsulotning mazmuni o'zgarsa — qayta tekshiruv.
-    // Faqat narx/qoldiq o'zgarsa holat saqlanadi.
-    const nextStatus =
-      existing.status === 'APPROVED' && touchesReviewedContent
-        ? ('PENDING_REVIEW' as const)
-        : undefined;
+  /* ---------------------------- marketplace ----------------------------- */
 
-    const { images, ...scalars } = input;
+  async publish(userId: string, id: string, marketplaceIds: string[]): Promise<ProductDto> {
+    await this.assertUnlocked(userId);
 
-    const product = await this.prisma.$transaction(async (tx) => {
-      if (images !== undefined) {
-        // Rasmlar to'liq almashtiriladi — klient yakuniy ro'yxatni yuboradi
-        await tx.productImage.deleteMany({ where: { productId } });
+    const product = await this.prisma.product.findFirst({
+      where: { id, userId },
+      include: { images: true },
+    });
+    if (!product) throw new NotFoundException('Mahsulot topilmadi');
+    /*
+     * Faqat tekshiruvdan o'tgan mahsulot savdo kanaliga chiqadi.
+     *
+     * Tashqi platformada rad etilgan yoki noto'g'ri e'lon — butun
+     * do'kon uchun jarima bo'lishi mumkin, shu sababli filtr ECWT
+     * tomonida turadi.
+     */
+    if (product.status !== 'READY' && product.status !== 'PUBLISHED') {
+      throw new BadRequestException(
+        'Avval mahsulotni tekshiruvga yuboring — tasdiqlangandan keyin sotuvga chiqariladi',
+      );
+    }
+    if (!product.title || !product.price) {
+      throw new BadRequestException('Mahsulot nomi va narxi to‘ldirilishi kerak');
+    }
+    if (product.images.length === 0) {
+      throw new BadRequestException('Kamida bitta mahsulot fotosi kerak');
+    }
+
+    const targets = await this.prisma.marketplace.findMany({ where: { id: { in: marketplaceIds } } });
+    if (targets.length !== marketplaceIds.length) {
+      throw new BadRequestException('Ba’zi marketplace‘lar topilmadi');
+    }
+
+    let anyListed = false;
+
+    for (const target of targets) {
+      const provider = this.marketplaces.provider(target.code);
+
+      /*
+       * Avtomatik joylashtirish hali yoqilmagan bo'lsa — bu XATO EMAS.
+       *
+       * Mahsulot qo'lda joylashtirish navbatiga tushadi: uni ECWT
+       * jamoasi platformaga o'zi chiqaradi va e'lon havolasini shu
+       * yerga yozadi. Foydalanuvchi bir xil holatlarni ko'radi, ya'ni
+       * integratsiya yoqilganda ilovada hech narsa o'zgarmaydi.
+       */
+      if (!provider?.isConfigured) {
+        await this.queuePlacement(id, target.id);
+        continue;
       }
 
-      return tx.product.update({
-        where: { id: productId },
-        data: {
-          ...toPrismaScalars(scalars),
-          ...(nextStatus ? { status: nextStatus, rejectionReason: null } : {}),
-          ...(images !== undefined ? { images: { create: normalizeImages(images) } } : {}),
-        },
-        include: { images: true },
+      const result = await provider.publish({
+        productId: product.id,
+        title: product.title,
+        description: product.description,
+        price: product.price,
+        currency: product.currency,
+        images: product.images.map((i) => i.url),
+        weightGram: product.weightGram,
+        material: product.material,
+        stock: product.stock,
       });
-    });
 
-    if (nextStatus) {
-      this.logger.log(`Mahsulot qayta tekshiruvga tushdi: ${productId}`);
-    }
+      const status: 'LISTED' | 'PENDING' | 'FAILED' =
+        result.status === 'LISTED' ? 'LISTED' : result.status === 'PENDING' ? 'PENDING' : 'FAILED';
+      if (status === 'LISTED') anyListed = true;
 
-    return toProductDto(product);
-  }
+      const data = {
+        status,
+        externalId: result.externalId,
+        errorMessage: result.errorMessage,
+        isMock: result.isMock,
+        placement: 'AUTO' as const,
+      };
 
-  /** Tekshiruvga yuborish */
-  async submitForReview(productId: string, supplierId: string): Promise<ProductDto> {
-    await this.assertSupplierCanSell(supplierId);
-
-    const existing = await this.prisma.product.findUnique({
-      where: { id: productId },
-      select: { supplierId: true, status: true, nameEn: true, images: { select: { id: true } } },
-    });
-
-    if (!existing || existing.supplierId !== supplierId) {
-      throw AppError.notFound('Mahsulot topilmadi');
-    }
-
-    if (existing.status !== 'DRAFT' && existing.status !== 'REJECTED') {
-      throw AppError.conflict('Bu mahsulotni tekshiruvga yuborib bo‘lmaydi');
-    }
-
-    // Rasmsiz mahsulotni marketplace'ga chiqarib bo'lmaydi
-    if (existing.images.length === 0) {
-      throw AppError.validation('Kamida bitta mahsulot rasmini yuklang', {
-        images: ['Kamida bitta rasm kerak'],
+      await this.prisma.marketplaceListing.upsert({
+        where: { productId_marketplaceId: { productId: id, marketplaceId: target.id } },
+        create: { productId: id, marketplaceId: target.id, ...data },
+        update: data,
       });
     }
 
-    const product = await this.prisma.product.update({
-      where: { id: productId },
-      data: { status: 'PENDING_REVIEW', rejectionReason: null },
-      include: { images: true },
-    });
-
-    return toProductDto(product);
-  }
-
-  async remove(productId: string, supplierId: string): Promise<void> {
-    const existing = await this.prisma.product.findUnique({
-      where: { id: productId },
-      select: {
-        supplierId: true,
-        status: true,
-        _count: { select: { listings: true } },
-      },
-    });
-
-    if (!existing || existing.supplierId !== supplierId) {
-      throw AppError.notFound('Mahsulot topilmadi');
+    /*
+     * "Sotuvda" holati faqat platforma haqiqatan qabul qilgandan keyin.
+     *
+     * Ilgari bu yerda holat shartsiz PUBLISHED qilinardi — barcha
+     * urinishlar muvaffaqiyatsiz bo'lganda ham mahsulot "chiqarilgan"
+     * bo'lib ko'rinardi.
+     */
+    if (anyListed) {
+      await this.prisma.product.update({ where: { id }, data: { status: 'PUBLISHED' } });
     }
 
-    // Marketplace'da e'loni bor mahsulot o'chirilmaydi — buyurtmalar tarixi
-    // unga bog'langan. O'rniga arxivlanadi.
-    if (existing._count.listings > 0) {
-      await this.prisma.product.update({
-        where: { id: productId },
-        data: { status: 'ARCHIVED' },
-      });
-      return;
-    }
-
-    await this.prisma.product.delete({ where: { id: productId } });
-  }
-
-  async list(
-    query: ProductListQuery,
-    scopeSupplierId: string | undefined,
-  ): Promise<Paginated<ProductDto>> {
-    const where: Prisma.ProductWhereInput = {};
-
-    // Hamkor uchun majburiy filtr — o'z mahsulotlari
-    if (scopeSupplierId) {
-      where.supplierId = scopeSupplierId;
-    } else if (query.supplierId) {
-      where.supplierId = query.supplierId;
-    }
-
-    if (query.status) where.status = query.status;
-    if (query.categoryId) where.categoryId = query.categoryId;
-    if (query.search) {
-      where.OR = [
-        { nameUz: { contains: query.search, mode: 'insensitive' } },
-        { nameEn: { contains: query.search, mode: 'insensitive' } },
-        { sku: { contains: query.search, mode: 'insensitive' } },
-      ];
-    }
-
-    const { skip, take } = toSkipTake(query);
-
-    const [items, total] = await Promise.all([
-      this.prisma.product.findMany({
-        where,
-        skip,
-        take,
-        orderBy: { [query.sortBy]: query.order },
-        include: { images: true },
-      }),
-      this.prisma.product.count({ where }),
-    ]);
-
-    return paginate(items.map(toProductDto), total, query);
-  }
-
-  // --------------------------------------------------------------------- admin
-
-  async review(
-    productId: string,
-    input: ReviewProductInput,
-    actor: { userId: string; ip?: string; requestId?: string },
-  ): Promise<ProductDto> {
-    const existing = await this.prisma.product.findUnique({
-      where: { id: productId },
-      select: { status: true },
-    });
-    if (!existing) throw AppError.notFound('Mahsulot topilmadi');
-
-    if (existing.status !== 'PENDING_REVIEW') {
-      throw AppError.conflict('Faqat tekshiruvdagi mahsulotni ko‘rib chiqish mumkin');
-    }
-
-    const product = await this.prisma.product.update({
-      where: { id: productId },
-      data: {
-        status: input.status,
-        rejectionReason: input.status === 'REJECTED' ? (input.reason ?? null) : null,
-      },
-      include: { images: true },
+    await this.notifications.create({
+      userId,
+      type: 'MARKETPLACE',
+      title: 'Mahsulot sotuvga chiqarishga yuborildi',
+      body: `${product.title} — ${targets.length} ta kanalga so‘rov yuborildi. Holatni mahsulot sahifasida kuzating.`,
+      route: `/products/${id}`,
     });
 
     await this.audit.record({
-      actorUserId: actor.userId,
-      action: `product.${input.status.toLowerCase()}`,
-      entityType: 'Product',
-      entityId: productId,
-      metadata: { reason: input.reason ?? null },
-      ip: actor.ip,
-      requestId: actor.requestId,
+      actorId: userId,
+      action: 'product.publish',
+      entity: 'Product',
+      entityId: id,
+      metadata: { marketplaces: targets.map((t) => t.code) },
     });
 
-    return toProductDto(product);
+    return this.get(userId, id);
   }
 
-  // ---------------------------------------------------------------------------
 
-  /** Faqat tasdiqlangan hamkor mahsulot qo'sha oladi */
-  private async assertSupplierCanSell(supplierId: string): Promise<void> {
-    const supplier = await this.prisma.supplier.findUnique({
-      where: { id: supplierId },
-      select: { status: true },
+
+  /* ---------------------- qo'lda joylashtirish navbati ------------------ */
+
+  /**
+   * Kanalga chiqarish so'rovini navbatga qo'yadi.
+   *
+   * Holat PENDING: "yuborildi, hali joylanmagan". FAILED emas — chunki
+   * hech narsa xato ketmadi, ish shunchaki odam tomonidan bajariladi.
+   */
+  private async queuePlacement(productId: string, marketplaceId: string): Promise<void> {
+    const data = {
+      status: 'PENDING' as const,
+      placement: 'MANUAL' as const,
+      errorMessage: null,
+      externalId: null,
+      isMock: false,
+    };
+
+    await this.prisma.marketplaceListing.upsert({
+      where: { productId_marketplaceId: { productId, marketplaceId } },
+      create: { productId, marketplaceId, ...data },
+      update: data,
+    });
+  }
+
+  /** Qo'lda joylashtirish navbati (operator) */
+  async placementQueue() {
+    const rows = await this.prisma.marketplaceListing.findMany({
+      where: { status: 'PENDING', placement: 'MANUAL' },
+      orderBy: { updatedAt: 'asc' },
+      take: 200,
+      include: {
+        marketplace: true,
+        product: { include: { images: { orderBy: { order: 'asc' } }, user: { select: { phone: true, fullName: true } } } },
+      },
     });
 
-    if (!supplier) throw AppError.notFound('Hamkor topilmadi');
+    return rows.map((r) => ({
+      listingId: r.id,
+      marketplace: r.marketplace.name,
+      productId: r.productId,
+      title: r.product.title,
+      price: r.product.price,
+      currency: r.product.currency,
+      stock: r.product.stock,
+      images: r.product.images.map((i) => i.url),
+      sellerName: r.product.user.fullName,
+      sellerPhone: r.product.user.phone,
+      requestedAt: r.updatedAt.toISOString(),
+    }));
+  }
 
-    if (supplier.status === 'SUSPENDED') {
-      throw AppError.forbidden('Akkauntingiz to‘xtatilgan');
-    }
+  /**
+   * Operator mahsulotni platformaga qo'lda joylashtirgach belgilaydi.
+   *
+   * Havola MAJBURIY: "joylandi" degan so'z emas, tekshirib bo'ladigan
+   * dalil bo'lishi kerak.
+   */
+  async markPlaced(listingId: string, listingUrl: string, externalId: string | null, actorId: string) {
+    const listing = await this.prisma.marketplaceListing.findUnique({
+      where: { id: listingId },
+      include: { product: true, marketplace: true },
+    });
+    if (!listing) throw new NotFoundException('E‘lon topilmadi');
 
-    if (supplier.status !== 'VERIFIED') {
-      throw AppError.forbidden(
-        'Avval kompaniya profilini to‘ldirib, tasdiqdan o‘tkazing. Shundan keyin mahsulot qo‘sha olasiz.',
+    await this.prisma.marketplaceListing.update({
+      where: { id: listingId },
+      data: {
+        status: 'LISTED',
+        listingUrl,
+        externalId,
+        placedById: actorId,
+        placedAt: new Date(),
+        errorMessage: null,
+      },
+    });
+
+    await this.prisma.product.update({
+      where: { id: listing.productId },
+      data: { status: 'PUBLISHED' },
+    });
+
+    await this.notifications
+      .create({
+        userId: listing.product.userId,
+        type: 'MARKETPLACE',
+        title: 'Mahsulotingiz sotuvda',
+        body: `${listing.product.title} — ${listing.marketplace.name} da joylandi.`,
+        route: `/products/${listing.productId}`,
+      })
+      .catch(() => undefined);
+
+    await this.audit.record({
+      actorId,
+      action: 'listing.placed',
+      entity: 'MarketplaceListing',
+      entityId: listingId,
+    });
+
+    return this.get(listing.product.userId, listing.productId);
+  }
+
+  /* --------------------------- tekshiruv oqimi -------------------------- */
+
+  /**
+   * Hunarmand mahsulotni tekshiruvga yuboradi.
+   *
+   * Shart: sotuvchi arizasi tasdiqlangan bo'lishi kerak. Aks holda
+   * mahsulot tekshiruvdan o'tsa ham sotuvga chiqara olmaydi — odamni
+   * kutdirib, keyin "mumkin emas" deyishdan ko'ra darhol aytgan yaxshi.
+   */
+  async submitForReview(userId: string, id: string): Promise<ProductDto> {
+    await this.assertUnlocked(userId);
+
+    const product = await this.findOwned(userId, id);
+
+    const application = await this.prisma.sellerApplication.findUnique({ where: { userId } });
+    if (!application || application.status !== 'APPROVED') {
+      throw new BadRequestException(
+        'Avval sotuvchi arizangiz tasdiqlanishi kerak. Holatini kabinetdan ko\u2018ring.',
       );
     }
+
+    if (product.status === 'IN_REVIEW') {
+      throw new BadRequestException('Mahsulot allaqachon tekshiruvda');
+    }
+    if (product.status !== 'DRAFT' && product.status !== 'CHANGES_REQUESTED') {
+      throw new BadRequestException('Bu mahsulot tekshiruvdan o\u2018tgan');
+    }
+
+    const missing = missingForReview(product);
+    if (missing.length) {
+      throw new BadRequestException(`Quyidagilar to\u2018ldirilmagan: ${missing.join(', ')}`);
+    }
+
+    const updated = await this.prisma.product.update({
+      where: { id },
+      data: {
+        status: 'IN_REVIEW',
+        submittedAt: new Date(),
+        reviewNote: null,
+        reviews: { create: { status: 'IN_REVIEW', note: 'Tekshiruvga yuborildi' } },
+      },
+      include: {
+        images: { orderBy: { order: 'asc' } },
+        listings: { include: { marketplace: true } },
+        reviews: { orderBy: { createdAt: 'asc' } },
+      },
+    });
+
+    await this.audit.record({
+      action: 'product.review.submit',
+      entity: 'Product',
+      entityId: id,
+      actorId: userId,
+    });
+
+    return this.toDto(updated);
+  }
+
+  /**
+   * Operator qarori.
+   *
+   * `APPROVED` → mahsulot `READY` bo'ladi: endi savdo kanallariga
+   * chiqarish mumkin. `CHANGES_REQUESTED` da izoh MAJBURIY — hunarmand
+   * nimani tuzatishini bilishi kerak.
+   */
+  async review(
+    productId: string,
+    decision: 'APPROVED' | 'CHANGES_REQUESTED',
+    note: string | null,
+    actorId: string,
+  ): Promise<ProductDto> {
+    const product = await this.prisma.product.findUnique({ where: { id: productId } });
+    if (!product) throw new NotFoundException('Mahsulot topilmadi');
+    if (product.status !== 'IN_REVIEW') {
+      throw new BadRequestException('Bu mahsulot tekshiruvda emas');
+    }
+
+    const status = decision === 'APPROVED' ? 'READY' : 'CHANGES_REQUESTED';
+
+    const updated = await this.prisma.product.update({
+      where: { id: productId },
+      data: {
+        status,
+        reviewNote: note,
+        reviewedAt: new Date(),
+        reviews: { create: { status, note, actorId } },
+      },
+      include: {
+        images: { orderBy: { order: 'asc' } },
+        listings: { include: { marketplace: true } },
+        reviews: { orderBy: { createdAt: 'asc' } },
+      },
+    });
+
+    await this.notifications
+      .create({
+        userId: product.userId,
+        type: decision === 'APPROVED' ? 'APPROVED' : 'CORRECTION_REQUIRED',
+        title:
+          decision === 'APPROVED'
+            ? 'Mahsulot tekshiruvdan o\u2018tdi'
+            : 'Mahsulotga tuzatish kerak',
+        body: note ?? `${product.title} holati yangilandi`,
+        route: `/products/${productId}`,
+      })
+      .catch(() => undefined);
+
+    await this.audit.record({
+      action: 'product.review.decide',
+      entity: 'Product',
+      entityId: productId,
+      actorId,
+      metadata: { decision },
+    });
+
+    return this.toDto(updated);
+  }
+
+  /** Operator navbati */
+  async reviewQueue(): Promise<ProductDto[]> {
+    const rows = await this.prisma.product.findMany({
+      where: { status: 'IN_REVIEW' },
+      orderBy: { submittedAt: 'asc' },
+      take: 200,
+      include: {
+        images: { orderBy: { order: 'asc' } },
+        listings: { include: { marketplace: true } },
+        reviews: { orderBy: { createdAt: 'asc' } },
+      },
+    });
+    return rows.map((r) => this.toDto(r));
+  }
+
+  /**
+   * Qoldiqni o'zgartirish.
+   *
+   * Qoldiq tekshiruvdan qat'i nazar o'zgaradi: mahsulot sotilib ketsa
+   * yoki yangi partiya tayyor bo'lsa, hunarmand buni darhol ko'rsata
+   * olishi kerak.
+   */
+  async setStock(userId: string, id: string, stock: number): Promise<ProductDto> {
+    await this.findOwned(userId, id);
+
+    const updated = await this.prisma.product.update({
+      where: { id },
+      data: { stock },
+      include: {
+        images: { orderBy: { order: 'asc' } },
+        listings: { include: { marketplace: true } },
+        reviews: { orderBy: { createdAt: 'asc' } },
+      },
+    });
+    return this.toDto(updated);
+  }
+
+  private async findOwned(userId: string, id: string) {
+    const product = await this.prisma.product.findFirst({
+      where: { id, userId },
+      include: { images: true },
+    });
+    if (!product) throw new NotFoundException('Mahsulot topilmadi');
+    return product;
+  }
+
+  private async assertOwned(userId: string, id: string): Promise<void> {
+    const count = await this.prisma.product.count({ where: { id, userId } });
+    if (!count) throw new NotFoundException('Mahsulot topilmadi');
+  }
+
+  toDto(p: {
+    id: string;
+    title: string;
+    description: string | null;
+    categoryId: string | null;
+    price: number | null;
+    currency: string;
+    weightGram: number | null;
+    lengthMm: number | null;
+    widthMm: number | null;
+    heightMm: number | null;
+    material: string | null;
+    productionDays: number | null;
+    stock: number;
+    status: ProductDto['status'];
+    reviewNote?: string | null;
+    submittedAt?: Date | null;
+    reviewedAt?: Date | null;
+    reviews?: { status: ProductDto['status']; note: string | null; createdAt: Date }[];
+    createdAt: Date;
+    updatedAt: Date;
+    images?: { id: string; url: string; order: number }[];
+    listings?: {
+      id: string;
+      marketplaceId: string;
+      status: ProductDto['listings'][number]['status'];
+      listingUrl?: string | null;
+      placedAt?: Date | null;
+      externalId: string | null;
+      errorMessage: string | null;
+      isMock: boolean;
+      updatedAt: Date;
+      marketplace?: {
+        id: string;
+        code: string;
+        name: string;
+        logoEmoji: string | null;
+        isActive: boolean;
+        isMock: boolean;
+      };
+    }[];
+  }): ProductDto {
+    return {
+      id: p.id,
+      title: p.title,
+      description: p.description,
+      categoryId: p.categoryId,
+      price: p.price,
+      currency: p.currency,
+      weightGram: p.weightGram,
+      lengthMm: p.lengthMm,
+      widthMm: p.widthMm,
+      heightMm: p.heightMm,
+      material: p.material,
+      productionDays: p.productionDays,
+      stock: p.stock,
+      status: p.status,
+      reviewNote: p.reviewNote ?? null,
+      submittedAt: p.submittedAt?.toISOString() ?? null,
+      reviewedAt: p.reviewedAt?.toISOString() ?? null,
+      missingForReview: missingForReview(p),
+      /*
+       * Tekshiruvga faqat qoralama yoki tuzatish so'ralgan mahsulot
+       * yuboriladi: allaqachon navbatda turgani qayta yuborilsa,
+       * operator bir xil ishni ikki marta ko'rardi.
+       */
+      canSubmitForReview:
+        (p.status === 'DRAFT' || p.status === 'CHANGES_REQUESTED') &&
+        missingForReview(p).length === 0,
+      reviewHistory: (p.reviews ?? []).map((r) => ({
+        status: r.status,
+        note: r.note,
+        createdAt: r.createdAt.toISOString(),
+      })),
+      images: (p.images ?? []).map((i) => ({ id: i.id, url: i.url, order: i.order })),
+      listings: (p.listings ?? []).map((l) => ({
+        id: l.id,
+        marketplaceId: l.marketplaceId,
+        marketplace: l.marketplace,
+        status: l.status,
+        listingUrl: l.listingUrl ?? null,
+        placedAt: l.placedAt?.toISOString() ?? null,
+        externalId: l.externalId,
+        errorMessage: l.errorMessage,
+        isMock: l.isMock,
+        updatedAt: l.updatedAt.toISOString(),
+      })),
+      createdAt: p.createdAt.toISOString(),
+      updatedAt: p.updatedAt.toISOString(),
+    };
   }
 }
 
-function normalizeImages(
-  images: Array<{ url: string; sortOrder: number; isPrimary: boolean }>,
-): Array<{ url: string; sortOrder: number; isPrimary: boolean }> {
-  if (images.length === 0) return [];
-
-  // Aynan bitta asosiy rasm bo'lishi kerak. Klient hech birini
-  // belgilamagan bo'lsa — birinchisi asosiy bo'ladi.
-  const primaryIndex = Math.max(
-    0,
-    images.findIndex((img) => img.isPrimary),
-  );
-
-  return images.map((img, index) => ({
-    url: img.url,
-    sortOrder: img.sortOrder ?? index,
-    isPrimary: index === primaryIndex,
-  }));
-}
-
-/** `undefined` maydonlar Prisma'ga yuborilmaydi (o'zgarmaydi) */
-function toPrismaScalars(input: Record<string, unknown>): Prisma.ProductUpdateInput {
-  const data: Record<string, unknown> = {};
-
-  for (const [key, value] of Object.entries(input)) {
-    if (value === undefined) continue;
-    data[key] = value === '' ? null : value;
-  }
-
-  return data as Prisma.ProductUpdateInput;
+/**
+ * Tekshiruvga yuborish uchun nima yetishmayapti.
+ *
+ * Og'irlik va o'lchamlar MAJBURIY: xalqaro yetkazish narxi shularsiz
+ * hisoblanmaydi, ya'ni mahsulot sotuvga chiqsa ham buyurtma kelganda
+ * jo'natib bo'lmaydi.
+ */
+function missingForReview(p: {
+  title: string;
+  description: string | null;
+  price: number | null;
+  weightGram: number | null;
+  lengthMm: number | null;
+  widthMm: number | null;
+  heightMm: number | null;
+  productionDays: number | null;
+  images?: { id: string }[];
+}): string[] {
+  const missing: string[] = [];
+  if (!p.title || p.title.trim().length < 3) missing.push('mahsulot nomi');
+  if (!p.description || p.description.trim().length < 20) missing.push('tavsif (kamida 20 belgi)');
+  if (!p.price) missing.push('narx');
+  if (!p.images || p.images.length === 0) missing.push('kamida bitta foto');
+  if (!p.weightGram) missing.push('og\u2018irlik');
+  if (!p.lengthMm || !p.widthMm || !p.heightMm) missing.push('o\u2018lchamlar');
+  if (!p.productionDays) missing.push('tayyorlash muddati');
+  return missing;
 }

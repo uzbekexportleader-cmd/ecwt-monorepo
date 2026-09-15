@@ -1,161 +1,128 @@
 import Constants from 'expo-constants';
-import { isApiErrorBody, type ApiErrorCode, type AuthResponse } from '@ecwt/contracts';
-import { clearTokens, loadTokens, saveTokens } from './token-store';
+import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
+import { createApiClient, type TokenStorage } from '@ecwt/api-client';
+import type { AuthTokens } from '@ecwt/types';
+
+const ACCESS_KEY = 'ecwt.accessToken';
+const REFRESH_KEY = 'ecwt.refreshToken';
+const API_PORT = 4000;
 
 /**
- * API manzili.
- *
- * ⚠️ Telefonda sinaganda "localhost" ISHLAMAYDI — u telefonning o'zini
- * bildiradi. Kompyuteringizning lokal IP manzilini yozing:
- *   EXPO_PUBLIC_API_URL=http://192.168.1.5:4000/api
+ * Tokenlar xavfsiz xotirada saqlanadi (iOS Keychain / Android Keystore).
+ * Web'da SecureStore yo'q — u yerda faqat sessiya davomida xotirada turadi.
  */
-export const API_URL =
-  process.env.EXPO_PUBLIC_API_URL ??
-  (Constants.expoConfig?.extra?.apiUrl as string | undefined) ??
-  'http://localhost:4000/api';
+const memoryFallback = new Map<string, string>();
+const isWeb = Platform.OS === 'web';
 
-export class ApiError extends Error {
-  constructor(
-    readonly code: ApiErrorCode,
-    message: string,
-    readonly details?: Record<string, string[]>,
-    readonly status?: number,
-  ) {
-    super(message);
-    this.name = 'ApiError';
+async function setItem(key: string, value: string): Promise<void> {
+  if (isWeb) {
+    memoryFallback.set(key, value);
+    return;
   }
-
-  fieldError(field: string): string | undefined {
-    return this.details?.[field]?.[0];
-  }
+  await SecureStore.setItemAsync(key, value);
 }
 
-interface RequestOptions {
-  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
-  body?: unknown;
-  /** Token qo'shilmaydi (kirish, ro'yxatdan o'tish) */
-  skipAuth?: boolean;
-  idempotencyKey?: string;
+async function getItem(key: string): Promise<string | null> {
+  if (isWeb) return memoryFallback.get(key) ?? null;
+  return SecureStore.getItemAsync(key);
 }
 
-/** Sessiya tugaganda ilova kirish ekraniga qaytishi uchun */
-type SessionExpiredHandler = () => void;
-let onSessionExpired: SessionExpiredHandler | null = null;
+async function deleteItem(key: string): Promise<void> {
+  if (isWeb) {
+    memoryFallback.delete(key);
+    return;
+  }
+  await SecureStore.deleteItemAsync(key);
+}
 
-export function setSessionExpiredHandler(handler: SessionExpiredHandler | null): void {
+export const tokenStorage: TokenStorage = {
+  getAccessToken: () => getItem(ACCESS_KEY),
+  getRefreshToken: () => getItem(REFRESH_KEY),
+  async setTokens(tokens: AuthTokens) {
+    await setItem(ACCESS_KEY, tokens.accessToken);
+    await setItem(REFRESH_KEY, tokens.refreshToken);
+  },
+  async clear() {
+    await deleteItem(ACCESS_KEY);
+    await deleteItem(REFRESH_KEY);
+  },
+};
+
+/**
+ * API manzilini aniqlash.
+ *
+ * 1. EXPO_PUBLIC_API_URL berilgan bo'lsa — o'sha ishlatiladi (production/EAS).
+ * 2. Aks holda Expo Go qaysi kompyuterga ulangan bo'lsa, o'sha IP olinadi.
+ *    Ya'ni real telefonda hech narsa sozlash shart emas: Metro qaysi IP orqali
+ *    ochilgan bo'lsa (masalan 192.168.100.5:8081), API ham shu IP:4000 bo'ladi.
+ * 3. Hech narsa topilmasa — localhost (emulyator/web uchun).
+ */
+function resolveApiUrl(): string {
+  /*
+   * WEB birinchi navbatda o'z manzilidan kelib chiqadi.
+   *
+   * Sahifa qaysi manzildan ochilgan bo'lsa, API ham o'sha yerda:
+   * proksi orqali berilganda `<origin>/api`, lokal ishlab chiqishda esa
+   * `localhost:4000`. Bu `EXPO_PUBLIC_API_URL` dan USTUN turadi, chunki
+   * o'sha o'zgaruvchi telefon uchun tashqi tunnel manziliga qo'yiladi —
+   * u brauzerdan ochilmasligi mumkin, holbuki sahifaning o'z manzili
+   * har doim ishlaydi.
+   */
+  if (isWeb && typeof window !== 'undefined' && window.location?.origin) {
+    const { origin, hostname } = window.location;
+    // Lokal ishlab chiqishda Metro va API alohida portlarda turadi
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return `http://${hostname}:${API_PORT}/api`;
+    }
+    return `${origin}/api`;
+  }
+
+  const fromEnv = process.env.EXPO_PUBLIC_API_URL;
+  if (fromEnv && fromEnv.trim()) return fromEnv.trim();
+
+  const hostUri =
+    Constants.expoConfig?.hostUri ??
+    (Constants.expoGoConfig as { debuggerHost?: string } | undefined)?.debuggerHost ??
+    '';
+  const host = hostUri.split(':')[0];
+
+  if (host && host !== 'localhost' && host !== '127.0.0.1') {
+    return `http://${host}:${API_PORT}/api`;
+  }
+  return `http://localhost:${API_PORT}/api`;
+}
+
+export const API_URL = resolveApiUrl();
+
+/**
+ * Sinov rejimi: ilova har ochilganda ro'yxatdan o'tish birinchi qadamdan
+ * boshlanadi. Oqimni qayta-qayta sinab ko'rish uchun.
+ *
+ * `.env` da `EXPO_PUBLIC_RESET_ONBOARDING=1` bo'lsa yoqiladi. Ishlab
+ * chiqarishda bu o'zgaruvchi bo'lmaydi — foydalanuvchi ro'yxatdan o'ta
+ * olmay qolmasin.
+ */
+export const RESET_ONBOARDING_ON_START = process.env.EXPO_PUBLIC_RESET_ONBOARDING === '1';
+
+/** Server qaytargan nisbiy fayl manzilini to'liq URL ga aylantiradi. */
+export function fileUrl(url: string | null | undefined): string | undefined {
+  if (!url) return undefined;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  const origin = API_URL.replace(/\/api\/?$/, '');
+  return `${origin}${url.startsWith('/') ? '' : '/'}${url}`;
+}
+
+let onSessionExpired: (() => void) | undefined;
+
+export function setSessionExpiredHandler(handler: () => void): void {
   onSessionExpired = handler;
 }
 
-/**
- * Bir vaqtda bir nechta so'rov 401 olsa, refresh faqat BIR MARTA
- * bajarilishi kerak. Aks holda refresh token aylanishi (rotation)
- * tufayli qolganlari bekor qilingan token bilan qolib ketadi.
- */
-let refreshPromise: Promise<string | null> | null = null;
+export const api = createApiClient({
+  baseUrl: API_URL,
+  storage: tokenStorage,
+  onSessionExpired: () => onSessionExpired?.(),
+});
 
-async function refreshAccessToken(): Promise<string | null> {
-  refreshPromise ??= (async () => {
-    try {
-      const tokens = await loadTokens();
-      if (!tokens) return null;
-
-      const response = await fetch(`${API_URL}/auth/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken: tokens.refreshToken }),
-      });
-
-      if (!response.ok) {
-        await clearTokens();
-        onSessionExpired?.();
-        return null;
-      }
-
-      const data = (await response.json()) as AuthResponse;
-      await saveTokens({
-        accessToken: data.tokens.accessToken,
-        refreshToken: data.tokens.refreshToken,
-      });
-
-      return data.tokens.accessToken;
-    } catch {
-      return null;
-    } finally {
-      // Keyingi 401 uchun yangi urinishga yo'l ochamiz
-      refreshPromise = null;
-    }
-  })();
-
-  return refreshPromise;
-}
-
-export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const send = async (token: string | null): Promise<Response> => {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (token) headers.Authorization = `Bearer ${token}`;
-    if (options.idempotencyKey) headers['Idempotency-Key'] = options.idempotencyKey;
-
-    return fetch(`${API_URL}/${path.replace(/^\//, '')}`, {
-      method: options.method ?? 'GET',
-      headers,
-      body: options.body === undefined ? undefined : JSON.stringify(options.body),
-    });
-  };
-
-  let token: string | null = null;
-  if (!options.skipAuth) {
-    const tokens = await loadTokens();
-    token = tokens?.accessToken ?? null;
-  }
-
-  let response: Response;
-
-  try {
-    response = await send(token);
-  } catch {
-    throw new ApiError('dependency_failure', 'Serverga ulanib bo‘lmadi. Internetni tekshiring.');
-  }
-
-  // Access token eskirgan bo'lsa — yangilab, bir marta qayta urinamiz
-  if (response.status === 401 && !options.skipAuth) {
-    const newToken = await refreshAccessToken();
-
-    if (!newToken) {
-      throw new ApiError('unauthorized', 'Sessiya tugadi, qaytadan kiring');
-    }
-
-    try {
-      response = await send(newToken);
-    } catch {
-      throw new ApiError('dependency_failure', 'Serverga ulanib bo‘lmadi');
-    }
-  }
-
-  if (response.status === 204) return undefined as T;
-
-  const text = await response.text();
-  const payload: unknown = text ? safeJsonParse(text) : null;
-
-  if (!response.ok) {
-    if (isApiErrorBody(payload)) {
-      throw new ApiError(
-        payload.error.code,
-        payload.error.message,
-        payload.error.details,
-        response.status,
-      );
-    }
-
-    throw new ApiError('internal_error', 'Kutilmagan xato yuz berdi', undefined, response.status);
-  }
-
-  return payload as T;
-}
-
-function safeJsonParse(text: string): unknown {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return null;
-  }
-}
+export { EcwtApiError } from '@ecwt/api-client';

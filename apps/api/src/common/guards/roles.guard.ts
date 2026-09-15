@@ -1,33 +1,36 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import type { UserRole } from '@ecwt/contracts';
-import { AppError } from '../errors';
-import { IS_PUBLIC_KEY, ROLES_KEY } from '../decorators';
-import type { AppRequest } from '../types';
+import type { Role } from '@ecwt/types';
+
+import { ROLES_KEY } from '../decorators/roles.decorator';
+import type { JwtPayload } from '../decorators/current-user.decorator';
+
+const RANK: Record<Role, number> = {
+  USER: 0,
+  REVIEWER: 1,
+  ADMIN: 2,
+  SUPER_ADMIN: 3,
+};
 
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+    const required = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
-    if (isPublic) return true;
+    if (!required?.length) return true;
 
-    const required = this.reflector.getAllAndOverride<UserRole[] | undefined>(ROLES_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
-    if (!required || required.length === 0) return true;
+    const request = context.switchToHttp().getRequest<{ user?: JwtPayload }>();
+    const role = request.user?.role;
+    if (!role) throw new ForbiddenException('Ruxsat yo‘q');
 
-    const request = context.switchToHttp().getRequest<AppRequest>();
-    const user = request.user;
-
-    if (!user) throw AppError.unauthorized();
-    if (!required.includes(user.role)) throw AppError.forbidden();
-
+    const minRequired = Math.min(...required.map((r) => RANK[r]));
+    if (RANK[role] < minRequired) {
+      throw new ForbiddenException('Bu amal uchun ruxsatingiz yetarli emas');
+    }
     return true;
   }
 }

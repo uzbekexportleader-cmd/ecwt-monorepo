@@ -1,0 +1,157 @@
+# 10 qadamli anketa to'liq yakunlanishi
+#
+# Mahsulotning yuragi. Qo'lda tekshirish ~40 daqiqa oladi va har relizda
+# takrorlanishi kerak — shuning uchun avtomatlashtirilgan.
+appId: uz.ecwt.mobile
+---
+- runFlow: 01-auth.yaml
+
+# Biometrika/Face ID taklifini o'tkazib yuboramiz
+- tapOn:
+    text: 'Keyinroq qilaman'
+    optional: true
+- tapOn:
+    text: 'Davom etish'
+    optional: true
+
+# --- 1-qadam: shaxsiy ma'lumotlar ---
+- extendedWaitUntil:
+    visible: 'Shaxsiy ma’lumotlaringiz'
+    timeout: 15000
+
+- tapOn:
+    text: 'Familiya'
+    index: 1
+- inputText: 'Karimov'
+- tapOn:
+    text: 'Ism'
+    index: 1
+- inputText: 'Aziz'
+- tapOn:
+    text: 'Otasining ismi'
+    index: 1
+- inputText: 'Botirovich'
+- tapOn:
+    text: 'Tug‘ilgan sana'
+    index: 1
+- inputText: '1995-03-14'
+- tapOn: 'Erkak'
+- tapOn: 'Davom etish'
+
+# --- 2-qadam: manzil ---
+- extendedWaitUntil:
+    visible: 'Manzil va aloqa ma’lumotlari'
+    timeout: 10000
+
+- tapOn: 'Viloyat'
+- tapOn: 'Toshkent shahri'
+- tapOn: 'Tuman'
+- tapOn: 'Chilonzor'
+
+- tapOn:
+    text: 'Mahalla'
+    index: 1
+- inputText: 'Test mahalla'
+- tapOn:
+    text: 'Ko‘cha'
+    index: 1
+- inputText: 'Test kocha'
+- tapOn:
+    text: 'Uy raqami'
+    index: 1
+- inputText: '12'
+- tapOn: 'Davom etish'
+
+# --- 3-qadam: faoliyat turi ---
+- extendedWaitUntil:
+    visible: 'Faoliyat turini tanlang'
+    timeout: 10000
+- tapOn: 'Hunarmand'
+- tapOn: 'Davom etish'
+
+# --- 4-qadam: hunar ma'lumotlari ---
+- extendedWaitUntil:
+    visible: 'Hunaringiz haqida'
+    timeout: 10000
+- tapOn: 'Kulolchilik'
+- scrollUntilVisible:
+    element:
+      text: '1–3 yil'
+    direction: DOWN
+- tapOn: '1–3 yil'
+- scrollUntilVisible:
+    element:
+      text: 'Hunarmand uyushmasiga a’zomisiz?'
+    direction: DOWN
+- tapOn:
+    text: 'Yo‘q'
+    index: 0
+- scrollUntilVisible:
+    element:
+      text: 'YATT sifatida ro‘yxatdan o‘tganmisiz?'
+    direction: DOWN
+- tapOn:
+    text: 'Yo‘q'
+    index: 1
+- tapOn: 'Davom etish'
+
+# --- 5-qadam: xizmat turi ---
+- extendedWaitUntil:
+    visible: 'Sizga qaysi xizmat kerak?'
+    timeout: 10000
+- tapOn: 'Amazon'
+- tapOn: 'Davom etish'
+
+# --- 6-qadam: bank rekvizitlari ---
+- extendedWaitUntil:
+    visible: 'Bank rekvizitlaringiz'
+    timeout: 10000
+- tapOn:
+    text: '20 ta raqam'
+- inputText: '20208000123456789012'
+- tapOn:
+    text: '9 ta raqam'
+- inputText: '123456789'
+- tapOn:
+    text: '5 ta raqam'
+- inputText: '00450'
+- scrollUntilVisible:
+    element:
+      text: 'Bank nomi'
+    direction: DOWN
+- tapOn:
+    text: 'Bank nomi'
+    index: 1
+- inputText: 'Xalq banki'
+- tapOn: 'Davom etish'
+
+# --- 7-qadam: to'lov usuli ---
+- extendedWaitUntil:
+    visible: 'Xizmat uchun qanday to‘laysiz?'
+    timeout: 10000
+- tapOn: 'Subsidiya orqali'
+- tapOn: 'Davom etish'
+
+# --- 8-qadam: shartnoma (yuklash ixtiyoriy) ---
+- extendedWaitUntil:
+    visible: 'Shartnomani rasmiylashtiring'
+    timeout: 10000
+- tapOn: 'Davom etish'
+
+# --- 9-qadam: ariza holati ---
+- extendedWaitUntil:
+    visible: 'ko‘rib chiqilmoqda'
+    timeout: 10000
+- tapOn: 'Holatni kuzatish'
+
+# --- 10-qadam: yakun ---
+- extendedWaitUntil:
+    visible: 'Arizangiz qabul qilindi'
+    timeout: 10000
+- assertVisible:
+    text: 'ECWT-\d{4}-\d{6}'
+
+- tapOn: 'Bosh sahifaga o‘tish'
+- extendedWaitUntil:
+    visible: 'Imkoniyatlar'
+    timeout: 10000

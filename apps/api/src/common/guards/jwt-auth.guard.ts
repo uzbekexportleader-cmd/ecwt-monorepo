@@ -1,27 +1,24 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
-import type { JwtPayload } from '@ecwt/contracts';
-import { AppError } from '../errors';
-import { IS_PUBLIC_KEY } from '../decorators';
-import type { AppRequest } from '../types';
+import type { Request } from 'express';
 
-/**
- * Access token'ni tekshiradi.
- *
- * Diqqat: bu guard ma'lumotlar bazasiga murojaat qilmaydi — har bir so'rovda
- * DB o'qish qimmat. Shu sababli access token muddati qisqa (15 daqiqa):
- * foydalanuvchi bloklansa yoki sessiya bekor qilinsa, u eng ko'pi bilan
- * 15 daqiqada kuchdan qoladi. Refresh token esa har safar DB'da tekshiriladi,
- * ya'ni bekor qilingan sessiya yangi access token ola olmaydi.
- */
+import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+import type { JwtPayload } from '../decorators/current-user.decorator';
+import { ENV, type Env } from '../../config/env';
+import { Inject } from '@nestjs/common';
+
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly jwt: JwtService,
-    private readonly config: ConfigService,
+    @Inject(ENV) private readonly env: Env,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -29,29 +26,45 @@ export class JwtAuthGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ]);
-    if (isPublic) return true;
+    const request = context.switchToHttp().getRequest<Request & { user?: JwtPayload }>();
+    const header = request.headers.authorization;
 
-    const request = context.switchToHttp().getRequest<AppRequest>();
-    const token = extractBearerToken(request.headers.authorization);
+    /*
+     * Ochiq marshrutlar ham foydalanuvchini bilishi mumkin.
+     *
+     * Masalan analitika: hodisa kirishdan oldin ham keladi (token yo'q), ham
+     * kirgandan keyin (token bor). Token bo'lsa uni o'qiymiz — aks holda
+     * barcha hodisalar "noma'lum foydalanuvchi" bo'lib qolib, voronkada
+     * nechta ODAM qolganini hisoblab bo'lmasdi.
+     *
+     * Yaroqsiz token bu yerda XATO EMAS: marshrut baribir ochiq, shunchaki
+     * foydalanuvchi aniqlanmagan holda davom etadi.
+     */
+    if (isPublic) {
+      if (header?.startsWith('Bearer ')) {
+        try {
+          request.user = await this.jwt.verifyAsync<JwtPayload>(header.slice(7), {
+            secret: this.env.JWT_ACCESS_SECRET,
+          });
+        } catch {
+          /* token yaroqsiz — ochiq marshrut anonim holda davom etadi */
+        }
+      }
+      return true;
+    }
 
-    if (!token) throw AppError.unauthorized('Token yuborilmadi');
+    if (!header?.startsWith('Bearer ')) {
+      throw new UnauthorizedException('Avtorizatsiya talab qilinadi');
+    }
 
     try {
-      const payload = await this.jwt.verifyAsync<JwtPayload>(token, {
-        secret: this.config.getOrThrow<string>('JWT_ACCESS_SECRET'),
+      const payload = await this.jwt.verifyAsync<JwtPayload>(header.slice(7), {
+        secret: this.env.JWT_ACCESS_SECRET,
       });
       request.user = payload;
       return true;
     } catch {
-      // Token muddati tugagan yoki imzo noto'g'ri — sababni oshkor qilmaymiz
-      throw AppError.unauthorized('Sessiya muddati tugagan, qaytadan kiring');
+      throw new UnauthorizedException('Sessiya muddati tugagan yoki token yaroqsiz');
     }
   }
-}
-
-export function extractBearerToken(header: string | undefined): string | null {
-  if (!header) return null;
-  const [scheme, value] = header.split(' ');
-  if (!value || scheme?.toLowerCase() !== 'bearer') return null;
-  return value.trim() || null;
 }

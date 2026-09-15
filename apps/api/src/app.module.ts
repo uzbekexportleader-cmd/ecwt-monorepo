@@ -1,67 +1,74 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { Module } from '@nestjs/common';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
-import { validateEnv } from './config/env';
+import { AppConfigModule } from './config/config.module';
+import { limits, loadEnv } from './config/env';
 import { PrismaModule } from './prisma/prisma.module';
-import { AuditModule } from './modules/audit/audit.module';
-import { AuthModule } from './modules/auth/auth.module';
-import { SuppliersModule } from './modules/suppliers/suppliers.module';
-import { ProductsModule } from './modules/products/products.module';
-import { ListingsModule } from './modules/listings/listings.module';
-import { OrdersModule } from './modules/orders/orders.module';
-import { PayoutsModule } from './modules/payouts/payouts.module';
-import { PaymentsModule } from './modules/payments/payments.module';
-import { LeadsModule } from './modules/leads/leads.module';
-import { CategoriesModule } from './modules/categories/categories.module';
-import { HealthModule } from './modules/health/health.module';
-
+import { AuditModule } from './common/audit/audit.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
-import { RolesGuard } from './common/guards/roles.guard';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
-import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
-import { RequestIdMiddleware } from './common/middleware/request-id.middleware';
+
+import { AuthModule } from './modules/auth/auth.module';
+import { HealthModule } from './modules/health/health.module';
+import { UsersModule } from './modules/users/users.module';
+import { ArtisanProfileModule } from './modules/artisan-profile/artisan-profile.module';
+import { SellerApplicationModule } from './modules/seller-application/seller-application.module';
+import { MahallaSubsidyModule } from './modules/mahalla-subsidy/mahalla-subsidy.module';
+import { CompanyModule } from './modules/company/company.module';
+import { ServicePaymentModule } from './modules/service-payment/service-payment.module';
+import { ContractModule } from './modules/contract/contract.module';
+import { JourneyModule } from './modules/journey/journey.module';
+import { PricingModule } from './modules/pricing/pricing.module';
+import { CraftCategoriesModule } from './modules/craft-categories/craft-categories.module';
+import { DocumentsModule } from './modules/documents/documents.module';
+import { SubsidiesModule } from './modules/subsidies/subsidies.module';
+import { ApplicationsModule } from './modules/applications/applications.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { ProductsModule } from './modules/products/products.module';
+import { MarketplacesModule } from './modules/marketplaces/marketplaces.module';
+import { AiModule } from './modules/ai/ai.module';
+import { ContractsModule } from './modules/contracts/contracts.module';
+import { AdminModule } from './modules/admin/admin.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-      // .env noto'g'ri bo'lsa server umuman ko'tarilmaydi
-      validate: validateEnv,
-      envFilePath: ['.env.local', '.env'],
-    }),
-
-    // Umumiy chegara: bitta IP'dan daqiqasiga 120 so'rov.
-    // Alohida marshrutlarda @Throttle bilan qattiqroq chegara qo'yilgan.
-    ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 120 }]),
-
+    AppConfigModule,
     PrismaModule,
     AuditModule,
+    JwtModule.register({ global: true }),
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: limits(loadEnv()).ratePerMinute }]),
+
+    HealthModule,
 
     AuthModule,
-    SuppliersModule,
+    UsersModule,
+    SellerApplicationModule,
+    MahallaSubsidyModule,
+    CompanyModule,
+    ServicePaymentModule,
+    ContractModule,
+    JourneyModule,
+    PricingModule,
+    ArtisanProfileModule,
+    CraftCategoriesModule,
+    DocumentsModule,
+    SubsidiesModule,
+    ApplicationsModule,
+    NotificationsModule,
     ProductsModule,
-    ListingsModule,
-    OrdersModule,
-    PayoutsModule,
-    PaymentsModule,
-    LeadsModule,
-    CategoriesModule,
-    HealthModule,
+    MarketplacesModule,
+    AiModule,
+    ContractsModule,
+    AdminModule,
+    AnalyticsModule,
   ],
   providers: [
-    // Tartib muhim: avval rate limit, keyin token, keyin rol.
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
-    { provide: APP_GUARD, useClass: RolesGuard },
-
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
-    { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
   ],
 })
-export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(RequestIdMiddleware).forRoutes('*');
-  }
-}
+export class AppModule {}

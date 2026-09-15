@@ -1,42 +1,30 @@
-import { ArgumentMetadata, Injectable, PipeTransform } from '@nestjs/common';
-import { ZodError, ZodTypeAny } from 'zod';
-import { AppError } from '../errors';
+import { BadRequestException, PipeTransform } from '@nestjs/common';
+import type { ZodType } from 'zod';
 
 /**
- * Zod sxemasi orqali kiruvchi ma'lumotni tekshiradi va tozalaydi.
- * Sxemalar @ecwt/contracts paketidan olinadi — shu bilan web, mobil va API
- * bir xil qoidalar bo'yicha ishlaydi.
- *
- * Foydalanish:
- *   @Post()
- *   create(@Body(new ZodValidationPipe(createProductSchema)) dto: CreateProductInput) {}
+ * Zod sxemasi bilan DTO validatsiyasi.
+ * Xatolar foydalanuvchi tiliga (o'zbekcha) yaqin ko'rinishda qaytadi.
  */
-@Injectable()
-export class ZodValidationPipe<T extends ZodTypeAny> implements PipeTransform {
-  constructor(private readonly schema: T) {}
+export class ZodValidationPipe<T> implements PipeTransform {
+  constructor(private readonly schema: ZodType<T>) {}
 
-  transform(value: unknown, _metadata: ArgumentMetadata): unknown {
+  transform(value: unknown): T {
     const result = this.schema.safeParse(value);
-
-    if (result.success) return result.data;
-
-    throw AppError.validation('Kiritilgan ma’lumotlarda xato bor', zodToDetails(result.error));
+    if (!result.success) {
+      throw new BadRequestException({
+        message: result.error.issues.map((i) => i.message),
+        code: 'VALIDATION_ERROR',
+        details: result.error.issues.map((i) => ({
+          field: i.path.join('.'),
+          message: i.message,
+        })),
+      });
+    }
+    return result.data;
   }
 }
 
-/** Zod xatolarini `{ maydon: ["xabar"] }` ko'rinishiga o'giradi */
-export function zodToDetails(error: ZodError): Record<string, string[]> {
-  const details: Record<string, string[]> = {};
-
-  for (const issue of error.issues) {
-    const key = issue.path.length > 0 ? issue.path.join('.') : '_';
-    const bucket = details[key];
-    if (bucket) {
-      bucket.push(issue.message);
-    } else {
-      details[key] = [issue.message];
-    }
-  }
-
-  return details;
+/** Controller'da qulay ishlatish uchun: @Body(zodBody(schema)) */
+export function zodBody<T>(schema: ZodType<T>): ZodValidationPipe<T> {
+  return new ZodValidationPipe(schema);
 }
