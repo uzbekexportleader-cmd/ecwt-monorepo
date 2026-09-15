@@ -595,6 +595,23 @@ model Product {
   material       String?
   productionDays Int?
   stock          Int            @default(0)
+
+  /**
+   * Xalqaro e'lon matni (20-qadam).
+   *
+   * Amazon va eBay'da e'lon INGLIZCHA bo'ladi. Hunarmandning o'zbekcha
+   * tavsifini o'sha joyga qo'yib bo'lmaydi — xaridor tushunmaydi va
+   * maydoncha ham rad etishi mumkin. Shuning uchun alohida maydon.
+   */
+  titleEn        String?
+  descriptionEn  String?
+  /**
+   * Hunarmand matnni o'zi yozmay, ECWT tayyorlashini so'radimi.
+   *
+   * `true` bo'lsa 20-qadam KUTISH qadamiga aylanadi: navbat ECWT'da,
+   * hunarmandda tugma bo'lmaydi.
+   */
+  contentByEcwt  Boolean        @default(false)
   status         ProductStatus  @default(DRAFT)
   /// Operator izohi: nima tuzatilishi kerak yoki nega rad etilgan
   reviewNote     String?

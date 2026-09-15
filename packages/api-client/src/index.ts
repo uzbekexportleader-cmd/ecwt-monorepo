@@ -347,6 +347,13 @@ export function createApiClient(options: ApiClientOptions) {
         request<JourneyDto>('/journey/sales-mode', { method: 'POST', body: { mode } }),
       /* 19-qadam: hisob-kitob ko'rib chiqildi */
       earningsSeen: () => request<JourneyDto>('/journey/earnings-seen', { method: 'POST' }),
+      /* 20-qadam: xalqaro e'lon matni */
+      content: (body: {
+        productId: string;
+        titleEn?: string;
+        descriptionEn?: string;
+        byEcwt?: boolean;
+      }) => request<JourneyDto>('/journey/content', { method: 'POST', body }),
     },
 
     /* ------------------------ narx hisob-kitobi ---------------------- */

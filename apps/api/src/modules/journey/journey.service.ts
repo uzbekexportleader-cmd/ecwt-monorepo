@@ -147,7 +147,13 @@ export class JourneyService {
       this.prisma.servicePayment.findUnique({ where: { userId } }),
       this.prisma.product.findMany({
         where: { userId },
-        select: { status: true, listings: { select: { status: true } } },
+        select: {
+          status: true,
+          titleEn: true,
+          descriptionEn: true,
+          contentByEcwt: true,
+          listings: { select: { status: true } },
+        },
       }),
     ]);
 
@@ -170,11 +176,31 @@ export class JourneyService {
       hasProduct: products.length > 0,
       earningsSeen: Boolean(profile?.earningsSeenAt),
       hasReadyProduct: products.some((p) => p.status === 'READY' || p.status === 'PUBLISHED'),
+      /*
+       * Kamida bitta tayyor mahsulotning inglizcha matni to'liq bo'lsa,
+       * 20-qadam bajarilgan hisoblanadi.
+       */
+      contentReady: products.some(
+        (p) =>
+          (p.status === 'READY' || p.status === 'PUBLISHED') &&
+          Boolean(p.titleEn) &&
+          Boolean(p.descriptionEn),
+      ),
+      contentByEcwt: products.some((p) => p.contentByEcwt),
       hasListedProduct: products.some((p) => p.listings.some((l) => l.status === 'LISTED')),
     });
 
     const text = STEP_TEXT[step];
     const visible = this.visibleOrder(selfPaid);
+
+    /*
+     * 20-qadamda matnni ECWT tayyorlashi tanlangan bo'lsa, navbat
+     * hunarmandda emas — ekranda tugma ko'rsatilmaydi, "kutilmoqda"
+     * belgisi turadi.
+     */
+    const waitingForEcwtContent =
+      step === 'CONTENT_PREP' &&
+      products.some((p) => p.contentByEcwt && !(p.titleEn && p.descriptionEn));
 
     return {
       step,
@@ -182,11 +208,13 @@ export class JourneyService {
       index: step === 'ONBOARDING' ? 1 : ONBOARDING_STEPS + visible.indexOf(step) + 1,
       total: ONBOARDING_STEPS + visible.length,
       now: text.now,
-      actor: text.actor,
+      actor: waitingForEcwtContent ? 'ECWT' : text.actor,
       next: rejectionReason
         ? 'Xohlasangiz, xizmat haqini o‘zingiz to‘lab ECWT bilan ishlashni davom ettirishingiz mumkin.'
-        : text.next,
-      actionable: rejectionReason ? true : text.actionable,
+        : waitingForEcwtContent
+          ? 'Mutaxassisimiz mahsulotingiz uchun inglizcha e’lon matnini tayyorlamoqda. Tayyor bo‘lgach xabar beramiz.'
+          : text.next,
+      actionable: rejectionReason ? true : waitingForEcwtContent ? false : text.actionable,
       rejectionReason,
       selfPaid,
       cabinetUnlocked: step === 'DONE',
@@ -258,6 +286,37 @@ export class JourneyService {
     return this.current(userId);
   }
 
+  /**
+   * 20-qadam: xalqaro e'lon matni.
+   *
+   * Ikki yo'l: hunarmand o'zi yozadi yoki ECWT tayyorlashini so'raydi.
+   * Ikkinchisida matn bo'sh qoladi va qadam kutish holatiga o'tadi —
+   * biz uni o'zimiz "tayyor" deb belgilamaymiz.
+   */
+  async saveContent(
+    userId: string,
+    input: { productId: string; titleEn?: string; descriptionEn?: string; byEcwt?: boolean },
+  ): Promise<JourneyDto> {
+    const product = await this.prisma.product.findFirst({
+      where: { id: input.productId, userId },
+      select: { id: true },
+    });
+    if (!product) throw new BadRequestException('Mahsulot topilmadi');
+
+    await this.prisma.product.update({
+      where: { id: product.id },
+      data: input.byEcwt
+        ? { contentByEcwt: true }
+        : {
+            titleEn: input.titleEn?.trim() || null,
+            descriptionEn: input.descriptionEn?.trim() || null,
+            contentByEcwt: false,
+          },
+    });
+
+    return this.current(userId);
+  }
+
   /** "O'zi to'layman" yo'lida subsidiya qadamlari ko'rsatilmaydi */
   private visibleOrder(selfPaid: boolean): JourneyStep[] {
     const subsidyOnly: JourneyStep[] = [
@@ -282,6 +341,8 @@ export class JourneyService {
     hasProduct: boolean;
     earningsSeen: boolean;
     hasReadyProduct: boolean;
+    contentReady: boolean;
+    contentByEcwt: boolean;
     hasListedProduct: boolean;
   }): JourneyStep {
     if (!f.onboardingDone) return 'ONBOARDING';
@@ -306,6 +367,12 @@ export class JourneyService {
      */
     if (!f.earningsSeen) return 'EARNINGS_PREVIEW';
     if (!f.hasReadyProduct) return 'PRODUCT_PREP';
+    /*
+     * Xalqaro e'lon inglizcha bo'lishi shart. Matn tayyor bo'lmaguncha
+     * mahsulotni maydonchaga chiqarmaymiz — o'zbekcha e'lon xaridorga
+     * tushunarsiz va maydoncha uni rad etishi mumkin.
+     */
+    if (!f.contentReady) return 'CONTENT_PREP';
     if (!f.hasListedProduct) return 'LISTING';
     return 'DONE';
   }

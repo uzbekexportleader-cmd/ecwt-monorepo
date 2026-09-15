@@ -164,6 +164,15 @@ function StepAction({ step }: { step: JourneyDto }) {
         />
       );
 
+    case 'CONTENT_PREP':
+      return (
+        <ActionCard
+          title={t('content.title')}
+          icon="language-outline"
+          onPress={() => router.push('/content')}
+        />
+      );
+
     case 'EARNINGS_PREVIEW':
       return (
         <ActionCard
@@ -173,14 +182,17 @@ function StepAction({ step }: { step: JourneyDto }) {
         />
       );
 
-    case 'DONE':
+    case 'LISTING':
       return (
         <ActionCard
-          title={t('journey.toCabinet')}
-          icon="home-outline"
-          onPress={() => router.replace('/(tabs)')}
+          title={t('listing.title')}
+          icon="globe-outline"
+          onPress={() => router.push('/listing')}
         />
       );
+
+    case 'DONE':
+      return <DoneBlock />;
 
     default:
       // Kutish qadami — tugma yo'q, holat o'zi gapiradi
@@ -305,6 +317,34 @@ function SalesModeChoice() {
   );
 }
 
+/**
+ * 22-qadam: yo'l tugadi.
+ *
+ * Bu yagona joy — kabinet shu yerdan ochiladi. Shuning uchun oddiy
+ * tugma emas, yo'l tugaganini bildiradigan ekran.
+ */
+function DoneBlock() {
+  const t = useT();
+  const router = useRouter();
+
+  return (
+    <View style={{ marginTop: spacing.xl, gap: spacing.lg }}>
+      <Card style={{ alignItems: 'center', gap: spacing.md, paddingVertical: spacing['2xl'] }}>
+        <View style={styles.doneCircle}>
+          <Ionicons name="checkmark" size={38} color={colors.textInverse} />
+        </View>
+        <Text style={[typography.h3, { textAlign: 'center' }]}>{t('journeyDone.title')}</Text>
+        <Text style={[typography.small, { textAlign: 'center' }]}>{t('journeyDone.body')}</Text>
+      </Card>
+      <Button
+        title={t('journey.toCabinet')}
+        icon="home-outline"
+        onPress={() => router.replace('/(tabs)')}
+      />
+    </View>
+  );
+}
+
 /** Mahalla rad etgan holat: sabab + o'zi to'lash imkoni */
 function RejectedBlock({ reason }: { reason: string }) {
   const t = useT();
@@ -358,4 +398,12 @@ const styles = StyleSheet.create({
   },
   waitText: { color: colors.warning, fontSize: 11, fontWeight: '700' },
   modeCard: { gap: spacing.sm },
+  doneCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: colors.success,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

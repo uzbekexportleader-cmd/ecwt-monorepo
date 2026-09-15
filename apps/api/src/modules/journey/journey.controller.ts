@@ -1,7 +1,14 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { JourneyDto } from '@ecwt/types';
-import { mahallaVisitSchema, salesModeSchema, type MahallaVisitInput, type SalesModeInput } from '@ecwt/validation';
+import {
+  listingContentSchema,
+  mahallaVisitSchema,
+  salesModeSchema,
+  type ListingContentInput,
+  type MahallaVisitInput,
+  type SalesModeInput,
+} from '@ecwt/validation';
 
 import { JourneyService } from './journey.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -34,6 +41,15 @@ export class JourneyController {
     @Body(zodBody(salesModeSchema)) body: SalesModeInput,
   ): Promise<JourneyDto> {
     return this.service.chooseSalesMode(userId, body.mode);
+  }
+
+  @Post('content')
+  @ApiOperation({ summary: '20-qadam: xalqaro e’lon matni' })
+  content(
+    @CurrentUser('sub') userId: string,
+    @Body(zodBody(listingContentSchema)) body: ListingContentInput,
+  ): Promise<JourneyDto> {
+    return this.service.saveContent(userId, body);
   }
 
   @Post('earnings-seen')

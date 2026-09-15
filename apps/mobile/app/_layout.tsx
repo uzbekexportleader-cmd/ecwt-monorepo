@@ -405,6 +405,8 @@ export default function RootLayout() {
                 <Stack.Screen name="payment" options={{ title: 'Xizmat to‘lovi', contentStyle: CLEAR }} />
                 <Stack.Screen name="contract" options={{ title: 'Shartnoma', contentStyle: CLEAR }} />
                 <Stack.Screen name="earnings" options={{ title: 'Hisob-kitob', contentStyle: CLEAR }} />
+                <Stack.Screen name="content" options={{ title: 'Xalqaro e‘lon', contentStyle: CLEAR }} />
+                <Stack.Screen name="listing" options={{ title: 'Joylashtirish', contentStyle: CLEAR }} />
                 {/* Tunnel: orqaga qaytarib yuboradigan sarlavha kerak emas */}
                 <Stack.Screen
                   name="journey"

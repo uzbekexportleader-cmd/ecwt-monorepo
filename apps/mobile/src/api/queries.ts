@@ -103,6 +103,23 @@ export function useChooseSalesMode() {
   });
 }
 
+/** 20-qadam: xalqaro e'lon matni (o'zi yozadi yoki ECWT tayyorlaydi) */
+export function useSaveListingContent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: {
+      productId: string;
+      titleEn?: string;
+      descriptionEn?: string;
+      byEcwt?: boolean;
+    }) => api.journey.content(v),
+    onSuccess: (data) => {
+      qc.setQueryData(qk.journey, data);
+      void qc.invalidateQueries({ queryKey: qk.products });
+    },
+  });
+}
+
 /** 19-qadam: hisob-kitobni ko'rib, davom etish */
 export function useEarningsSeen() {
   const qc = useQueryClient();

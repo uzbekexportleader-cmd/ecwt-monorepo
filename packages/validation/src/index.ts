@@ -684,3 +684,22 @@ export const salesModeSchema = z.object({
   mode: z.enum(['FBM', 'FBA']),
 });
 export type SalesModeInput = z.infer<typeof salesModeSchema>;
+
+/**
+ * 20-qadam: xalqaro e'lon matni.
+ *
+ * Yo hunarmand matnni o'zi yozadi (ikkala maydon ham to'liq), yo ECWT
+ * tayyorlashini so'raydi. Yarim to'ldirilgan matn maydonchaga chiqmaydi,
+ * shuning uchun ikkalasi birga talab qilinadi.
+ */
+export const listingContentSchema = z
+  .object({
+    productId: z.string().uuid(),
+    titleEn: z.string().trim().min(10, 'Sarlavha juda qisqa').max(200).optional(),
+    descriptionEn: z.string().trim().min(30, 'Tavsif juda qisqa').max(4000).optional(),
+    byEcwt: z.boolean().optional(),
+  })
+  .refine((v) => v.byEcwt === true || (Boolean(v.titleEn) && Boolean(v.descriptionEn)), {
+    message: 'Sarlavha va tavsifni to‘liq yozing yoki ECWT tayyorlashini tanlang',
+  });
+export type ListingContentInput = z.infer<typeof listingContentSchema>;
