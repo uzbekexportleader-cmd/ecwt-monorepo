@@ -249,6 +249,18 @@ function StartupGate({ children }: { children: React.ReactNode }) {
       if (path === 'assistant') return;
 
       if (!inAuth || path === '(auth)/lock') {
+        /*
+         * `seenWelcome` xotiradan o'qilguncha (`ready`) hech qayerga
+         * yo'naltirmaymiz.
+         *
+         * Ilgari splash uzoq kutib qolganda zaxira taymer ishga tushar va
+         * ilova hali o'qilmagan qiymat bilan ochilardi: `seenWelcome`
+         * boshlang'ich `false` bo'lgani uchun "Hush kelibsiz" chiziladi,
+         * bir lahzadan keyin haqiqiy qiymat kelib telefon raqami betiga
+         * SAKRAB o'tardi. Endi qaror ma'lum bo'lgunicha kutamiz — ekran
+         * bo'sh emas, ortida fon videosi turadi.
+         */
+        if (!ready) return;
         router.replace(seenWelcome ? '/(auth)/phone' : '/(auth)/welcome');
       }
       return;
@@ -318,6 +330,7 @@ function StartupGate({ children }: { children: React.ReactNode }) {
     // C) Hammasi tayyor — bosh sahifa
     if (inAuth || inSetup || path === '') router.replace('/(tabs)');
   }, [
+    ready,
     showApp,
     user,
     seenWelcome,
@@ -367,9 +380,22 @@ const CLEAR = { backgroundColor: 'transparent' } as const;
  * fonni mavzuning o'zida shaffof qilamiz. Eng orqada baribir ilovaning
  * `colors.bg` foni turadi, shu bois videosiz ekranlar o'zgarmaydi.
  */
+/**
+ * Navigator mavzusi.
+ *
+ * `background` — ekranlar foni, `card` — sarlavha panelining foni.
+ * IKKALASI HAM shaffof: ortidagi video butun ekranni, jumladan eng
+ * tepasini ham egallashi kerak. `card` to'q qolganda betning yuqorisida
+ * qora tasma paydo bo'lardi va video kesilgandek ko'rinardi.
+ */
 const NAV_THEME: Theme = {
   ...DarkTheme,
-  colors: { ...DarkTheme.colors, background: 'transparent', card: colors.bg, text: colors.text },
+  colors: {
+    ...DarkTheme.colors,
+    background: 'transparent',
+    card: 'transparent',
+    text: colors.text,
+  },
 };
 
 /**
@@ -402,7 +428,20 @@ export default function RootLayout() {
             <ThemeProvider value={NAV_THEME}>
               <Stack
                 screenOptions={{
-                  headerStyle: { backgroundColor: colors.bg },
+                  /*
+                    Sarlavha paneli ham SHAFFOF — ortidagi video uzilmasin.
+
+                    Ilgari u to'q rang bilan bo'yalardi va ekranning yuqori
+                    qismida video kesilgandek ko'rinardi: tepada bir tasma
+                    bo'sh, ostida video. Endi panel videoning ustida turadi,
+                    yozuv esa o'z soyasi bilan o'qiladi (`typography`).
+
+                    `headerTransparent` ATAYLAB berilmagan: u sarlavhani
+                    kontent USTIGA chiqaradi va bet matni panel ostiga
+                    kirib ketadi. Bizga faqat fonning shaffofligi kerak —
+                    panel o'z joyini egallab tursin.
+                  */
+                  headerStyle: { backgroundColor: 'transparent' },
                   headerTintColor: colors.text,
                   headerTitleStyle: { fontWeight: '600' },
                   headerShadowVisible: false,

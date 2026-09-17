@@ -108,6 +108,17 @@ export default function ContractStep() {
     }
   };
 
+  /**
+   * Shartnoma tuzilmaguncha oldinga o'tib bo'lmaydi.
+   *
+   * Ilgari "Davom etish" doim ochiq turardi — "Roziman" bosilmasa ham
+   * keyingi betga o'tib ketardi. Ya'ni odam shartnomasiz yakunlanardi.
+   *
+   * Ikkita to'g'ri holat bor: on-line tuzilgan ("Roziman" bosilib, Didox
+   * qabul qilgan) yoki zaxira yo'l bilan imzolangan nusxa yuklangan.
+   */
+  const shartnomaTayyor = online === 'done' || (online === 'unavailable' && uploaded);
+
   const next = async () => {
     try {
       await saveStep({}, 'DONE');
@@ -124,6 +135,7 @@ export default function ContractStep() {
       backTo={'/(setup)/payment'}
       title={t('step.contract')}
       onNext={() => void next()}
+      nextDisabled={!shartnomaTayyor}
       loading={saving}
     >
       {/* 1) Shartnomani o'qish */}

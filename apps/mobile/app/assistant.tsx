@@ -91,7 +91,12 @@ export default function AssistantScreen() {
         {!history.isLoading && messages.length === 0 ? (
           <View style={{ marginTop: spacing.xl, gap: spacing.md }}>
             <Text style={typography.body}>Nima bilan yordam bera olaman?</Text>
-            {(['ai.suggest1', 'ai.suggest2', 'ai.suggest3'] as const).map((k) => (
+            {/*
+              "Menga qaysi subsidiya mos?" ataylab olib tashlandi: yordamchi
+              subsidiya tanlay olmaydi, qarorni vakolatli organ qabul qiladi.
+              Bunday savol noto'g'ri kutish uyg'otardi.
+            */}
+            {(['ai.suggest2', 'ai.suggest3'] as const).map((k) => (
               <Pressable key={k} onPress={() => void send(t(k))} style={styles.suggestion}>
                 <Ionicons name="sparkles-outline" size={16} color={colors.primary} />
                 <Text style={[typography.small, { color: colors.text, flex: 1 }]}>{t(k)}</Text>

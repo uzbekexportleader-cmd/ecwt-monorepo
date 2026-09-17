@@ -9,11 +9,6 @@
     "userInterfaceStyle": "dark",
     "backgroundColor": "#050B1A",
     "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#050B1A"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "uz.ecwt.mobile",
@@ -43,7 +38,7 @@
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
       ],
-      "versionCode": 9,
+      "versionCode": 12,
       "runtimeVersion": "0.3.0"
     },
     "web": {
@@ -74,7 +69,15 @@
           "locationAlwaysAndWhenInUsePermission": "ECWT profilingizda ustaxona yoki yashash manzilingizni GPS orqali avtomatik to'ldirish uchun joylashuvingizdan foydalanadi."
         }
       ],
-      "expo-splash-screen",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#050B1A",
+          "dark": {
+            "backgroundColor": "#050B1A"
+          }
+        }
+      ],
       [
         "expo-local-authentication",
         {
@@ -119,7 +122,8 @@
       "url": "https://u.expo.dev/9e8fb02b-c9a9-406f-9dc9-28d0221a73c5",
       "requestHeaders": {
         "expo-channel-name": "production"
-      }
+      },
+      "fallbackToCacheTimeout": 3000
     }
   }
 }

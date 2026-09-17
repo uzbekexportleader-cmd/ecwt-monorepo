@@ -1,6 +1,11 @@
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+  <!--
+    Ishga tushish ekrani — faqat to'q fon.
+
+    Ilgari bu yerda Expo shablonining standart surati (to'r va aylanalar)
+    oq fonda chizilardi. Ilova ochilishida bir lahza o'sha begona rasm
+    ko'rinib, keyin ECWT ekrani kelardi. Endi fon video splash bilan bir
+    xil rangda — o'tish sezilmaydi.
+  -->
   <item android:drawable="@color/splashscreen_background"/>
-  <item>
-    <bitmap android:gravity="center" android:src="@drawable/splashscreen_logo"/>
-  </item>
 </layer-list>

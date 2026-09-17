@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Animated, Easing, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from '../../src/components/AppText';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { FontAwesome6, Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, layout, radius, spacing } from '../../src/theme';
 import { useAuthStore } from '../../src/store/auth';
@@ -79,7 +79,27 @@ const FEATURES: Feature[] = [
   { icon: 'repeat-outline', titleKey: 'welcome.card4', showPaymentLogos: true },
 ];
 
+/**
+ * Pastdagi eng kam masofa.
+ *
+ * Android'da tizim paneli ekran USTIGA chiqadi (`edgeToEdgeEnabled`).
+ * Odatda `insets.bottom` uning balandligini beradi, lekin ba'zi
+ * qobiqlarda (MIUI va shunga o'xshash) u nol qaytishi mumkin — o'shanda
+ * tugma panel ostida qolib ketadi. Shu sababli Android uchun qat'iy
+ * zaxira qiymat: uch tugmali panel taxminan shuncha joy egallaydi.
+ */
+const PASTKI_ENG_KAM = Platform.OS === 'android' ? 28 : spacing.lg;
+
 export default function WelcomeScreen() {
+  /*
+   * Pastdagi tizim paneli (uchta tugma yoki svayp chizig'i) ekran ustiga
+   * chiqadi — `edgeToEdgeEnabled` shunday ishlaydi. "Hisobim bor" tugmasi
+   * shu panel ostida qolib, pastki cheti kesilgandek ko'rinardi.
+   *
+   * Shu sababli pastki masofa panel balandligidan hisoblanadi; panel yo'q
+   * qurilmalarda ham ko'zga yoqadigan eng kam masofa saqlanadi.
+   */
+  const insets = useSafeAreaInsets();
   const t = useT();
   const router = useRouter();
   const markWelcomeSeen = useAuthStore((s) => s.markWelcomeSeen);
@@ -128,7 +148,7 @@ export default function WelcomeScreen() {
         </ScrollView>
 
         {/* Pastki qism */}
-        <View style={styles.footer}>
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, PASTKI_ENG_KAM) }]}>
           <PulsingButton title={t('onboarding.register')} onPress={go} />
           <GlowBorderButton title={t('welcome.haveAccount')} onPress={() => void goLogin()} />
         </View>

@@ -12,7 +12,7 @@
     "lint": "eslint app src --max-warnings=0",
     "test": "jest --passWithNoTests",
     "build": "expo export --platform android --output-dir dist",
-    "build:web": "expo export --platform web --output-dir dist-web",
+    "build:web": "expo export --platform web --output-dir dist-web && node ../../scripts/web-pwa.mjs",
     "eas-build-post-install": "cd ../.. && pnpm build:packages"
   },
   "dependencies": {
