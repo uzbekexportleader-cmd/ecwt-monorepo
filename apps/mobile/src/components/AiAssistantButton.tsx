@@ -1,8 +1,9 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, Platform, Pressable, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { router, useSegments } from 'expo-router';
 
+import { ChatGptLogo } from './ChatGptLogo';
+import { Text } from './AppText';
 import { colors, spacing } from '../theme';
 
 /**
@@ -12,14 +13,32 @@ import { colors, spacing } from '../theme';
  * ekran almashganda yo'qolmaydi va har bir ekranga alohida qo'shish
  * kerak emas.
  *
- * Ro'yxatdan o'tish oqimida ko'rinmaydi: u yerda foydalanuvchi qadamma-
- * qadam boradi va tugma yo'lni to'sib qo'yadi.
+ * Birinchi ekrandan boshlab ko'rinadi. Avval ro'yxatdan o'tish va anketa
+ * davomida yashirilgan edi, lekin yordam aynan o'sha yerda kerak —
+ * "JShShIR nima?", "MFO qayerdan olinadi?" kabi savollar shu qadamlarda
+ * tug'iladi. Tunnelga yetib kelgan odam yo'lni allaqachon tushungan
+ * bo'ladi.
  */
 
-/** Yordamchi ko'rinmaydigan bo'limlar */
-const HIDDEN_GROUPS = new Set(['(auth)', '(setup)']);
+/**
+ * Yordamchi ko'rinmaydigan bo'limlar.
+ *
+ * Splash (ildiz ekrani) bundan mustasno: u yerda ilova hali yuklanmagan.
+ */
+const HIDDEN_GROUPS = new Set<string>([]);
 /** Yordamchining o'zida tugma kerak emas */
 const HIDDEN_SCREENS = new Set(['assistant']);
+
+/**
+ * Yordamchining nomi — bitta joyda.
+ *
+ * Tugmada ham, ekran sarlavhasida ham shu ishlatiladi: nom ikki joyda
+ * alohida yozilsa, biri o'zgarganda ikkinchisi eskirib qoladi.
+ */
+export const ASSISTANT_NAME = 'ChatGPT';
+
+/** ChatGPT logotipining rasmiy fon rangi */
+export const ASSISTANT_COLOR = '#74AA9C';
 
 /** Bitta "nafas" (kattalashib-kichrayish) davri */
 const PULSE_MS = 1600;
@@ -62,18 +81,32 @@ export function AiAssistantButton() {
     opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.45, 0] }),
   };
 
+  /*
+   * Ba'zi ekranlarda pastda butun enni egallagan asosiy tugma turadi
+   * (anketada "Davom etish", tunnelda "Shaxsiy kabinetga kirish").
+   * Yordamchini o'shalarning ustidan ko'taramiz — aks holda tugmaning
+   * o'ng chekkasini to'sib, bosishga xalaqit beradi.
+   */
+  const hasBottomAction = group === '(auth)' || group === '(setup)' || screen === 'journey';
+  const lift = hasBottomAction ? { bottom: (Platform.OS === 'ios' ? 104 : 88) + 76 } : null;
+
   return (
-    <View style={styles.wrap} pointerEvents="box-none">
+    <View style={[styles.wrap, lift]} pointerEvents="box-none">
       <Animated.View style={[styles.ring, ringStyle]} pointerEvents="none" />
       <Pressable
         onPress={() => router.push('/assistant')}
         accessibilityRole="button"
-        accessibilityLabel="ECWT yordamchisi"
+        accessibilityLabel={ASSISTANT_NAME}
         style={({ pressed }) => [styles.button, pressed && { opacity: 0.85 }]}
         hitSlop={8}
       >
-        <Ionicons name="sparkles" size={22} color={colors.textInverse} />
+        <ChatGptLogo size={30} />
       </Pressable>
+
+      {/* Nomi tugma ostida: odam nimaga bosayotganini bilsin */}
+      <Text style={styles.caption} numberOfLines={1}>
+        {ASSISTANT_NAME}
+      </Text>
     </View>
   );
 }
@@ -89,23 +122,34 @@ const styles = StyleSheet.create({
      */
     bottom: Platform.OS === 'ios' ? 104 : 88,
     right: spacing.lg,
+    /*
+     * Balandlik QAT'IY belgilanmaydi: tugma ostida nom yozuvi ham bor.
+     * Ilgari bu yerda `height: SIZE` turardi va yozuv o'ram chegarasidan
+     * chiqib, ko'rinmay qolardi.
+     */
     width: SIZE,
-    height: SIZE,
     alignItems: 'center',
-    justifyContent: 'center',
   },
   ring: {
     position: 'absolute',
     width: SIZE,
     height: SIZE,
     borderRadius: SIZE / 2,
-    backgroundColor: colors.primary,
+    backgroundColor: ASSISTANT_COLOR,
+  },
+  caption: {
+    marginTop: 4,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+    color: colors.text,
+    textAlign: 'center',
   },
   button: {
     width: SIZE,
     height: SIZE,
     borderRadius: SIZE / 2,
-    backgroundColor: colors.primary,
+    backgroundColor: ASSISTANT_COLOR,
     alignItems: 'center',
     justifyContent: 'center',
     // Ko'tarilgan ko'rinish — fon ustida ajralib tursin

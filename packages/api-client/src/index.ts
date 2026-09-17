@@ -451,6 +451,7 @@ export function createApiClient(options: ApiClientOptions) {
       ask: (message: string, context?: Record<string, unknown>) =>
         request<AiMessageDto>('/ai/ask', { method: 'POST', body: { message, context } }),
       history: () => request<AiMessageDto[]>('/ai/history'),
+      status: () => request<{ connected: boolean; provider: string }>('/ai/status'),
     },
 
     /* ------------------------------ admin ----------------------------- */

@@ -21,7 +21,8 @@
         "NSPhotoLibraryUsageDescription": "Mahsulot va hujjat rasmlarini yuklash uchun galereyaga ruxsat kerak.",
         "NSCameraUsageDescription": "Shaxsingizni tasdiqlash uchun yuzingiz suratini olamiz.",
         "NSFaceIDUsageDescription": "ECWT ilovasiga tez va xavfsiz kirish uchun Face ID dan foydalanadi."
-      }
+      },
+      "runtimeVersion": "0.3.0"
     },
     "android": {
       "package": "uz.ecwt.mobile",
@@ -38,9 +39,12 @@
         "android.permission.RECORD_AUDIO",
         "android.permission.USE_BIOMETRIC",
         "android.permission.USE_FINGERPRINT",
-        "android.permission.CAMERA"
+        "android.permission.CAMERA",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ],
-      "versionCode": 9
+      "versionCode": 9,
+      "runtimeVersion": "0.3.0"
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -97,7 +101,9 @@
       ],
       "./plugins/withCameraXVersion",
       "expo-web-browser",
-      "expo-sharing"
+      "expo-sharing",
+      "./plugins/withReleaseSigning",
+      "./plugins/withDarkNavigationBar"
     ],
     "experiments": {
       "typedRoutes": false
@@ -107,6 +113,12 @@
       "router": {},
       "eas": {
         "projectId": "9e8fb02b-c9a9-406f-9dc9-28d0221a73c5"
+      }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/9e8fb02b-c9a9-406f-9dc9-28d0221a73c5",
+      "requestHeaders": {
+        "expo-channel-name": "production"
       }
     }
   }

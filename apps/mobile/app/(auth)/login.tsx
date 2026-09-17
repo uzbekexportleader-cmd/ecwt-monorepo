@@ -51,6 +51,20 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>();
 
+  /*
+   * Asosiy yo'l — yuz/barmoq izi. Telefonda saqlangan hisob bo'lsa, ekran
+   * ochilishi bilan tasdiqlash so'raladi va foydalanuvchi hech narsa
+   * yozmasdan kiradi.
+   *
+   * Telefon raqami va parol MAJBURAN olib tashlanmaydi: biometrika faqat
+   * SHU telefondagi sessiyani ochadi. Yangi telefonda, ilova qayta
+   * o'rnatilganda yoki qurilmada yuz aniqlash bo'lmaganda ochadigan narsa
+   * bo'lmaydi — o'shanda shakl kerak bo'ladi. Shuning uchun u yo'qolmaydi,
+   * shunchaki "Boshqa yo'l bilan kirish" havolasi ortiga o'tadi.
+   */
+  const [showForm, setShowForm] = useState(false);
+  const [bioAsked, setBioAsked] = useState(false);
+
   /**
    * Biometrika holati.
    *
@@ -129,16 +143,54 @@ export default function LoginScreen() {
     router.replace('/(tabs)');
   };
 
+  /*
+   * Ekran ochilishi bilan bir marta so'raladi. Bekor qilinsa qayta
+   * so'ralmaydi — ekranda tugma turadi, foydalanuvchi o'zi bosadi.
+   */
+  const biometricFirst = bio.available && bio.hasSession && !showForm;
+
+  useEffect(() => {
+    if (!biometricFirst || bioAsked) return;
+    setBioAsked(true);
+    void loginWithBiometrics();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [biometricFirst, bioAsked]);
+
   return (
     <View style={layout.screenClear}>
-      <StepNav onBack={() => router.replace('/(auth)/welcome')} />
-
+      {/* StepNav SafeAreaView ichida turishi shart — tashqarida qolsa
+          tepadagi tugmalar status bar (soat, batareya) ustiga chiqib ketadi */}
       <SafeAreaView style={{ flex: 1 }}>
+        <StepNav onBack={() => router.replace('/(auth)/welcome')} />
+
         <KeyboardAwareScroll contentContainerStyle={styles.body} extraBottom={spacing['3xl']}>
           <Text style={[typography.display, { marginTop: spacing.xl }]}>{t('login.title')}</Text>
 
           <View style={{ height: spacing['2xl'] }} />
 
+          {biometricFirst ? (
+            <>
+              <Text style={[typography.body, { marginBottom: spacing.xl }]}>
+                {t('login.biometricHint', { label: bio.label })}
+              </Text>
+
+              <Button
+                title={t('login.biometric', { label: bio.label })}
+                icon="scan-outline"
+                onPress={() => void loginWithBiometrics()}
+              />
+
+              <Pressable
+                onPress={() => setShowForm(true)}
+                hitSlop={12}
+                style={{ marginTop: spacing['2xl'], alignSelf: 'center' }}
+                accessibilityRole="link"
+              >
+                <Text style={styles.link}>{t('login.otherWay')}</Text>
+              </Pressable>
+            </>
+          ) : (
+          <>
           <TextField
             testID="login-phone"
             label={t('auth.phone.label')}
@@ -202,6 +254,8 @@ export default function LoginScreen() {
             <Ionicons name="information-circle-outline" size={16} color={colors.textMuted} />
             <Text style={[typography.caption, { flex: 1 }]}>{t('password.why')}</Text>
           </View>
+          </>
+          )}
         </KeyboardAwareScroll>
       </SafeAreaView>
     </View>

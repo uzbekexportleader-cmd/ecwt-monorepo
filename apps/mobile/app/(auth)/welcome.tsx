@@ -12,6 +12,7 @@ import { useT, type TranslationKey } from '../../src/i18n';
 import { LanguageChips } from '../../src/components/LanguagePicker';
 import { MARKETPLACES } from '../../src/constants/onboarding';
 import { StepNav } from '../../src/components/StepNav';
+import { SilkEdge, SilkFill, SilkFrame, SILK_ON_FILL } from '../../src/components/Silk';
 
 /**
  * RN'ning Animated komponenti View uchun mo'ljallangan ichki proplarni
@@ -130,8 +131,6 @@ export default function WelcomeScreen() {
         <View style={styles.footer}>
           <PulsingButton title={t('onboarding.register')} onPress={go} />
           <GlowBorderButton title={t('welcome.haveAccount')} onPress={() => void goLogin()} />
-
-          <Text style={styles.motto}>{t('welcome.motto')}</Text>
         </View>
       </SafeAreaView>
     </View>
@@ -154,62 +153,18 @@ const GOLD_SOFT = '#F5B942';
  */
 function FeatureCard({ feature, index }: { feature: Feature; index: number }) {
   const t = useT();
-  const glow = useRef(new Animated.Value(0)).current;
-  const [size, setSize] = useState({ w: 0, h: 0 });
-  const gradientId = `cardGold${index}`;
 
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.delay(index * 260),
-        Animated.timing(glow, {
-          toValue: 1,
-          duration: 1300,
-          easing: Easing.inOut(Easing.quad),
-          // Rang animatsiyasi native driver bilan ishlamaydi
-          useNativeDriver: false,
-        }),
-        Animated.timing(glow, {
-          toValue: 0.18,
-          duration: 1300,
-          easing: Easing.inOut(Easing.quad),
-          useNativeDriver: false,
-        }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [glow, index]);
-
-  const borderColor = glow.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['rgba(30, 44, 85, 0.9)', GOLD_CORE],
-  });
-
+  /*
+   * Ichi shaffof: ortidagi video ko'rinib tursin. Shu sababli to'ldirilgan
+   * SilkFrame emas, faqat chegara chizig'i qo'yiladi.
+   */
   return (
-    <AnimatedPressable
-      accessibilityRole="text"
-      accessibilityLabel={t(feature.titleKey)}
-      onLayout={(e) =>
-        setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })
-      }
-      style={[styles.card, { borderColor }]}
-    >
-      {size.w > 0 ? (
-        <Animated.View style={[StyleSheet.absoluteFill, { opacity: glow }]} pointerEvents="none">
-          <Svg width={size.w} height={size.h}>
-            <Defs>
-              <LinearGradient id={gradientId} x1="0" y1="1" x2="0" y2="0">
-                <Stop offset="0%" stopColor={GOLD_CORE} stopOpacity="0.6" />
-                <Stop offset="35%" stopColor={GOLD_SOFT} stopOpacity="0.26" />
-                <Stop offset="100%" stopColor={GOLD_SOFT} stopOpacity="0" />
-              </LinearGradient>
-            </Defs>
-            <Rect x="0" y="0" width={size.w} height={size.h} fill={`url(#${gradientId})`} />
-          </Svg>
-        </Animated.View>
-      ) : null}
-
+    <View style={styles.card}>
+      <SilkEdge radius={18} />
+      <View
+        accessibilityRole="text"
+        accessibilityLabel={t(feature.titleKey)}
+      >
       {feature.showMarketplaceLogos ? (
         <MarketplaceCorner title={t(feature.titleKey)} />
       ) : (
@@ -222,7 +177,8 @@ function FeatureCard({ feature, index }: { feature: Feature; index: number }) {
           <Text style={styles.cardTitle}>{t(feature.titleKey)}</Text>
         </>
       )}
-    </AnimatedPressable>
+      </View>
+    </View>
   );
 }
 
@@ -293,8 +249,13 @@ function PaymentLogos() {
 /* ------------------------------ tugmalar ------------------------------- */
 
 /** Asosiy tugmaning yashil foni */
-const GREEN_LIGHT = '#5FD98A';
-const GREEN_DEEP = '#22A75A';
+/*
+ * Pastki tugmalar internet ogohlantirishi bilan bir xil ko'rinishda:
+ * quyuq ko'k fon va tilla chekka. Ikkalasi bir xil bo'lgani uchun
+ * ekran tinch ko'rinadi va tilla chekka e'tiborni tortadi.
+ */
+const BTN_BG = colors.bgElevated;
+const BTN_BORDER = colors.warning;
 
 /** LED nur — ikkala tugmada bir xil */
 const LED_EDGE = '#0E7A3C';
@@ -385,7 +346,7 @@ function PulsingButton({ title, onPress }: { title: string; onPress: () => void 
 
   const backgroundColor = pulse.interpolate({
     inputRange: [0, 1],
-    outputRange: [GREEN_LIGHT, GREEN_DEEP],
+    outputRange: [BTN_BG, BTN_BG],
   });
 
   const { lift, press, release } = usePopUp();
@@ -400,17 +361,14 @@ function PulsingButton({ title, onPress }: { title: string; onPress: () => void 
     >
       <Animated.View
         onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
-        style={[
-          styles.primary,
-          {
-            backgroundColor,
-            transform: [{ translateY: lift.translateY }, { scale: lift.scale }],
-          },
-        ]}
+        style={{
+          transform: [{ translateY: lift.translateY }, { scale: lift.scale }],
+        }}
       >
-        <LedBorder width={width} height={height} gradientId="ledPrimary" />
-        <Text style={styles.primaryText}>{title}</Text>
-        <Ionicons name="arrow-forward" size={22} color="#06301A" />
+        <SilkFill style={styles.primary}>
+          <Text style={styles.primaryText}>{title}</Text>
+          <Ionicons name="arrow-forward" size={22} color={SILK_ON_FILL} />
+        </SilkFill>
       </Animated.View>
     </Pressable>
   );
@@ -431,13 +389,12 @@ function GlowBorderButton({ title, onPress }: { title: string; onPress: () => vo
       accessibilityRole="button"
       accessibilityLabel={title}
       onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
-      style={[
-        styles.secondary,
-        { transform: [{ translateY: lift.translateY }, { scale: lift.scale }] },
-      ]}
+      style={{ transform: [{ translateY: lift.translateY }, { scale: lift.scale }] }}
     >
-      <LedBorder width={width} height={height} gradientId="ledSecondary" />
-      <Text style={styles.secondaryText}>{title}</Text>
+      {/* Yuqoridagi tugmadan yarim davr kechikadi — ikkalasi navbat bilan yonadi */}
+      <SilkFrame style={styles.secondary} radius={29}>
+        <Text style={styles.secondaryText}>{title}</Text>
+      </SilkFrame>
     </AnimatedPressable>
   );
 }
@@ -489,10 +446,10 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.sm,
-    borderRadius: radius.lg,
-    backgroundColor: 'rgba(15, 26, 56, 0.7)',
-    borderWidth: 1,
+    borderRadius: 18,
     overflow: 'hidden',
+    // Yarim shaffof: ortidagi video ko'rinadi, lekin yozuv o'qiladi
+    backgroundColor: 'rgba(10, 16, 32, 0.34)',
   },
   cardTitle: { color: colors.text, fontSize: 12, lineHeight: 16, fontWeight: '700', textAlign: 'center' },
 
@@ -534,14 +491,16 @@ const styles = StyleSheet.create({
 
   footer: {
     paddingHorizontal: spacing.xl,
+    // Matn olib tashlangach tugmalar o'zi pastroq tushdi — pastki masofa
+    // saqlanadi, aks holda ekran chetiga yopishib qoladi
     paddingBottom: spacing.lg,
-    paddingTop: spacing.sm,
+    paddingTop: spacing.lg,
     // Ikkala tugma bir-biriga yaqin tursin
     gap: spacing.sm,
   },
   primary: {
     height: 62,
-    // To'liq dumaloq chetlar
+    // To'liq dumaloq chetlar — "Ipak" yo'nalishida tugmalar tabletka shaklida
     borderRadius: 31,
     flexDirection: 'row',
     alignItems: 'center',
@@ -549,22 +508,13 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     overflow: 'hidden',
   },
-  primaryText: { color: '#06301A', fontSize: 18, fontWeight: '700' },
+  primaryText: { color: SILK_ON_FILL, fontSize: 18, fontWeight: '700' },
   secondary: {
     height: 58,
     borderRadius: 29,
-    borderWidth: 1,
-    borderColor: colors.border,
     overflow: 'hidden',
-    backgroundColor: 'rgba(15, 26, 56, 0.75)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   secondaryText: { color: colors.text, fontSize: 17, fontWeight: '600' },
-  motto: {
-    color: colors.textMuted,
-    fontSize: 12,
-    textAlign: 'center',
-    marginTop: spacing.sm,
-  },
 });

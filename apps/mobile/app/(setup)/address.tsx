@@ -52,9 +52,9 @@ export default function AddressStep() {
           address: [draft.mahalla, draft.street, draft.houseNumber].filter(Boolean).join(', '),
           ...(draft.contactPhone ? { contactPhone: draft.contactPhone } : {}),
         },
-        'ACTIVITY_TYPE',
+        'LOCATION',
       );
-      router.push('/(setup)/activity');
+      router.push('/(setup)/location');
     } catch (e) {
       toastError(e instanceof EcwtApiError ? e.message : t('done.saveFailed'));
     }

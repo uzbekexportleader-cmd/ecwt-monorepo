@@ -84,7 +84,7 @@ export default function BankStep() {
   };
 
   return (
-    <StepScreen step={6}
+    <StepScreen step={7}
       backTo={'/(setup)/services'} title={t('step.bank')} onNext={() => void next()} loading={saving}>
       <TextField
         label={t('profile.bankAccount')}

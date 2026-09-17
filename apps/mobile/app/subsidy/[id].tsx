@@ -78,7 +78,7 @@ export default function SubsidyDetail() {
   const failedFixable = e?.checks.filter((c) => c.result !== 'PASSED' && c.fixRoute) ?? [];
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+    <View style={{ flex: 1, backgroundColor: 'transparent' }}>
       <Screen edges={[]} contentStyle={{ paddingBottom: 140 }}>
         <View style={[layout.row, { gap: spacing.sm, flexWrap: 'wrap', marginBottom: spacing.md }]}>
           <Chip label={s.category} tone="info" />

@@ -17,13 +17,24 @@ import { PrismaService } from '../../prisma/prisma.service';
  * tushib qoladi. Bitta manba — ma'lumotning o'zi.
  */
 
-/** Qadamlarning ko'rsatiladigan tartibi */
+/**
+ * Qadamlarning ko'rsatiladigan tartibi.
+ *
+ * `SUBSIDY_CONFIRMED` bu yerda YO'Q. U `resolve()` dan hech qachon
+ * qaytmaydi: "subsidiya keldi" va "xizmat haqi to'lanmagan" holatlari
+ * bitta to'lov statusiga (`AWAITING_TRANSFER`) to'g'ri keladi, ya'ni ularni
+ * ajratadigan belgi yo'q. Ro'yxatda qolsa esa qadam raqami uning ustidan
+ * sakrab o'tardi — foydalanuvchi 14 dan keyin darhol 16 ni ko'rardi.
+ *
+ * Agar keyinchalik "subsidiya tasdiqlandi" alohida ekran sifatida kerak
+ * bo'lsa, avval uni ajratadigan holat qo'shiladi (masalan subsidiya
+ * yozuvida tasdiqlangan sana), keyin bu yerga qaytariladi.
+ */
 const ORDER: JourneyStep[] = [
   'ONBOARDING',
   'SUBSIDY_APPLICATION',
   'MAHALLA_VISIT',
   'COMMISSION_DECISION',
-  'SUBSIDY_CONFIRMED',
   'SERVICE_PAYMENT',
   'PAYMENT_REVIEW',
   'SALES_MODE',
@@ -35,7 +46,7 @@ const ORDER: JourneyStep[] = [
 ];
 
 /** Ro'yxatdan o'tish 10 qadam — tunnel raqamlari shundan keyin boshlanadi */
-const ONBOARDING_STEPS = 10;
+const ONBOARDING_STEPS = 11;
 
 type StepInfo = {
   now: string;
@@ -323,7 +334,6 @@ export class JourneyService {
       'SUBSIDY_APPLICATION',
       'MAHALLA_VISIT',
       'COMMISSION_DECISION',
-      'SUBSIDY_CONFIRMED',
     ];
     return ORDER.filter(
       (s) => s !== 'ONBOARDING' && !(selfPaid && subsidyOnly.includes(s)),

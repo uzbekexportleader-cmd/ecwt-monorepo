@@ -4,6 +4,7 @@ import { Text } from './AppText';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import { KeyboardAwareScroll } from './KeyboardAwareScroll';
+import { SilkFill, SilkFrame, SILK_ON_FILL } from './Silk';
 
 import { CONTROL_HEIGHT, cardShadow, colors, layout, radius, spacing, typography } from '../theme';
 
@@ -12,17 +13,23 @@ import { CONTROL_HEIGHT, cardShadow, colors, layout, radius, spacing, typography
 /** AI yordamchi tugmasi (56px) + atrofidagi bo'shliq */
 const AI_BUTTON_CLEARANCE = 72;
 
+/** "Ipak" yo'nalishi: tugmalar tabletka shaklida */
+const BUTTON_RADIUS = 999;
+
 export function Screen({
   children,
   scroll = true,
   edges = ['top'],
   /**
-   * Fon shaffof bo'lsin — ortidagi video ko'rinadi.
+   * Fon shaffof — ortidagi video ko'rinadi.
    *
    * Ildizdagi `VideoBackdropHost` navigatorning ORQASIDA turadi; ekran
    * o'zining fonini chizsa, videoni yopib qo'yadi.
+   *
+   * STANDART holat shaffof: video ilovaning hamma betida bir xil ko'rinishi
+   * kerak. Agar biror ekranda fon kerak bo'lsa, `clear={false}` beriladi.
    */
-  clear = false,
+  clear = true,
   style,
   contentStyle,
   refreshControl,
@@ -109,6 +116,33 @@ export function Button({
   };
   const p = palette[variant];
 
+  /*
+   * "Ipak" yo'nalishi:
+   *   asosiy tugma  — gradient TO'LDIRISH, ustidan yaltiroq yuguradi;
+   *   ikkinchi darajali va xavfli — gradient CHEGARA, ichi to'q;
+   *   ghost — o'zgarishsiz, u matn kabi ishlaydi.
+   *
+   * Ekranda bittadan ko'p to'ldirilgan tugma bo'lmasligi kerak, shuning
+   * uchun faqat `primary` va `gold` shunday chiziladi.
+   */
+  const filled = variant === 'primary' || variant === 'gold';
+  const framed = variant === 'secondary' || variant === 'danger';
+
+  const ichki = loading ? (
+    <ActivityIndicator color={filled ? SILK_ON_FILL : p.fg} />
+  ) : (
+    <View style={[layout.row, { gap: spacing.sm }]}>
+      {icon ? <Ionicons name={icon} size={22} color={filled ? SILK_ON_FILL : p.fg} /> : null}
+      <Text style={[styles.buttonText, { color: filled ? SILK_ON_FILL : p.fg }]}>{title}</Text>
+    </View>
+  );
+
+  const umumiy: ViewStyle = {
+    opacity: isDisabled ? 0.45 : 1,
+    alignSelf: fullWidth ? 'stretch' : 'flex-start',
+    paddingHorizontal: fullWidth ? spacing.xl : spacing['2xl'],
+  };
+
   return (
     <Pressable
       testID={testID}
@@ -116,26 +150,18 @@ export function Button({
       disabled={isDisabled}
       accessibilityRole="button"
       accessibilityLabel={title}
-      style={({ pressed }) => [
-        styles.button,
-        {
-          backgroundColor: p.bg,
-          borderColor: p.border ?? 'transparent',
-          borderWidth: p.border ? 1 : 0,
-          opacity: isDisabled ? 0.45 : pressed ? 0.85 : 1,
-          alignSelf: fullWidth ? 'stretch' : 'flex-start',
-          paddingHorizontal: fullWidth ? spacing.xl : spacing['2xl'],
-        },
-        style,
-      ]}
+      style={({ pressed }) => [{ opacity: pressed && !isDisabled ? 0.85 : 1 }, style]}
     >
-      {loading ? (
-        <ActivityIndicator color={p.fg} />
+      {filled ? (
+        <SilkFill style={[styles.button, umumiy]} radius={BUTTON_RADIUS}>
+          {ichki}
+        </SilkFill>
+      ) : framed ? (
+        <SilkFrame style={[styles.button, umumiy]} radius={BUTTON_RADIUS} fill={p.bg}>
+          {ichki}
+        </SilkFrame>
       ) : (
-        <View style={[layout.row, { gap: spacing.sm }]}>
-          {icon ? <Ionicons name={icon} size={22} color={p.fg} /> : null}
-          <Text style={[styles.buttonText, { color: p.fg }]}>{title}</Text>
-        </View>
+        <View style={[styles.button, umumiy, { backgroundColor: p.bg }]}>{ichki}</View>
       )}
     </Pressable>
   );
@@ -362,9 +388,11 @@ export function ListRow({
 const styles = StyleSheet.create({
   button: {
     height: CONTROL_HEIGHT,
-    borderRadius: radius.lg,
+    borderRadius: BUTTON_RADIUS,
     alignItems: 'center',
     justifyContent: 'center',
+    // Nur yumaloq burchaklardan chiqib ketmasligi uchun
+    overflow: 'hidden',
   },
   buttonText: { fontSize: 17, fontWeight: '700' },
   card: {

@@ -166,6 +166,7 @@ export const paymentMethodSchema = z.enum(['SUBSIDY', 'SELF']);
 export const onboardingStageSchema = z.enum([
   'PERSONAL',
   'ADDRESS',
+  'LOCATION',
   'ACTIVITY_TYPE',
   'ACTIVITY_DETAILS',
   'SERVICES',

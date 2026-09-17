@@ -32,8 +32,8 @@ export default function ActivityStep() {
 
   return (
     <StepScreen
-      step={3}
-      backTo={'/(setup)/address'}
+      step={4}
+      backTo={'/(setup)/location'}
       title={t('step.activityType')}
       onNext={() => void next()}
       nextDisabled={!draft.activityType}

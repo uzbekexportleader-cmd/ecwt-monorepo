@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
+import { Animated, Easing, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Text } from '../../src/components/AppText';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
@@ -132,16 +132,16 @@ function FaceIdSimpleScreen() {
 
   if (!permission) {
     return (
-      <SafeAreaView style={layout.screen}>
-        <StepNav onBack={() => router.replace('/(auth)/phone')} onNext={goNext} />
+      <SafeAreaView style={layout.screenClear}>
+        <StepNav onBack={() => router.replace('/(auth)/phone')} onNext={phase === 'done' ? goNext : undefined} />
       </SafeAreaView>
     );
   }
 
   if (!permission.granted) {
     return (
-      <SafeAreaView style={layout.screen}>
-        <StepNav onBack={() => router.replace('/(auth)/phone')} onNext={goNext} />
+      <SafeAreaView style={layout.screenClear}>
+        <StepNav onBack={() => router.replace('/(auth)/phone')} onNext={phase === 'done' ? goNext : undefined} />
         <View style={styles.centered}>
           <Ionicons name="camera-outline" size={64} color={colors.primary} />
           <Text style={[typography.h1, styles.center, { marginTop: spacing.xl }]}>
@@ -152,9 +152,22 @@ function FaceIdSimpleScreen() {
           </Text>
           <View style={{ height: spacing['2xl'] }} />
           <Button title={t('face.permGrant')} onPress={() => void requestPermission()} />
-          <Pressable onPress={goNext} style={styles.skip}>
-            <Text style={styles.skipText}>{t('face.later')}</Text>
-          </Pressable>
+
+          {/*
+            Brauzer versiyasida kamerasiz qurilmadan chiqish yo'li.
+
+            Telefonda selfi MAJBURIY bo'lib qoladi — bu shart ataylab
+            qo'yilgan va o'zgarmaydi. Lekin saytga ish stoli kompyuteridan
+            kirgan odam (kamerasi yo'q yoki brauzer ruxsat bermagan)
+            butunlay to'xtab qolardi: na oldinga, na orqaga. Ya'ni sayt
+            orqali ro'yxatdan o'tishning imkoni yo'q edi.
+          */}
+          {Platform.OS === 'web' ? (
+            <>
+              <View style={{ height: spacing.lg }} />
+              <Button title={t('face.skipOnWeb')} variant="ghost" onPress={goNext} />
+            </>
+          ) : null}
         </View>
       </SafeAreaView>
     );
@@ -164,8 +177,8 @@ function FaceIdSimpleScreen() {
 
   if (phase === 'done') {
     return (
-      <SafeAreaView style={layout.screen}>
-        <StepNav onBack={() => router.replace('/(auth)/phone')} onNext={goNext} />
+      <SafeAreaView style={layout.screenClear}>
+        <StepNav onBack={() => router.replace('/(auth)/phone')} onNext={phase === 'done' ? goNext : undefined} />
         <View style={styles.centered}>
           <View style={styles.doneMark}>
             <Ionicons name="checkmark" size={48} color="#06301A" />
@@ -200,7 +213,7 @@ function FaceIdSimpleScreen() {
       <FaceOval color={ringColor} strokeWidth={ringWidth} strokeOpacity={ringOpacity} />
 
       <SafeAreaView style={styles.overlay}>
-        <StepNav onBack={() => router.replace('/(auth)/phone')} onNext={goNext} />
+        <StepNav onBack={() => router.replace('/(auth)/phone')} onNext={undefined} />
 
         <View style={styles.captionBox}>
         <Text style={[typography.h2, styles.center, styles.title]}>
@@ -230,9 +243,6 @@ function FaceIdSimpleScreen() {
             disabled={phase !== 'aim'}
             loading={phase === 'sending'}
           />
-          <Pressable onPress={goNext} style={styles.skip}>
-            <Text style={styles.skipText}>{t('face.later')}</Text>
-          </Pressable>
         </View>
       </SafeAreaView>
     </View>

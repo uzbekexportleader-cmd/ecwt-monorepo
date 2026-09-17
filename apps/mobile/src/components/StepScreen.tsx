@@ -18,7 +18,7 @@ import { colors, layout, spacing, typography } from '../theme';
  * Sakkiztasi forma qadamlari (shaxsiy → shartnoma), qolgan ikkitasi
  * shartnomadan keyingi holat va yakun ekranlari.
  */
-export const TOTAL_STEPS = 10;
+export const TOTAL_STEPS = 11;
 
 /**
  * Ro'yxatdan o'tish qadamlarining umumiy ko'rinishi.
@@ -127,7 +127,11 @@ export function StepScreen({
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   flex: { flex: 1 },
-  body: { paddingHorizontal: spacing.xl, paddingTop: spacing.md, paddingBottom: spacing['2xl'] },
+  /*
+   * Pastdan qo'shimcha joy: o'ng burchakda AI yordamchi tugmasi suzib
+   * turadi va busiz oxirgi qatorlar uning tagida qolib ketardi.
+   */
+  body: { paddingHorizontal: spacing.xl, paddingTop: spacing.md, paddingBottom: spacing['5xl'] },
   counter: { color: colors.primary, fontSize: 13, fontWeight: '700', letterSpacing: 0.6 },
   title: { marginTop: spacing.sm },
   subtitle: { marginTop: spacing.sm },

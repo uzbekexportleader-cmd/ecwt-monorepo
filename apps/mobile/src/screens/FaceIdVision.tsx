@@ -276,7 +276,7 @@ export default function FaceIdVisionScreen() {
 
   if (!hasPermission) {
     return (
-      <SafeAreaView style={layout.screen}>
+      <SafeAreaView style={layout.screenClear}>
         <StepNav
           onBack={() => router.replace('/(auth)/phone')}
           onNext={goNext}
@@ -303,7 +303,7 @@ export default function FaceIdVisionScreen() {
 
   if (phase === 'done') {
     return (
-      <SafeAreaView style={layout.screen}>
+      <SafeAreaView style={layout.screenClear}>
         <StepNav onBack={() => router.replace('/(auth)/phone')} onNext={goNext} />
         <View style={styles.centered}>
           <View style={styles.doneMark}>
@@ -334,7 +334,7 @@ export default function FaceIdVisionScreen() {
 
   if (!device) {
     return (
-      <SafeAreaView style={layout.screen}>
+      <SafeAreaView style={layout.screenClear}>
         <StepNav
           onBack={() => router.replace('/(auth)/phone')}
           onNext={goNext}

@@ -1,36 +1,13 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, View } from 'react-native';
+import React from 'react';
+import { StyleSheet, View } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { useVideoPlayer, VideoView } from 'expo-video';
-import { useSegments } from 'expo-router';
 
 import { colors } from '../theme';
 import { useLoopingPlayback } from '../hooks/useLoopingPlayback';
 
 /** Ro'yxatdan o'tish ekranlarining umumiy orqa fon videosi */
 import AUTH_VIDEO from '../../assets/video/auth-bg.mp4';
-
-/** Videoli `(auth)` ekranlari — qolganlarida (qulf, Face ID) fon boshqacha */
-const AUTH_WITH_VIDEO = new Set(['welcome', 'phone', 'otp', 'biometric-setup']);
-
-/**
- * Tunnel ekranlari (11–22-qadamlar) — ular ham shu videoning ustida turadi.
- *
- * Ro'yxatdan o'tish bilan tunnel bitta uzluksiz yo'l: fon o'rtada
- * o'zgarib ketsa, odam boshqa ilovaga tushgandek his qiladi. Shuning
- * uchun video shu yerda ham to'xtamaydi.
- */
-const TUNNEL_WITH_VIDEO = new Set([
-  'journey',
-  'earnings',
-  'payment',
-  'contract',
-  'about',
-  'assistant',
-]);
-
-/** Parda quyuqligi almashganda sakramasin */
-const SCRIM_FADE_MS = 260;
 
 /**
  * Butun ro'yxatdan o'tish yo'li uchun YAGONA orqa fon videosi.
@@ -59,28 +36,19 @@ export function VideoBackdropHost({
 }: {
   preload?: boolean;
 }) {
-  // `useSegments` marshrutlarga bog'langan tor tip qaytaradi — bu yerda
-  // shunchaki qatorlar kerak, shu sababli kengaytiramiz.
-  const segments = useSegments() as readonly string[];
-  const group = segments[0] ?? '';
-  const screen = segments[1] ?? '';
-
-  const inSetup = group === '(setup)';
-  const inAuth = group === '(auth)';
   /*
-   * Tunnel ekranlari guruhsiz, ildizda turadi — shuning uchun ularning
-   * nomi `segments[0]` da bo'ladi. `subsidy/online-mahalla` kabi ichki
-   * yo'llar ham shu ro'yxatdagi birinchi bo'lak bilan aniqlanadi.
+   * Video BARCHA ekranlarda, ISTISNOSIZ ko'rinadi — ilova boshidan
+   * oxirigacha bitta yaxlit muhitda bo'lishi kerak.
+   *
+   * Ilgari Face ID beti chetlab o'tilardi (old kamera ochilganda ikkita
+   * harakatlanuvchi tasvir bir-biriga xalaqit qiladi degan o'ydan). Amalda
+   * o'sha bet qop-qora chiqdi va boshqa ilovaga tushgandek tuyuldi. Kamera
+   * oynasi ochilganda videoni o'zi yopadi — alohida istisno kerak emas.
    */
-  const inTunnel = TUNNEL_WITH_VIDEO.has(group) || group === 'subsidy';
-  const visible = inSetup || inTunnel || (inAuth && AUTH_WITH_VIDEO.has(screen));
+  const visible = true;
 
   // Splash ortida ham yuklanadi — o'tish payti ekran bo'sh qolmasin
   const active = visible || preload;
-
-  // Faqat "Xush kelibsiz" yengil pardali — qolgan ekranlarda forma
-  // maydonlari bor, ular uchun fon quyuqroq bo'lishi kerak.
-  const strong = visible && !(inAuth && screen === 'welcome');
 
   const player = useVideoPlayer(AUTH_VIDEO, (p) => {
     p.loop = true;
@@ -91,29 +59,25 @@ export function VideoBackdropHost({
   // Pauza faylni tushirmaydi — qaytganda o'sha joyidan davom etadi.
   useLoopingPlayback(player, active);
 
-  const darkness = useRef(new Animated.Value(strong ? 1 : 0)).current;
-
-  useEffect(() => {
-    Animated.timing(darkness, {
-      toValue: strong ? 1 : 0,
-      duration: SCRIM_FADE_MS,
-      useNativeDriver: true,
-    }).start();
-  }, [strong, darkness]);
-
   if (!active) return null;
 
   return (
     <View style={styles.fill} pointerEvents="none">
       <VideoView style={styles.video} player={player} contentFit="cover" nativeControls={false} />
 
-      {/* Yengil parda — doim turadi */}
-      <Scrim id="scrimSoft" top="0.5" mid="0.42" bottom="0.82" />
+      {/*
+        YAGONA parda — hamma ekranda bir xil.
 
-      {/* Quyuq parda — forma ekranlarida yumshoq paydo bo'ladi */}
-      <Animated.View style={[styles.fill, { opacity: darkness }]}>
-        <Scrim id="scrimStrong" top="0.72" mid="0.66" bottom="0.9" />
-      </Animated.View>
+        Ilgari ikkita parda bor edi: yengili doim turardi, ustiga forma
+        ekranlarida ikkinchisi qo'shilardi. Natijada "Hush kelibsiz"
+        betida video ochiq ko'rinar, qolgan betlarda esa xira bo'lib
+        qolardi — ayniqsa tepasi.
+
+        Endi bitta parda: qaysi ekran bo'lmasin, fon aynan bir xil.
+        Yozuvlar o'qilishi pardaga emas, matnning o'z soyasiga
+        tayanadi (`typography` ichida).
+      */}
+      <Scrim id="scrimSoft" top="0.05" mid="0.1" bottom="0.58" />
     </View>
   );
 }

@@ -68,7 +68,7 @@ export default function SubsidyStatusStep() {
         <StepNav onBack={() => router.replace('/(setup)/contract')} />
 
         <View style={styles.body}>
-          <Text style={styles.counter}>{t('step.of', { current: 9, total: TOTAL_STEPS })}</Text>
+          <Text style={styles.counter}>{t('step.of', { current: 10, total: TOTAL_STEPS })}</Text>
           <Text style={[typography.display, styles.title]}>
             {decision === 'APPROVED'
               ? t('status.approvedTitle')

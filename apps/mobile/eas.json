@@ -19,12 +19,18 @@
       },
       "channel": "preview",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://cycling-treadmill-halt.ngrok-free.dev/api"
+        "EXPO_PUBLIC_API_URL": "https://mobil.ecwt.uz/api"
       }
     },
     "production": {
       "autoIncrement": true,
-      "channel": "production"
+      "channel": "production",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://mobil.ecwt.uz/api"
+      },
+      "android": {
+        "buildType": "app-bundle"
+      }
     }
   },
   "submit": {

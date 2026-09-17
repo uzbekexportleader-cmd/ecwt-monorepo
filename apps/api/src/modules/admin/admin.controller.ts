@@ -53,6 +53,24 @@ export class AdminController {
     return this.service.userCard(id);
   }
 
+  /**
+   * Arxivga yuklash uchun NIQOBLANMAGAN kartochka.
+   *
+   * Admin panelida JShShIR va pasport raqami ataylab niqoblanadi — ular
+   * maxsus toifadagi shaxsiy ma'lumot va kundalik ish uchun kerak emas.
+   * Ammo shartnoma rasmiylashtirish va hisobot uchun to'liq qiymat zarur,
+   * shuning uchun alohida yo'l ochilgan.
+   *
+   * FAQAT bosh admin uchun: oddiy operator bu yo'ldan foydalana olmaydi.
+   * Har bir murojaat audit jurnaliga yoziladi.
+   */
+  @Get('users/:id/export')
+  @Roles('SUPER_ADMIN')
+  @ApiOperation({ summary: 'To‘liq kartochka (arxivga yuklash uchun)' })
+  userExport(@CurrentUser('sub') adminId: string, @Param('id') id: string) {
+    return this.service.userExport(adminId, id);
+  }
+
   @Get('applications')
   applications(
     @Query('page') page?: string,

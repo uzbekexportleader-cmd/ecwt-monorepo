@@ -69,14 +69,19 @@ export class AuthService {
 
     try {
       /*
-       * Matn Eskiz.uz moderatsiya talabiga mos aniq shablonda:
-       * "Kodni hech kimga bermang! <resurs> ga kirish uchun tasdiqlash kodi: <kod>"
-       * Bu naqshdan chetga chiqqan matn ("ECWT tasdiqlash kodi: ...") avval
-       * moderatsiyadan o'tmasdan rad etilgan edi.
+       * Matn Eskiz.uz da TASDIQLANGAN shablon bilan belgi-ma-belgi bir xil
+       * bo'lishi shart (shablon ID 90006, 15.09.2026 da tasdiqlangan):
+       *
+       *   Kodni hech kimga bermang! ECWT ilovasiga kirish uchun tasdiqlash kodi 000000
+       *
+       * DIQQAT: "kodi" dan keyin ikki nuqta YO'Q. Ilgari shu yerda ":"
+       * turardi va u shablonga mos kelmasdi — Eskiz bunday xabarni
+       * yubormaydi. Matnni o'zgartirsangiz, avval Eskizda yangi shablonni
+       * tasdiqlating, aks holda SMS umuman ketmay qoladi.
        */
       await this.sms.send(
         phone,
-        `Kodni hech kimga bermang! ECWT ilovasiga kirish uchun tasdiqlash kodi: ${code}`,
+        `Kodni hech kimga bermang! ECWT ilovasiga kirish uchun tasdiqlash kodi ${code}`,
       );
     } catch (error) {
       /*

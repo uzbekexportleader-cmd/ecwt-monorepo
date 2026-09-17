@@ -124,6 +124,11 @@ export class OnboardingAlertService {
     if (birthDate) lines.push(`<b>Tug‘ilgan sana:</b> ${escapeHtml(birthDate)}`);
     if (gender) lines.push(`<b>Jinsi:</b> ${escapeHtml(gender)}`);
     if (p.pinfl) lines.push(`<b>JShShIR:</b> ${escapeHtml(p.pinfl)}`);
+    // Pasport anketada majburiy — shartnomani rasmiylashtirish uchun kerak
+    if (p.passportSeries || p.passportNumber) {
+      const passport = `${p.passportSeries ?? ''} ${p.passportNumber ?? ''}`.trim();
+      lines.push(`<b>Pasport:</b> ${escapeHtml(passport)}`);
+    }
 
     lines.push('', '<b>— Manzil —</b>');
     if (address) lines.push(`<b>Manzil:</b> ${escapeHtml(address)}`);

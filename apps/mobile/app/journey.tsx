@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { RefreshControl, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import type { JourneyDto } from '@ecwt/types';
 
 import { Text } from '../src/components/AppText';
@@ -44,6 +44,21 @@ export default function JourneyScreen() {
   const t = useT();
   const router = useRouter();
   const journey = useJourney();
+
+  /*
+   * Ekranga QAYTGANDA holatni qayta so'raymiz.
+   *
+   * Yo'l ekrani ustiga boshqa ekran ochilganda u yopilmaydi — ostida
+   * turaveradi. Shu sababli qaytib kelganda React Query uni "qayta
+   * ochilgan" deb hisoblamaydi va eski qadamni ko'rsatib turadi.
+   * Odam to'lovni qilib qaytadi, ekranda esa hamon "to'lanmagan".
+   */
+  const refetch = journey.refetch;
+  useFocusEffect(
+    useCallback(() => {
+      void refetch();
+    }, [refetch]),
+  );
 
   if (journey.isLoading) {
     return (

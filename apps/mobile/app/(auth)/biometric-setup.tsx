@@ -50,7 +50,14 @@ export default function BiometricSetupScreen() {
 
   const label = info?.label ?? t('bio.title');
 
+  /**
+   * Biometrika yoqilgan bo'lsa — to'g'ridan-to'g'ri anketaga.
+   *
+   * Aks holda avval parol so'raladi: usiz keyingi kirishlarda yagona yo'l
+   * SMS bo'lib qoladi, har biri esa pul turadi.
+   */
   const goNext = () => router.replace('/(setup)');
+  const goAfterSkip = () => router.replace('/(auth)/password-setup');
 
   const enable = async () => {
     if (!info) return;
@@ -118,7 +125,7 @@ export default function BiometricSetupScreen() {
       <SafeAreaView style={layout.screenClear}>
       <StepNav
         onBack={() => router.replace('/(auth)/face-id')}
-        onNext={goNext}
+        onNext={goAfterSkip}
       />
         <View style={styles.container}>
           <View style={{ flex: 1 }} />
@@ -137,7 +144,7 @@ export default function BiometricSetupScreen() {
           </View>
 
           <View style={{ flex: 1 }} />
-          <Button title={t('common.continue')} onPress={goNext} />
+          <Button title={t('common.continue')} onPress={goAfterSkip} />
         </View>
       </SafeAreaView>
     );
@@ -149,7 +156,7 @@ export default function BiometricSetupScreen() {
     <SafeAreaView style={layout.screenClear}>
       <StepNav
         onBack={() => router.replace('/(auth)/face-id')}
-        onNext={goNext}
+        onNext={goAfterSkip}
       />
       <View style={styles.container}>
         <View style={{ flex: 1 }} />
@@ -183,7 +190,7 @@ export default function BiometricSetupScreen() {
 
         <Button title={t('bio.setUp', { label })} onPress={enable} loading={busy} />
 
-        <Pressable onPress={goNext} hitSlop={12} accessibilityRole="button" style={styles.later}>
+        <Pressable onPress={goAfterSkip} hitSlop={12} accessibilityRole="button" style={styles.later}>
           <Text style={[typography.bodyStrong, { color: colors.textSecondary }]}>Keyinroq</Text>
         </Pressable>
       </View>

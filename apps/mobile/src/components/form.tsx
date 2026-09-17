@@ -1,11 +1,22 @@
 import React, { useRef, useState } from 'react';
-import { Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, View, type KeyboardTypeOptions } from 'react-native';
+import {
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  View,
+  type KeyboardTypeOptions,
+  type TextInputProps,
+} from 'react-native';
 import { Text, TextInput } from './AppText';
 import { Ionicons } from '@expo/vector-icons';
 
 import { CONTROL_HEIGHT, colors, layout, radius, spacing, typography } from '../theme';
 import { useScrollIntoView } from './KeyboardAwareScroll';
 import { useT, type TranslationKey } from '../i18n';
+import { SilkEdge } from './Silk';
 
 /* ------------------------------- TextField ------------------------------- */
 
@@ -13,10 +24,13 @@ export function TextField({
   label,
   value,
   onChangeText,
+  onBlur,
   placeholder,
   error,
   hint,
   keyboardType,
+  autoComplete,
+  textContentType,
   maxLength,
   multiline,
   autoCapitalize = 'sentences',
@@ -28,9 +42,19 @@ export function TextField({
   label: string;
   value: string;
   onChangeText: (v: string) => void;
+  /** Maydondan chiqqanda: qiymatni yakuniy ko’rinishga keltirish uchun */
+  onBlur?: () => void;
   placeholder?: string;
   error?: string;
   hint?: string;
+  /**
+   * Maydon nima uchun ekanini tizimga aytadi.
+   *
+   * Busiz Android taxmin qiladi va, masalan, telefon maydoniga oxirgi
+   * SMS kodini taklif qilib turadi.
+   */
+  autoComplete?: TextInputProps['autoComplete'];
+  textContentType?: TextInputProps['textContentType'];
   keyboardType?: KeyboardTypeOptions;
   maxLength?: number;
   multiline?: boolean;
@@ -61,6 +85,9 @@ export function TextField({
           !editable && { opacity: 0.6 },
         ]}
       >
+        {/* Ipak chegara — fokusda va xatoda oddiy rangga o'tadi */}
+        {!focused && !error ? <SilkEdge radius={radius.md} /> : null}
+
         {prefix ? <Text style={[typography.bodyStrong, { marginRight: 4 }]}>{prefix}</Text> : null}
         <TextInput
           testID={testID}
@@ -70,6 +97,8 @@ export function TextField({
           placeholder={placeholder}
           placeholderTextColor={colors.textMuted}
           keyboardType={keyboardType}
+          autoComplete={autoComplete}
+          textContentType={textContentType}
           maxLength={maxLength}
           multiline={multiline}
           editable={editable}
@@ -78,7 +107,10 @@ export function TextField({
             setFocused(true);
             scrollIntoView(wrapper.current);
           }}
-          onBlur={() => setFocused(false)}
+          onBlur={() => {
+            setFocused(false);
+            onBlur?.();
+          }}
           style={[styles.input, multiline && { height: '100%', textAlignVertical: 'top' }]}
         />
       </View>
@@ -242,17 +274,29 @@ export function DateField({
    * `1990--14`) — shunda validatsiya "sana to'liq emas" deb aniq aytadi,
    * maydon esa kiritilgan qismni yo'qotmaydi.
    */
-  const emit = (next: { d?: string; m?: string; y?: string }) => {
-    const d = (next.d ?? day).replace(/D/g, '').slice(0, 2);
-    const m = (next.m ?? month).replace(/D/g, '').slice(0, 2);
-    const y = (next.y ?? year).replace(/D/g, '').slice(0, 4);
+  const emit = (next: { d?: string; m?: string; y?: string }, finished = false) => {
+    // `\D` — raqam BO'LMAGAN belgi. Ilgari bu yerda `/D/g` turardi va u
+    // faqat katta "D" harfini o'chirardi, ya'ni hech narsani filtrlamasdi.
+    const d = (next.d ?? day).replace(/\D/g, '').slice(0, 2);
+    const m = (next.m ?? month).replace(/\D/g, '').slice(0, 2);
+    const y = (next.y ?? year).replace(/\D/g, '').slice(0, 4);
 
     if (!d && !m && !y) {
       onChange('');
       return;
     }
-    // Kun va oy har doim ikki xonali: server shu ko'rinishni kutadi
-    onChange(`${y}-${m ? m.padStart(2, '0') : ''}-${d ? d.padStart(2, '0') : ''}`);
+
+    /*
+     * Nolni faqat maydondan CHIQQANDA qo'shamiz.
+     *
+     * Ilgari har bosishda qo'shilardi: "1" yozilishi bilan qiymat "01"
+     * ga aylanib, maydon ikki belgiga to'lardi va `maxLength={2}` ikkinchi
+     * raqamni qabul qilmasdi — ya'ni "14" ni yozib bo'lmasdi. Qiymat har
+     * bosishda o'zgargani uchun Android'da klaviatura ham yopilib ketardi.
+     */
+    const dd = finished && d ? d.padStart(2, '0') : d;
+    const mm = m ? m.padStart(2, '0') : '';
+    onChange(`${y}-${mm}-${dd}`);
   };
 
   const monthOptions: SelectOption[] = MONTH_KEYS.map((key, i) => ({
@@ -270,6 +314,7 @@ export function DateField({
             label={t('field.day')}
             value={day}
             onChangeText={(v) => emit({ d: v })}
+            onBlur={() => emit({}, true)}
             placeholder="14"
             keyboardType="number-pad"
             maxLength={2}
@@ -343,11 +388,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    // Odatda chegara SilkEdge chizadi; bu rang faqat fokus va xato
+    // holatlarida ustidan qo'yiladi
+    borderColor: 'transparent',
+    overflow: 'hidden',
     borderRadius: radius.md,
     paddingHorizontal: spacing.lg,
   },
-  input: { flex: 1, color: colors.text, fontSize: 17, paddingVertical: spacing.md },
+  input: {
+    flex: 1,
+    color: colors.text,
+    fontSize: 17,
+    paddingVertical: spacing.md,
+    /*
+     * Brauzer har bir maydonga o'zining fokus chizig'ini qo'shadi va u
+     * bizning yumaloq ramkamiz ICHIDA ikkinchi, burchakli ramka bo'lib
+     * ko'rinadi. Fokus baribir ko'rinadi — tashqi ramka ko'k rangga
+     * o'tadi, shuning uchun brauzernikini o'chiramiz.
+     */
+    ...(Platform.OS === 'web'
+      ? ({ outlineStyle: 'none', outlineWidth: 0, borderWidth: 0 } as object)
+      : null),
+  },
   error: { color: colors.danger, fontSize: 13 },
   /* Kun | Oy | Yil — oy nomi uzun bo'lgani uchun unga ko'proq joy beriladi */
   dateRow: { flexDirection: 'row', gap: spacing.sm },

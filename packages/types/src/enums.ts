@@ -184,6 +184,7 @@ export type PaymentMethod = (typeof PaymentMethod)[keyof typeof PaymentMethod];
 export const OnboardingStage = {
   PERSONAL: 'PERSONAL',
   ADDRESS: 'ADDRESS',
+  LOCATION: 'LOCATION',
   ACTIVITY_TYPE: 'ACTIVITY_TYPE',
   ACTIVITY_DETAILS: 'ACTIVITY_DETAILS',
   SERVICES: 'SERVICES',

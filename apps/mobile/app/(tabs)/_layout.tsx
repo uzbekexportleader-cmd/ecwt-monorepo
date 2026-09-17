@@ -39,6 +39,11 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
+        /*
+         * Sahna foni shaffof — ortidagi video kabinetda ham ko'rinadi.
+         * Busiz navigator o'zining to'q fonini chizib, videoni yopardi.
+         */
+        sceneStyle: { backgroundColor: 'transparent' },
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarStyle: {

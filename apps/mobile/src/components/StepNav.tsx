@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, spacing } from '../theme';
 import { translate } from '../i18n';
+import { useAuthStore } from '../store/auth';
 
 /**
  * Ekranning yuqorisidagi yo'nalish tugmalari: chapda orqaga, o'ngda oldinga.
@@ -42,6 +43,11 @@ export function StepNav({
   // tushib qolmasligi uchun tepadan xavfsiz masofa qo'shiladi
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  // Kirishdan oldin sozlamalar ekrani ochilmaydi (marshrut himoyachisi
+  // qaytarib yuboradi), shuning uchun tugmani ham ko'rsatmaymiz — bosilsa
+  // hech narsa bo'lmaydigan "o'lik" tugma qolmasin. Tilni tanlash
+  // kirishdan oldin welcome ekranining o'zida bor.
+  const user = useAuthStore((s) => s.user);
 
   return (
     <View
@@ -50,7 +56,7 @@ export function StepNav({
     >
       <NavButton icon="chevron-back" label={backLabel} onPress={onBack} />
       <View style={styles.rightGroup}>
-        {showSettings ? (
+        {showSettings && user ? (
           <NavButton
             icon="settings-outline"
             label={translate('settings.title')}

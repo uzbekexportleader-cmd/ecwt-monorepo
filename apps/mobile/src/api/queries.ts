@@ -76,6 +76,18 @@ export function useJourney(enabled = true): UseQueryResult<JourneyDto> {
     queryKey: qk.journey,
     queryFn: () => api.journey.current(),
     /*
+     * Kutish qadamlarida holatni o'zimiz so'rab turamiz.
+     *
+     * Bunday qadamlarda navbat boshqada: mahalla qaror chiqaradi, ECWT
+     * to'lovni tasdiqlaydi yoki mahsulotni joylashtiradi. Hunarmand
+     * ekranga qarab o'tiradi va hech narsa o'zgarmaydi — chunki ilova
+     * so'ramaydi. Natijada u "ishlamayapti" deb o'ylaydi.
+     *
+     * Harakat qilish NAVBATI o'zida bo'lganda so'rovni to'xtatamiz:
+     * u yerda o'zgarish faqat uning o'z amalidan keyin bo'ladi.
+     */
+    refetchInterval: (query) => (query.state.data?.actionable === false ? 20_000 : false),
+    /*
      * Kirmagan foydalanuvchida so'ramaymiz — aks holda har ochilishda
      * keraksiz 401 ketadi.
      */
@@ -496,6 +508,20 @@ export function useMarketplaces(): UseQueryResult<MarketplaceDto[]> {
 
 export function useAiHistory() {
   return useQuery({ queryKey: qk.aiHistory, queryFn: () => api.ai.history() });
+}
+
+/**
+ * Haqiqiy AI xizmati ulanganmi.
+ *
+ * Ogohlantirish matni SHU javobga qarab ko'rsatiladi: kalit ulangan
+ * kunda yozuv o'zi yo'qoladi va uni qo'lda o'chirish esdan chiqmaydi.
+ */
+export function useAiStatus() {
+  return useQuery({
+    queryKey: ['ai', 'status'] as const,
+    queryFn: () => api.ai.status(),
+    staleTime: 5 * 60_000,
+  });
 }
 
 export function useAskAi() {

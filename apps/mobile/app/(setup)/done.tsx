@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Text } from '../../src/components/AppText';
 import { Button, Card } from '../../src/components/ui';
-import { useSellerApplication } from '../../src/api/queries';
+import { useProfile, useSellerApplication } from '../../src/api/queries';
 import { useAuthStore } from '../../src/store/auth';
 import { useOnboarding } from '../../src/store/onboarding';
 import { TOTAL_STEPS } from '../../src/components/StepScreen';
@@ -25,6 +25,13 @@ export default function DoneStep() {
   const router = useRouter();
   const completeOnboarding = useAuthStore((s) => s.completeOnboarding);
   const reset = useOnboarding((s) => s.reset);
+
+  /*
+   * To'lov yo'li: subsidiya orqali yoki o'zi to'laydi. Shunga qarab
+   * quyidagi tugma o'zgaradi.
+   */
+  const profile = useProfile();
+  const selfPaid = profile.data?.paymentMethod === 'SELF';
 
   /* Anketa yakunlandi — voronkaning eng muhim nuqtasi */
   useEffect(() => {
@@ -47,7 +54,7 @@ export default function DoneStep() {
    * qo'yamiz: to'g'ridan-to'g'ri almashtirilsa tarix bo'sh qoladi va
    * foydalanuvchi orqaga qaytadigan joysiz qamalib qoladi.
    */
-  const finish = async (to?: '/application' | '/subsidy/online-mahalla') => {
+  const finish = async (to?: '/application' | '/subsidy/online-mahalla' | '/payment') => {
     await completeOnboarding();
     reset();
     router.replace('/(tabs)');
@@ -58,7 +65,7 @@ export default function DoneStep() {
     <View style={layout.screenClear}>
       <SafeAreaView style={styles.safe}>
         <View style={styles.body}>
-          <Text style={styles.counter}>{t('step.of', { current: 10, total: TOTAL_STEPS })}</Text>
+          <Text style={styles.counter}>{t('step.of', { current: TOTAL_STEPS, total: TOTAL_STEPS })}</Text>
           <View style={styles.mark}>
             <Ionicons name="checkmark" size={48} color="#06301A" />
           </View>
@@ -75,17 +82,31 @@ export default function DoneStep() {
 
           <View style={styles.actions}>
             {/*
-              Ro'yxatdan o'tgandan keyingi HAQIQIY keyingi qadam —
-              subsidiyaga ariza. Mahsulot qo'shish xizmat to'lovi
-              tasdiqlangandan keyin ochiladi, shuning uchun uni bu yerda
-              taklif qilmaymiz: yopiq eshikka olib borgan bo'lardik.
+              Keyingi qadam TO'LOV YO'LIGA bog'liq.
+
+              Subsidiya yo'lidagilar uchun — subsidiya arizasi.
+              O'zi to'laydiganlar uchun — xizmat to'lovi: ularga subsidiya
+              arizasini taklif qilish xato bo'lardi, chunki ular subsidiya
+              olmaydi va o'sha yo'l ular uchun umuman yopiq.
+
+              Mahsulot qo'shishni bu yerda taklif qilmaymiz: u to'lov
+              tasdiqlangandan keyin ochiladi, ya'ni yopiq eshik bo'lardi.
             */}
-            <Button
-              title={t('mahalla.entry')}
-              variant="gold"
-              icon="document-text-outline"
-              onPress={() => void finish('/subsidy/online-mahalla')}
-            />
+            {selfPaid ? (
+              <Button
+                title={t('pay.title')}
+                variant="gold"
+                icon="card-outline"
+                onPress={() => void finish('/payment')}
+              />
+            ) : (
+              <Button
+                title={t('mahalla.entry')}
+                variant="gold"
+                icon="document-text-outline"
+                onPress={() => void finish('/subsidy/online-mahalla')}
+              />
+            )}
             <Button
               title={t('done.status')}
               icon="time-outline"

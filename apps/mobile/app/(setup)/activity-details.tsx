@@ -63,7 +63,7 @@ export default function ActivityDetailsStep() {
 
   return (
     <StepScreen
-      step={4}
+      step={5}
       backTo={'/(setup)/activity'}
       title={isCraftsman ? t('step.craftDetails') : t('step.activityDetails')}
       onNext={() => void next()}

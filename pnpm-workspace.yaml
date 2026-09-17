@@ -20,3 +20,9 @@ allowBuilds:
 minimumReleaseAgeExclude:
   - expo-file-system@57.0.7
   - expo-location@57.0.17
+
+# pnpm 11: sozlamalar .npmrc dan shu yerga ko'chgan.
+# hoisted linker SHART — .pnpm/<paket>@<versiya>_<hash>/node_modules/ tuzilishi
+# yo'lga ~90 belgi qo'shadi va Android C++ (CMake/ninja) 250 belgilik
+# obyekt-fayl chegarasidan oshib ketadi.
+nodeLinker: hoisted

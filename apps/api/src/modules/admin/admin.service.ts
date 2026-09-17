@@ -72,6 +72,46 @@ export class AdminService {
    * Maxfiylik: JShShIR va bank hisobi niqoblangan holda qaytadi (profil
    * servisidagi qoida bilan bir xil), karta raqami esa umuman saqlanmaydi.
    */
+  /**
+   * Arxivga yuklash uchun to’liq kartochka — JShShIR va pasport
+   * NIQOBLANMAGAN holda.
+   *
+   * `userCard` dan farqi faqat shu ikki maydonda. Qolgan hamma narsa
+   * bir xil, shuning uchun kartochka o’sha yerdan olinadi va ustiga
+   * haqiqiy qiymatlar qo’yiladi — ikki joyda ikki xil ro’yxat
+   * saqlanmasin.
+   */
+  async userExport(adminId: string, userId: string): Promise<Record<string, unknown>> {
+    const kartochka = await this.userCard(userId);
+
+    const p = await this.prisma.artisanProfile.findUnique({
+      where: { userId },
+      select: { pinfl: true, passportSeries: true, passportNumber: true },
+    });
+
+    const profil = kartochka.profile as Record<string, unknown> | null;
+    if (profil && p) {
+      profil.pinfl = p.pinfl;
+      profil.passportSeries = p.passportSeries;
+      profil.passportNumber = p.passportNumber;
+    }
+
+    // Maxsus toifadagi ma’lumotga har bir murojaat iz qoldiradi
+    const admin = await this.prisma.user.findUnique({
+      where: { id: adminId },
+      select: { fullName: true },
+    });
+    await this.audit.record({
+      actorId: adminId,
+      actorName: admin?.fullName ?? "—",
+      action: "user.export",
+      entity: "User",
+      entityId: userId,
+    });
+
+    return kartochka;
+  }
+
   async userCard(userId: string): Promise<Record<string, unknown>> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },

@@ -3,19 +3,33 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View
 import { Text, TextInput } from '../src/components/AppText';
 import { Ionicons } from '@expo/vector-icons';
 
-import { useAiHistory, useAskAi } from '../src/api/queries';
-import { InfoBanner, LoadingView } from '../src/components/ui';
+import { useRouter } from 'expo-router';
+
+import { useAiHistory, useAiStatus, useAskAi } from '../src/api/queries';
+import { Button, InfoBanner, LoadingView } from '../src/components/ui';
+import { useAuthStore } from '../src/store/auth';
 import { colors, radius, spacing, typography } from '../src/theme';
 import { useT } from '../src/i18n';
 
 export default function AssistantScreen() {
   const t = useT();
+  const router = useRouter();
   const history = useAiHistory();
+  const aiStatus = useAiStatus();
   const ask = useAskAi();
   const [text, setText] = useState('');
   const scrollRef = useRef<ScrollView>(null);
 
   const messages = history.data ?? [];
+
+  /*
+   * Kirishdan oldin ham ochiladi (tugma birinchi ekrandan turadi), lekin
+   * savol yuborib bo'lmaydi: server so'rovi sessiya talab qiladi va suhbat
+   * tarixi foydalanuvchiga bog'langan. Shuning uchun sababni ochiq yozamiz
+   * va ro'yxatdan o'tishga yo'naltiramiz — bo'sh chat oynasini ko'rsatib,
+   * javob kelmasligini kutdirgandan ko'ra halolroq.
+   */
+  const signedIn = Boolean(useAuthStore((s) => s.user));
 
   useEffect(() => {
     const timeout = setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 200);
@@ -41,7 +55,36 @@ export default function AssistantScreen() {
         contentContainerStyle={{ padding: spacing.xl, paddingBottom: spacing.xl }}
         keyboardShouldPersistTaps="handled"
       >
+        {/*
+          Kalit ulanmagan bo'lsa — ochiq aytamiz. Tugmada ChatGPT
+          logotipi turgani holda javoblar boshqa joydan kelayotganini
+          yashirish foydalanuvchini aldash bo'lardi.
+
+          Yozuv SERVER javobiga bog'langan: kalit ulangan kunda o'zi
+          yo'qoladi, qo'lda o'chirish kerak emas.
+        */}
+        {!signedIn ? (
+          <View style={{ gap: spacing.lg }}>
+            <InfoBanner text={t('ai.signInFirst')} tone="info" icon="person-circle-outline" />
+            <Button title={t('onboarding.register')} onPress={() => router.replace('/(auth)/phone')} />
+          </View>
+        ) : null}
+
+        {signedIn && aiStatus.data && !aiStatus.data.connected ? (
+          <InfoBanner text={t('ai.notConnected')} tone="warning" icon="key-outline" />
+        ) : null}
+
+        {signedIn ? (
+        <>
         <InfoBanner text={t('ai.disclaimer')} tone="info" />
+
+        {/*
+          Ilova shaxsiy ma'lumotni yubormaydi (anketa foizi, yetishmayotgan
+          bandlar NOMI, mos subsidiyalar va ariza holati — xolos). Lekin
+          hunarmandning O'ZI savol matniga PINFL yoki bank raqamini yozib
+          yuborishi mumkin. Ogohlantirish aynan shuning oldini oladi.
+        */}
+        <InfoBanner text={t('ai.privacy')} tone="warning" icon="lock-closed-outline" />
 
         {history.isLoading ? <LoadingView /> : null}
 
@@ -77,8 +120,11 @@ export default function AssistantScreen() {
             </View>
           ) : null}
         </View>
+        </>
+        ) : null}
       </ScrollView>
 
+      {signedIn ? (
       <View style={styles.composer}>
         <TextInput
           value={text}
@@ -96,6 +142,7 @@ export default function AssistantScreen() {
           <Ionicons name="arrow-up" size={20} color={colors.textInverse} />
         </Pressable>
       </View>
+      ) : null}
     </KeyboardAvoidingView>
   );
 }

@@ -8,8 +8,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StepNav } from '../../src/components/StepNav';
 import { phoneSchema } from '@ecwt/validation';
 
-import { API_URL, api, EcwtApiError } from '../../src/api/client';
-import { Button, InfoBanner } from '../../src/components/ui';
+import { api, EcwtApiError } from '../../src/api/client';
+import { Button } from '../../src/components/ui';
 import { TextField } from '../../src/components/form';
 import { colors, layout, radius, spacing, typography } from '../../src/theme';
 import { useT } from '../../src/i18n';
@@ -83,6 +83,10 @@ export default function PhoneScreen() {
           onChangeText={(v) => setRaw(v)}
           placeholder="90 123 45 67"
           keyboardType="number-pad"
+          // Tizimga aniq aytamiz: bu telefon raqami. Busiz Android bu yerga
+          // oxirgi SMS kodini taklif qilib turadi.
+          autoComplete="tel"
+          textContentType="telephoneNumber"
           prefix="+998"
           maxLength={12}
           error={error}
@@ -105,11 +109,6 @@ export default function PhoneScreen() {
             {t('auth.phone.privacy')}
           </Text>
         </View>
-        <InfoBanner
-          text={`${t('auth.phone.devMode')}\n${t('auth.phone.server', { url: API_URL })}`}
-          tone="warning"
-          icon="construct-outline"
-        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

@@ -15,10 +15,16 @@ import { useT } from '../../src/i18n';
 import { colors, radius, spacing, typography } from '../../src/theme';
 
 /**
- * 12-qadam: shartnoma.
+ * Shartnoma qadami.
  *
- * Foydalanuvchi shartnomani yuklab oladi, imzolaydi va skanerini qayta
- * yuklaydi. Yuklangan fayl `SIGNED_CONTRACT` turi bilan saqlanadi.
+ * ASOSIY YO'L — on-line: hunarmand shartnomani yuklab olib o'qiydi va
+ * "Roziman" tugmasini bosadi. Shartnoma Didox orqali elektron tuziladi,
+ * hech qayerga borish va qog'oz imzolash shart emas.
+ *
+ * ZAXIRA YO'L — qo'lda: Didox hali ulanmagan bo'lsa yoki xatolik chiqsa,
+ * eski usul ochiladi (yuklab olish → imzolash → skanerini qaytarib
+ * yuklash). Zaxira yo'l OLDINDAN ko'rsatilmaydi: kerak bo'lmasa ekranni
+ * chalkashtirmasin.
  */
 export default function ContractStep() {
   const t = useT();
@@ -27,7 +33,37 @@ export default function ContractStep() {
   const [uploaded, setUploaded] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  /** On-line tuzish holati: kutilmoqda / tuzildi / imkoni yo'q */
+  const [online, setOnline] = useState<'idle' | 'sending' | 'done' | 'unavailable'>('idle');
+
   const steps = [t('contract.how1'), t('contract.how2'), t('contract.how3'), t('contract.how4')];
+
+  /**
+   * "Roziman" — shartnomani on-line tuzish.
+   *
+   * Ikki bosqich: avval hunarmand roziligi qayd etiladi (`accept`), keyin
+   * hujjat elektron imzo tizimiga yuboriladi (`send`). Tizim ulanmagan
+   * bo'lsa server buni ochiq aytadi — biz "yuborildi" deb ko'rsatmaymiz.
+   */
+  const acceptOnline = async () => {
+    setOnline('sending');
+    try {
+      await api.contract.accept();
+      const natija = await api.contract.send();
+
+      if (natija.status === 'SENT_FOR_SIGNING' || natija.status === 'SIGNED') {
+        setOnline('done');
+        toastSuccess(t('contract.onlineDone'));
+        if (natija.externalUrl) void Linking.openURL(natija.externalUrl);
+      } else {
+        // Rozilik saqlandi, lekin elektron imzo hali ishlamaydi
+        setOnline('unavailable');
+      }
+    } catch (e) {
+      setOnline('unavailable');
+      toastError(e instanceof EcwtApiError ? e.message : t('common.error'));
+    }
+  };
 
   const download = async () => {
     const url = `${API_URL}/contracts/template`;
@@ -84,26 +120,74 @@ export default function ContractStep() {
 
   return (
     <StepScreen
-      step={8}
+      step={9}
       backTo={'/(setup)/payment'}
       title={t('step.contract')}
       onNext={() => void next()}
       loading={saving}
     >
-      <Button title={t('contract.download')} variant="secondary" onPress={() => void download()} />
+      {/* 1) Shartnomani o'qish */}
+      <Text style={[typography.body, { marginBottom: spacing.lg }]}>
+        {t('contract.readFirst')}
+      </Text>
 
-      <View style={styles.steps}>
-        {steps.map((label, i) => (
-          <View key={label} style={styles.stepRow}>
-            <View style={styles.stepNumber}>
-              <Text style={styles.stepNumberText}>{i + 1}</Text>
-            </View>
-            <Text style={[typography.body, styles.stepText]}>{label}</Text>
+      <Button
+        title={t('contract.download')}
+        icon="document-text-outline"
+        variant="secondary"
+        onPress={() => void download()}
+      />
+
+      {/* 2) On-line tuzish — asosiy yo'l */}
+      {online === 'done' ? (
+        <View style={styles.onlineDone}>
+          <Ionicons name="checkmark-circle" size={22} color="#3ED598" />
+          <Text style={[typography.bodyStrong, { color: colors.text, flex: 1 }]}>
+            {t('contract.onlineDone')}
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.onlineBox}>
+          <Text style={[typography.bodyStrong, { color: colors.text }]}>
+            {t('contract.onlineTitle')}
+          </Text>
+          <Text style={[typography.caption, { marginTop: spacing.xs }]}>
+            {t('contract.onlineHint')}
+          </Text>
+
+          <View style={{ height: spacing.lg }} />
+          <Button
+            title={t('contract.agree')}
+            icon="shield-checkmark-outline"
+            onPress={() => void acceptOnline()}
+            loading={online === 'sending'}
+          />
+        </View>
+      )}
+
+      {/*
+        Qo'lda imzolash — faqat on-line yo'l ishlamagandan keyin ko'rinadi.
+        Aks holda ikkita yo'l birdan turib, qaysi birini tanlashni
+        bilmay qolish mumkin.
+      */}
+      {online === 'unavailable' ? (
+        <>
+          <Text style={[typography.caption, styles.fallbackNote]}>
+            {t('contract.fallbackNote')}
+          </Text>
+
+          <View style={styles.steps}>
+            {steps.map((label, i) => (
+              <View key={label} style={styles.stepRow}>
+                <View style={styles.stepNumber}>
+                  <Text style={styles.stepNumberText}>{i + 1}</Text>
+                </View>
+                <Text style={[typography.body, styles.stepText]}>{label}</Text>
+              </View>
+            ))}
           </View>
-        ))}
-      </View>
 
-      <Pressable
+          <Pressable
         onPress={() => void upload()}
         disabled={busy}
         accessibilityRole="button"
@@ -125,16 +209,33 @@ export default function ContractStep() {
         <Text style={typography.caption}>{t('contract.formats')}</Text>
       </Pressable>
 
-      {/* Imzolangan shartnoma hozir qo'lda bo'lmasligi mumkin — oqim
-          to'xtab qolmasin, keyinroq Profil > Hujjatlar orqali yuklanadi */}
-      {uploaded ? null : (
-        <Text style={[typography.caption, styles.laterNote]}>{t('contract.laterNote')}</Text>
-      )}
+        </>
+      ) : null}
     </StepScreen>
   );
 }
 
 const styles = StyleSheet.create({
+  onlineBox: {
+    marginTop: spacing.xl,
+    padding: spacing.lg,
+    borderRadius: radius.lg,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  onlineDone: {
+    marginTop: spacing.xl,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.lg,
+    borderRadius: radius.lg,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: '#3ED598',
+  },
+  fallbackNote: { marginTop: spacing.xl, marginBottom: spacing.sm },
   steps: { gap: spacing.md, marginTop: spacing.sm },
   stepRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   stepNumber: {
@@ -161,5 +262,4 @@ const styles = StyleSheet.create({
   dropzoneDone: { borderColor: '#3ED598', borderStyle: 'solid' },
   dropzonePressed: { opacity: 0.75 },
   dropzoneText: { textAlign: 'center' },
-  laterNote: { textAlign: 'center' },
 });

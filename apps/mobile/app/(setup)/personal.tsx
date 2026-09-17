@@ -56,13 +56,22 @@ export default function PersonalStep() {
     const birth = birthDateSchema.safeParse(draft.birthDate);
     if (!birth.success) next.birthDate = birth.error.issues[0]?.message ?? 'YYYY-MM-DD';
     if (!draft.gender) next.gender = t('common.required');
-    if (draft.pinfl && !/^\d{14}$/.test(draft.pinfl)) next.pinfl = '14';
-    if (draft.passportSeries && !/^[A-Z]{2}$/.test(draft.passportSeries)) {
-      next.passportSeries = 'AA';
-    }
-    if (draft.passportNumber && !/^\d{7}$/.test(draft.passportNumber)) {
-      next.passportNumber = '7';
-    }
+    /*
+     * JShShIR va pasport MAJBURIY.
+     *
+     * Ular shartnomani elektron imzolash (Didox) uchun baribir kerak —
+     * o'sha bosqichda so'rashdan ko'ra hozir, bir marta olgan ma'qul.
+     * Bo'sh bo'lsa "Majburiy", to'ldirilgan-u formati noto'g'ri bo'lsa
+     * kutilgan uzunlik/ko'rinish ko'rsatiladi.
+     */
+    if (!draft.pinfl) next.pinfl = t('common.required');
+    else if (!/^\d{14}$/.test(draft.pinfl)) next.pinfl = '14';
+
+    if (!draft.passportSeries) next.passportSeries = t('common.required');
+    else if (!/^[A-Z]{2}$/.test(draft.passportSeries)) next.passportSeries = 'AA';
+
+    if (!draft.passportNumber) next.passportNumber = t('common.required');
+    else if (!/^\d{7}$/.test(draft.passportNumber)) next.passportNumber = '7';
     return next;
   };
 
@@ -79,9 +88,10 @@ export default function PersonalStep() {
           middleName: draft.middleName.trim(),
           birthDate: draft.birthDate,
           gender: draft.gender,
-          ...(draft.pinfl ? { pinfl: draft.pinfl } : {}),
-          ...(draft.passportSeries ? { passportSeries: draft.passportSeries } : {}),
-          ...(draft.passportNumber ? { passportNumber: draft.passportNumber } : {}),
+          // Yuqoridagi tekshiruvdan o'tgan — bo'sh bo'lishi mumkin emas
+          pinfl: draft.pinfl,
+          passportSeries: draft.passportSeries,
+          passportNumber: draft.passportNumber,
         },
         'ADDRESS',
       );
@@ -138,7 +148,7 @@ export default function PersonalStep() {
         onChangeText={(v) => set('pinfl', v.replace(/\D/g, ''))}
         keyboardType="number-pad"
         maxLength={14}
-        hint={t('common.optional')}
+        hint={t('field.pinflHint')}
         error={errors.pinfl}
       />
       <TextField
@@ -148,7 +158,7 @@ export default function PersonalStep() {
         placeholder="AA"
         maxLength={2}
         autoCapitalize="characters"
-        hint={t('common.optional')}
+        hint={t('field.passportSeriesHint')}
         error={errors.passportSeries}
       />
       <TextField
@@ -158,7 +168,7 @@ export default function PersonalStep() {
         placeholder="1234567"
         keyboardType="number-pad"
         maxLength={7}
-        hint={t('common.optional')}
+        hint={t('field.passportNumberHint')}
         error={errors.passportNumber}
       />
     </StepScreen>

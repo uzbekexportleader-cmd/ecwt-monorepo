@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Text } from '../../src/components/AppText';
 import { useRouter } from 'expo-router';
 
-import { useSubsidies } from '../../src/api/queries';
+import { useMahallaPacket, useProfile, useSubsidies } from '../../src/api/queries';
 import { Card, EmptyState, ErrorView, LoadingView, Screen } from '../../src/components/ui';
 import { SubsidyCard } from '../../src/components/domain';
 import { colors, radius, spacing, typography } from '../../src/theme';
@@ -16,6 +16,19 @@ export default function OpportunitiesScreen() {
   const t = useT();
   const router = useRouter();
   const [filter, setFilter] = useState<Filter>('eligible');
+
+  /*
+   * Subsidiya arizasi kartasi ikki holatda KO'RSATILMAYDI:
+   *
+   *  1. Xizmat haqini o'zi to'laydi — subsidiya yo'li unga yopiq.
+   *  2. Ariza allaqachon topshirilgan — raqami kiritilgan bo'lsa,
+   *     kartani qoldirsak, odam ikkinchi marta topshirmoqchi bo'ladi.
+   */
+  const profile = useProfile();
+  const packet = useMahallaPacket();
+  const selfPaid = profile.data?.paymentMethod === 'SELF';
+  const alreadyApplied = Boolean(packet.data?.submission?.externalNumber);
+  const hideSubsidyEntry = selfPaid || alreadyApplied;
   const query = useSubsidies();
 
   const all = query.data ?? [];
@@ -40,22 +53,28 @@ export default function OpportunitiesScreen() {
        * Haqiqiy, bugun mavjud yo'l: online-mahalla.uz dagi subsidiya.
        * Ro'yxatning o'zi bo'sh bo'lishi mumkin (tasdiqlanmagan shartlarni
        * to'qib yozmaymiz), shu sababli bu yo'l tepada turadi.
+       *
+       * FAQAT subsidiya yo'lidagilarga. Xizmat haqini o'zi to'lagan
+       * tadbirkor subsidiya olmaydi — unga bu kartani ko'rsatish uni
+       * yopiq yo'lga boshlagan bo'lardi.
        */}
-      <Card
-        onPress={() => router.push('/subsidy/online-mahalla')}
-        style={{ marginBottom: spacing.lg }}
-      >
-        <View style={styles.entryRow}>
-          <View style={styles.entryIcon}>
-            <Ionicons name="document-text-outline" size={22} color={colors.primary} />
+      {hideSubsidyEntry ? null : (
+        <Card
+          onPress={() => router.push('/subsidy/online-mahalla')}
+          style={{ marginBottom: spacing.lg }}
+        >
+          <View style={styles.entryRow}>
+            <View style={styles.entryIcon}>
+              <Ionicons name="document-text-outline" size={22} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={typography.label}>{t('mahalla.entry')}</Text>
+              <Text style={typography.caption}>online-mahalla.uz</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={typography.label}>{t('mahalla.entry')}</Text>
-            <Text style={typography.caption}>online-mahalla.uz</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-        </View>
-      </Card>
+        </Card>
+      )}
 
       <View style={styles.segment}>
         {(['eligible', 'all'] as Filter[]).map((f) => {

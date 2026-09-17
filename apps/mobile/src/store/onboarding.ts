@@ -29,6 +29,10 @@ export interface OnboardingDraft {
   houseNumber: string;
   contactPhone: string;
 
+  /* GPS — ixtiyoriy, ruxsat berilsa to'ladi */
+  latitude: number | null;
+  longitude: number | null;
+
   /* 7-8. faoliyat */
   activityType: ActivityType | null;
   craftCategoryId: string | null;
@@ -81,6 +85,8 @@ const EMPTY: OnboardingDraft = {
   street: '',
   houseNumber: '',
   contactPhone: '',
+  latitude: null,
+  longitude: null,
 
   activityType: null,
   craftCategoryId: null,
@@ -153,6 +159,8 @@ export const useOnboarding = create<OnboardingState>((set, get) => ({
         street: profile.street ?? '',
         houseNumber: profile.houseNumber ?? '',
         contactPhone: profile.contactPhone ?? phone,
+        latitude: profile.latitude ?? null,
+        longitude: profile.longitude ?? null,
 
         activityType: profile.activityType,
         craftCategoryId: profile.craftCategoryId,

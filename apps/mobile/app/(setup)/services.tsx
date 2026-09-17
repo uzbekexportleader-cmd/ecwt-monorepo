@@ -80,7 +80,7 @@ export default function ServicesStep() {
 
   return (
     <StepScreen
-      step={5}
+      step={6}
       backTo={'/(setup)/activity-details'}
       title={t('step.services')}
       onNext={() => void next()}

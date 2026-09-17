@@ -86,7 +86,7 @@ export default function LockScreen() {
   };
 
   return (
-    <SafeAreaView style={layout.screen}>
+    <SafeAreaView style={layout.screenClear}>
       <View style={styles.container}>
         <View style={styles.brand}>
           <View style={styles.mark}>

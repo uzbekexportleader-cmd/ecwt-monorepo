@@ -31,7 +31,7 @@ export default function PaymentStep() {
 
   return (
     <StepScreen
-      step={7}
+      step={8}
       backTo={'/(setup)/bank'}
       title={t('step.payment')}
       onNext={() => void next()}

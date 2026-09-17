@@ -69,8 +69,31 @@ export class ServicePaymentService {
     });
     if (existing) return existing;
 
+    /*
+     * Boshlang'ich holat TO'LOV YO'LIGA bog'liq.
+     *
+     * "O'zim to'layman" degan tadbirkor subsidiya OLMAYDI — unga
+     * "Subsidiya kutilmoqda" deb yozish va "Subsidiya keldi" tugmasini
+     * ko'rsatish xato bo'lardi: u kutadigan hech narsa yo'q. Unga
+     * rekvizitlar darhol ko'rsatiladi.
+     */
+    const profile = await this.prisma.artisanProfile.findUnique({
+      where: { userId },
+      select: { paymentMethod: true },
+    });
+    const selfPaid = profile?.paymentMethod === 'SELF';
+
     await this.prisma.servicePayment.create({
-      data: { userId, status: 'AWAITING_SUBSIDY' },
+      data: {
+        userId,
+        status: selfPaid ? 'AWAITING_TRANSFER' : 'AWAITING_SUBSIDY',
+        events: {
+          create: {
+            status: selfPaid ? 'AWAITING_TRANSFER' : 'AWAITING_SUBSIDY',
+            note: selfPaid ? 'Xizmat haqini o‘zi to‘laydi' : 'Subsidiya kutilmoqda',
+          },
+        },
+      },
     });
     return this.prisma.servicePayment.findUniqueOrThrow({
       where: { userId },

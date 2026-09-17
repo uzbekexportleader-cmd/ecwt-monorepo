@@ -9,6 +9,7 @@ import type { ServicePaymentStatus } from '@ecwt/types';
 
 import { Text } from '../src/components/AppText';
 import {
+  useProfile,
   useServicePayment,
   useSubmitPaymentProof,
   useSubsidyArrived,
@@ -43,6 +44,9 @@ const TONE: Record<ServicePaymentStatus, 'info' | 'warning' | 'success' | 'dange
 export default function PaymentScreen() {
   const t = useT();
   const payment = useServicePayment();
+  // To'lov yo'li: matn subsidiya yoki o'z hisobiga qarab o'zgaradi
+  const profile = useProfile();
+  const selfPaid = profile.data?.paymentMethod === 'SELF';
   const arrived = useSubsidyArrived();
   const upload = useUploadDocument();
   const submitProof = useSubmitPaymentProof();
@@ -152,7 +156,19 @@ export default function PaymentScreen() {
       <Text style={typography.h1}>{t('pay.title')}</Text>
 
       <View style={{ marginTop: spacing.md }}>
-        <InfoBanner text={t(`pay.st.${p.status}`)} tone={TONE[p.status]} />
+        {/*
+          O'zi to'laydigan tadbirkorga "Subsidiya keldi" deb yozib
+          bo'lmaydi — u subsidiya olmaydi. Unga faqat o'tkazma haqida
+          aytiladi.
+        */}
+        <InfoBanner
+          text={
+            p.status === 'AWAITING_TRANSFER' && selfPaid
+              ? t('pay.st.AWAITING_TRANSFER.self')
+              : t(`pay.st.${p.status}`)
+          }
+          tone={TONE[p.status]}
+        />
       </View>
 
       {p.reviewerNote ? (

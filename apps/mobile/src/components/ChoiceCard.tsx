@@ -3,7 +3,6 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Text } from './AppText';
-import { SelectionGlow } from './SelectionGlow';
 import { colors, radius, spacing, typography } from '../theme';
 
 /**
@@ -13,8 +12,13 @@ import { colors, radius, spacing, typography } from '../theme';
  * to'lov usuli, xizmatlar. Katta teginish maydoni va aniq belgilangan
  * tanlov — yoshi katta foydalanuvchi ham adashmasin.
  *
- * Tanlangach karta ostidan oltin nur ko'tariladi (Xush kelibsiz betidagi
- * kabi) — foydalanuvchi javobi qabul qilinganini darhol ko'radi.
+ * Tanlangani KO'K rang bilan ko'rsatiladi: chegara, fon, sarlavha va
+ * belgi — hammasi bir vaqtda.
+ *
+ * Ilgari bu yerda oltin nur yonardi. Qorong'i karta va video fon ustida
+ * u iflos sariq quti bo'lib ko'rinardi, foydalanuvchi uni xato deb
+ * o'yladi. Bundan tashqari har tanlangan karta uzluksiz animatsiya
+ * yuritardi va matn yozayotganda klaviatura sekinlashardi.
  */
 export function ChoiceCard({
   title,
@@ -52,9 +56,6 @@ export function ChoiceCard({
         pressed && styles.cardPressed,
       ]}
     >
-      {/* Nur matn va belgilar ORTIDA qoladi */}
-      <SelectionGlow selected={selected} />
-
       {icon ? (
         <View style={[styles.iconWrap, selected && styles.iconWrapSelected]}>
           <Ionicons name={icon} size={24} color={selected ? colors.primary : colors.textSecondary} />

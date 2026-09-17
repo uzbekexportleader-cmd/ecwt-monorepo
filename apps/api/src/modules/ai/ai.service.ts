@@ -16,6 +16,16 @@ export class AiService {
     @Inject(AI_PROVIDER) private readonly provider: AiProvider,
   ) {}
 
+  /**
+   * Haqiqiy AI xizmati ulanganmi.
+   *
+   * `mock` — kalit berilmagan, javoblar ilovaning o'z qoidalaridan
+   * tayyorlanadi. Ilova buni foydalanuvchiga ochiq aytadi.
+   */
+  status(): { connected: boolean; provider: string } {
+    return { connected: this.provider.name !== 'mock', provider: this.provider.name };
+  }
+
   async ask(userId: string, message: string): Promise<AiMessageDto> {
     const context = await this.buildContext(userId);
 

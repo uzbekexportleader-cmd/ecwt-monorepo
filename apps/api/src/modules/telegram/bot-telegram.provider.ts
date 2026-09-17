@@ -1,5 +1,4 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import sharp from 'sharp';
 
 import { ENV, type Env } from '../../config/env';
 import type { TelegramProvider, TelegramSendResult } from './telegram.provider';
@@ -12,8 +11,15 @@ import type { TelegramProvider, TelegramSendResult } from './telegram.provider';
  */
 const TELEGRAM_PHOTO_WIDTH = 480;
 
+/*
+ * `sharp` — mahalliy (native) kutubxona. Ba'zi serverlarda u umuman
+ * yuklanmaydi (eski CPU modelida tayyor fayl mos kelmaydi). Shuning uchun
+ * ilova ishga tushganda EMAS, faqat rasm kelganda yuklanadi: aks holda
+ * bitta rasm siqish kutubxonasi butun API ni ko'tarilmaydigan qilardi.
+ */
 async function shrinkForTelegram(photo: Buffer): Promise<Buffer> {
   try {
+    const { default: sharp } = await import('sharp');
     return await sharp(photo)
       .resize({ width: TELEGRAM_PHOTO_WIDTH, withoutEnlargement: true })
       .jpeg({ quality: 80 })

@@ -13,7 +13,7 @@ import { colors } from '../src/theme';
 import { useAuthStore } from '../src/store/auth';
 import { StartupSplash } from '../src/components/StartupSplash';
 import { VideoBackdropHost } from '../src/components/VideoBackdropHost';
-import { AiAssistantButton } from '../src/components/AiAssistantButton';
+import { AiAssistantButton, ASSISTANT_NAME } from '../src/components/AiAssistantButton';
 import { ToastHost } from '../src/components/Toast';
 import { OfflineBanner } from '../src/components/OfflineBanner';
 import { APP_FONTS } from '../src/fonts';
@@ -39,20 +39,23 @@ initMonitoring();
  * Bu qiymat esa ZAXIRA: video umuman yuklanmasa (fayl buzuq, xotira
  * yetishmadi) ekran abadiy turib qolmasligi uchun.
  *
- * MUHIM: bu chegara qisqa bo'lishi SHART. Ilgari dev rejimda 45 soniya
- * edi — video Metro'dan oqim bilan kelgani uchun. Natijada ilova har
- * ochilganda yarim daqiqagacha splash'da turib qolardi va odam "ilova
- * qotdi" deb o'ylardi. Video splash yopilgach ham fon sifatida davom
- * etadi, shuning uchun uni oxirigacha kutishning hojati yo'q.
+ * MUHIM: bu ZAXIRA chegara — oddiy holda splash video TUGAGANDA
+ * yopiladi (videoDone), bu chegarada emas. Shu sababli u videodan
+ * UZUNROQ bo'lishi kerak: splash videosi 8.04 soniya, ilgari bu yerda
+ * 6 soniya turardi va video oxirigacha ko'rsatilmay kesilib qolardi.
+ *
+ * Boshqa tomoni ham bor: ilgari dev rejimda 45 soniya edi va video
+ * yuklanmasa ilova yarim daqiqa splash'da qotib turardi. Shuning uchun
+ * chegara video uzunligidan sal ko'p — ortiqcha emas.
  */
-const VIDEO_FALLBACK_MS = 6_000;
+const VIDEO_FALLBACK_MS = 12_000;
 
 /**
  * Splash ekranida eng ko'p shuncha turadi. Shrift yoki server javob
  * bermay qolsa ham foydalanuvchi qulflanib qolmaydi — ilova baribir
  * ochiladi.
  */
-const MAX_SPLASH_MS = 9_000;
+const MAX_SPLASH_MS = 15_000;
 
 // Native splash'ni o'zimiz yopamiz — oq ekran chaqnab ketmasligi uchun
 void NativeSplash.preventAutoHideAsync().catch(() => undefined);
@@ -122,6 +125,8 @@ function StartupGate({ children }: { children: React.ReactNode }) {
    */
   const [videoDone, setVideoDone] = useState(false);
   const [showApp, setShowApp] = useState(false);
+  /** Splash ilova chizilgandan keyin ham qisqa muddat ustida turadi */
+  const [splashMounted, setSplashMounted] = useState(true);
   const appOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -182,10 +187,17 @@ function StartupGate({ children }: { children: React.ReactNode }) {
    */
   useEffect(() => {
     if (!startupDone) return;
-    const timer = setTimeout(() => {
-      setShowApp(true);
-      Animated.timing(appOpacity, { toValue: 1, duration: 360, useNativeDriver: true }).start();
-    }, 380);
+    /*
+     * Ilova DARHOL chiziladi — splash hali ustida turadi va uni yopib
+     * turadi. Ilgari bu yerda 380 ms kutilardi va splash o'sha zahoti
+     * yo'q bo'lardi: oralikda qora ekran ko'rinib, so'ng yozuvlar
+     * birin-ketin paydo bo'lardi.
+     */
+    setShowApp(true);
+    Animated.timing(appOpacity, { toValue: 1, duration: 320, useNativeDriver: true }).start();
+
+    // Splash so'nib bo'lgach (420 ms) uni olib tashlaymiz
+    const timer = setTimeout(() => setSplashMounted(false), 700);
     return () => clearTimeout(timer);
   }, [startupDone, appOpacity]);
 
@@ -228,6 +240,14 @@ function StartupGate({ children }: { children: React.ReactNode }) {
 
     // D) Sessiya yo'q yoki tugagan
     if (!user) {
+      /*
+       * AI yordamchi kirishdan oldin ham ochiladi. Savolga javob bera
+       * olmaydi — server so'rovi sessiya talab qiladi — lekin ekranning
+       * o'zi buni tushuntiradi va ro'yxatdan o'tishga yo'naltiradi.
+       * Busiz tugma bosilganda hech narsa bo'lmasdi.
+       */
+      if (path === 'assistant') return;
+
       if (!inAuth || path === '(auth)/lock') {
         router.replace(seenWelcome ? '/(auth)/phone' : '/(auth)/welcome');
       }
@@ -240,9 +260,35 @@ function StartupGate({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    /*
+     * Sozlamalar har qanday bosqichda ochiq turishi kerak — til almashtirish,
+     * chiqish va hisob ma'lumotlari o'sha yerda. Busiz anketa davomida
+     * quyidagi `!inSetup` sharti foydalanuvchini darhol anketaga qaytarib
+     * yuborardi va tepadagi tishli g'ildirak tugmasi ishlamasdi.
+     *
+     * Qulf va sessiya tekshiruvlaridan KEYIN turibdi: qulflangan yoki
+     * kirmagan foydalanuvchi bu yerga baribir yeta olmaydi.
+     */
+    if (path === 'settings') return;
+
+    /*
+     * AI yordamchi ham har bosqichda ochiq. Kirishdan oldin u savolga
+     * javob bera olmaydi (server so'rovi sessiya talab qiladi) — ekranning
+     * o'zi buni tushuntiradi. Muhimi, tugma bosilganda hech narsa
+     * bo'lmasdan qolmasin.
+     */
+    if (path === 'assistant') return;
+
     // Yuz tekshiruvi va biometrikani sozlash ekranlari ro'yxatdan o'tishning
     // bir qismi — foydalanuvchi javob bermaguncha ularni bosib o'tmaymiz.
-    if (path === '(auth)/face-id' || path === '(auth)/biometric-setup') return;
+    if (
+      path === '(auth)/face-id' ||
+      path === '(auth)/biometric-setup' ||
+      // Parol o'rnatish ham ro'yxatdan o'tishning bir qismi — o'tkazib yubormaymiz
+      path === '(auth)/password-setup'
+    ) {
+      return;
+    }
 
     // Server javobini kutamiz — noto'g'ri ekranga sakrab o'tmaylik
     if (!onboardingChecked) return;
@@ -299,9 +345,12 @@ function StartupGate({ children }: { children: React.ReactNode }) {
 
       {showApp ? (
         <Animated.View style={{ flex: 1, opacity: appOpacity }}>{children}</Animated.View>
-      ) : (
+      ) : null}
+
+      {/* Splash ilovaning USTIDA — u so'nguncha ostidagi ekran tayyor bo'ladi */}
+      {splashMounted ? (
         <StartupSplash visible={!startupDone} onVideoEnd={() => setVideoDone(true)} />
-      )}
+      ) : null}
     </View>
   );
 }
@@ -357,8 +406,19 @@ export default function RootLayout() {
                   headerTintColor: colors.text,
                   headerTitleStyle: { fontWeight: '600' },
                   headerShadowVisible: false,
-                  contentStyle: { backgroundColor: colors.bg },
-                  animation: 'slide_from_right',
+                  /*
+                    Barcha ekranlar SHAFFOF — fon videosi ilovaning hamma
+                    betida ko'rinadi. Ilgari faqat ikki guruh istisno
+                    qilingan edi va qolgan betlar (kabinet, profil) fonsiz
+                    qolib, boshqa ilovaga tushgandek tuyulardi.
+
+                    Shaffof ekranlarda animatsiya `fade` bo'lishi SHART:
+                    `slide_from_right` bilan ikki shaffof ekran bir-birining
+                    ustidan sirpanadi va o'tish paytida ikkalasi ham ko'rinib
+                    turadi — ekranning yarmi qotib qolgandek tuyuladi.
+                  */
+                  contentStyle: CLEAR,
+                  animation: 'fade',
                 }}
               >
                 {/*
@@ -399,7 +459,7 @@ export default function RootLayout() {
                 <Stack.Screen name="products/new" options={{ title: 'Mahsulot qo‘shish' }} />
                 <Stack.Screen name="products/[id]" options={{ title: 'Mahsulot' }} />
                 <Stack.Screen name="notifications" options={{ title: 'Bildirishnomalar' }} />
-                <Stack.Screen name="assistant" options={{ title: 'ECWT yordamchisi', contentStyle: CLEAR }} />
+                <Stack.Screen name="assistant" options={{ title: ASSISTANT_NAME, contentStyle: CLEAR }} />
                 <Stack.Screen name="services" options={{ title: 'ECWT xizmatlari' }} />
                 <Stack.Screen name="about" options={{ title: 'Biz haqimizda', contentStyle: CLEAR }} />
                 <Stack.Screen name="payment" options={{ title: 'Xizmat to‘lovi', contentStyle: CLEAR }} />

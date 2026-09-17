@@ -23,6 +23,17 @@ export class AiController {
     return this.service.ask(userId, body.message);
   }
 
+  @Get('status')
+  @ApiOperation({ summary: 'AI xizmati ulanganmi' })
+  status(): { connected: boolean; provider: string } {
+    /*
+     * Ilova "kalit ulanmagan" ogohlantirishini SHU javobga qarab
+     * ko'rsatadi. Matn qo'lda yozilsa, kalit ulangach uni o'chirish
+     * esdan chiqib, foydalanuvchiga yolg'on ma'lumot qolib ketardi.
+     */
+    return this.service.status();
+  }
+
   @Get('history')
   @ApiOperation({ summary: 'Suhbat tarixi' })
   history(@CurrentUser('sub') userId: string): Promise<AiMessageDto[]> {

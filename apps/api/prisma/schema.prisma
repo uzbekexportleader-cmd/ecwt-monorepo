@@ -60,6 +60,8 @@ enum PaymentMethod {
 enum OnboardingStage {
   PERSONAL
   ADDRESS
+  /// Turgan joyni GPS orqali belgilash
+  LOCATION
   ACTIVITY_TYPE
   ACTIVITY_DETAILS
   SERVICES

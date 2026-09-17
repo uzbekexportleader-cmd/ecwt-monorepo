@@ -13,6 +13,7 @@ import { useT } from '../../src/i18n';
 const ROUTE: Record<OnboardingStage, string> = {
   PERSONAL: '/(setup)/personal',
   ADDRESS: '/(setup)/address',
+  LOCATION: '/(setup)/location',
   ACTIVITY_TYPE: '/(setup)/activity',
   ACTIVITY_DETAILS: '/(setup)/activity-details',
   SERVICES: '/(setup)/services',

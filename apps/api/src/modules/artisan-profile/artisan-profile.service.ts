@@ -478,10 +478,11 @@ export class ArtisanProfileService {
 
 /* --------------------- bosqich ketma-ketligini tekshirish --------------------- */
 
-/** `OnboardingStage` bilan bir xil tartibda — mobil ilovadagi 9 ta qadamga mos */
+/** `OnboardingStage` bilan bir xil tartibda — mobil ilovadagi qadamlarga mos */
 export const STAGE_ORDER = [
   'PERSONAL',
   'ADDRESS',
+  'LOCATION',
   'ACTIVITY_TYPE',
   'ACTIVITY_DETAILS',
   'SERVICES',
@@ -497,6 +498,7 @@ export type Stage = (typeof STAGE_ORDER)[number];
 const STAGE_LABEL: Record<Stage, string> = {
   PERSONAL: 'Shaxsiy ma’lumotlar',
   ADDRESS: 'Manzil',
+  LOCATION: 'Ish joyi (GPS)',
   ACTIVITY_TYPE: 'Faoliyat turi',
   ACTIVITY_DETAILS: 'Faoliyat tafsilotlari',
   SERVICES: 'Xizmat tanlash',
@@ -551,6 +553,12 @@ function stageRequirementError(stage: Stage, p: ProfileFieldsSnapshot): string |
       if (!p.region || !p.district || !p.mahalla || !p.street || !p.houseNumber) {
         return 'viloyat, tuman, mahalla, ko‘cha va uy raqamini to‘ldiring';
       }
+      return null;
+    case 'LOCATION':
+      /*
+       * GPS majburiy EMAS: signal yetmasligi yoki ruxsat berilmasligi
+       * mumkin. Ro'yxatdan o'tish shu sababli to'xtamasligi kerak.
+       */
       return null;
     case 'ACTIVITY_TYPE':
       if (!p.activityType) return 'faoliyat turini tanlang';
